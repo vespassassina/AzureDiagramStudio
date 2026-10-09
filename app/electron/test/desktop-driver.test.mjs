@@ -127,3 +127,27 @@ test('should_queue_debugger_events_when_pause_arrives_before_waiter', async () =
   assert.deepEqual(await transport.event('Debugger.paused'), { callFrames: [] })
   transport.dispose()
 })
+
+test('should_apply_chromium_offline_state_before_reloading_the_packaged_window', async () => {
+  const calls = []
+  const page = {
+    waitForURL: async (url, options) => { calls.push(['ready', url, options]) },
+    reload: async options => { calls.push(['reload', options]) },
+  }
+  const context = {
+    setOffline: async offline => { calls.push(['offline', offline]) },
+    pages: () => [page],
+    newCDPSession: async selected => {
+      assert.equal(selected, page)
+      return { send: async (method, params) => { calls.push(['cdp', method, params]) } }
+    },
+  }
+  assert.equal(await driver.offlineWindow(context, 5000), page)
+  assert.deepEqual(calls, [
+    ['ready', 'ads://studio/', { waitUntil: 'domcontentloaded', timeout: 5000 }],
+    ['offline', true],
+    ['reload', { waitUntil: 'domcontentloaded', timeout: 5000 }],
+    ['cdp', 'Network.enable', undefined],
+    ['cdp', 'Network.overrideNetworkState', { offline: true, latency: 0, downloadThroughput: -1, uploadThroughput: -1 }],
+  ])
+})

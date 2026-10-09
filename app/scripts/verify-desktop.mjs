@@ -17,7 +17,7 @@ const architectures = requestedArchitecture ? [requestedArchitecture] : ['arm64'
 const vendors = JSON.parse(await readFile(path.join(root, 'src/vendor-icons/catalog.generated.json'), 'utf8'))
 const microsoft = JSON.parse(await readFile(path.join(root, 'src/microsoft-icons/catalog.generated.json'), 'utf8'))
 const registry = [...vendors, ...microsoft]
-const report = { host: { platform: os.platform(), architecture: os.arch(), node: process.version }, targets: [], limitations: ['Unsigned executables may trigger SmartScreen. Native Windows save-dialog appearance requires manual inspection; automation checks its options and saves the resulting DownloadItem.'], passed: false }
+const report = { startedAt: new Date().toISOString(), sourceCommit: (await execute('git', ['-C', root, 'rev-parse', 'HEAD'])).stdout.trim(), driverSha256: createHash('sha256').update(await readFile(path.join(root, 'scripts', 'desktop-driver.mjs'))).digest('hex'), host: { platform: os.platform(), architecture: os.arch(), node: process.version }, targets: [], limitations: ['Unsigned executables may trigger SmartScreen. Native Windows save-dialog appearance requires manual inspection; automation checks its options and saves the resulting DownloadItem.'], passed: false }
 await mkdir(output, { recursive: true })
 
 async function saved(page) {
@@ -68,7 +68,8 @@ async function launch(executable, appData, target) {
   const page = await application.firstWindow()
   page.setDefaultTimeout(30_000)
   const errors = []
-  application.diagnostics.renderer = { errors, failedRequests: [], consoleErrors: [] }
+  application.diagnostics.renderer = { errors, failedRequests: [], consoleErrors: [], externalRequests: [] }
+  page.on('request', request => { if (/^(?:https?|wss?):/i.test(request.url())) application.diagnostics.renderer.externalRequests.push(request.url()) })
   page.on('pageerror', error => { if (!error.message.startsWith('ResizeObserver loop')) errors.push(error.message) })
   page.on('requestfailed', request => application.diagnostics.renderer.failedRequests.push({ url: request.url(), error: request.failure()?.errorText }))
   page.on('console', message => { if (message.type() === 'error') application.diagnostics.renderer.consoleErrors.push(message.text()) })
@@ -85,6 +86,7 @@ async function launch(executable, appData, target) {
   assert.equal(identity.packaged, true)
   assert.equal(identity.arch, target.architecture)
   assert.equal(identity.name, 'Azure Diagram Studio')
+  assert.equal(createHash('sha256').update(await readFile(path.join(path.dirname(identity.executable), 'resources', 'app.asar'))).digest('hex'), target.bundle.sha256, 'Extracted portable runtime must match the verified final ASAR')
   assert.equal(path.basename(identity.profile), 'AzureDiagramStudio')
   assert.ok(identity.profile.toLowerCase().startsWith(appData.toLowerCase()), 'Tests must not modify the real Windows user profile')
   assert.equal(identity.preferences.sandbox, true)
@@ -95,7 +97,10 @@ async function launch(executable, appData, target) {
   assert.equal(await page.title(), 'Azure Diagram Studio')
   assert.deepEqual(await page.evaluate(() => ({ process: typeof process, require: typeof require, Buffer: typeof Buffer, secure: isSecureContext, locks: typeof navigator.locks, idb: typeof indexedDB })), { process: 'undefined', require: 'undefined', Buffer: 'undefined', secure: true, locks: 'object', idb: 'object' })
   assert.equal(await page.evaluate(() => navigator.onLine), false)
-  target.offline = { enabledBeforeFirstNavigation: true, navigatorOnline: false, customOrigin: page.url() }
+  target.offline = { enabledBeforeFirstNavigation: true, requestEmulationBeforeReload: true, explicitChromiumStateAfterReload: true, navigatorOnline: false, customOrigin: page.url() }
+  target.font = await page.evaluate(() => ({ family: getComputedStyle(document.body).fontFamily, loaded: document.fonts.check('14px "IBM Plex Sans"') }))
+  assert.match(target.font.family, /IBM Plex Sans/)
+  assert.equal(target.font.loaded, true)
   target.runtime = identity
   return { application, page, errors }
   } catch (error) {
@@ -140,6 +145,7 @@ async function upload(page, file, name) {
 
 async function featureChecks(application, page, architecture, target) {
   target.initialTheme = await page.evaluate(() => ({ systemDark: matchMedia('(prefers-color-scheme: dark)').matches, selected: document.documentElement.dataset.theme }))
+  assert.equal(target.initialTheme.selected, target.initialTheme.systemDark ? 'dark' : 'light')
   if (await page.getByRole('button', { name: 'Switch to light theme', exact: true }).isVisible()) await page.getByRole('button', { name: 'Switch to light theme', exact: true }).click()
   await page.getByRole('button', { name: 'New diagram', exact: true }).click()
   await page.waitForFunction(() => document.querySelectorAll('.react-flow__node').length === 0)
@@ -159,18 +165,35 @@ async function featureChecks(application, page, architecture, target) {
     return ['image/png', 'image/jpeg', 'image/webp'].map(mime => ({ mime, data: canvas.toDataURL(mime).split(',')[1] }))
   })
   const files = rasters.map(({ mime, data }) => ({ name: `native.${mime === 'image/jpeg' ? 'jpg' : mime.split('/')[1]}`, mimeType: mime, buffer: Buffer.from(data, 'base64') }))
-  files.push({ name: 'native.gif', mimeType: 'image/gif', buffer: Buffer.from('R0lGODdhAQABAIAAAP8AAP///ywAAAAAAQABAAACAkQBADs=', 'base64') })
+  files.push({ name: 'native.gif', mimeType: 'image/gif', buffer: Buffer.from('47494638396101000100800000ff00000000ff21f904000a0000002c000000000100010000020244010021f904000a0000002c00000000010001000002024c01003b', 'hex') })
   for (const file of files) {
     await upload(page, file, 'Replace component icon')
     const replaced = await durable(page)
     assert.equal(replaced.entities[0].customIcon.name, file.name)
     assert.ok(replaced.entities[0].customIcon.width <= 512 && replaced.entities[0].customIcon.height <= 512)
+    if (file.mimeType === 'image/gif') {
+      target.gifFirstFrame = await page.evaluate(async dataUrl => {
+        const image = new Image(); image.src = dataUrl; await image.decode()
+        const canvas = document.createElement('canvas'); canvas.width = 1; canvas.height = 1
+        const context = canvas.getContext('2d'); context.drawImage(image, 0, 0)
+        return [...context.getImageData(0, 0, 1, 1).data]
+      }, replaced.entities[0].customIcon.dataUrl)
+      assert.deepEqual(target.gifFirstFrame, [255, 0, 0, 255])
+    }
     await page.getByRole('button', { name: 'Undo', exact: true }).click()
     assert.deepEqual(await durable(page), created)
   }
   await upload(page, { name: 'unsafe.svg', mimeType: 'image/svg+xml', buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>') }, 'Replace component icon')
   assert.match(await page.getByRole('status').textContent(), /Could not import image/)
   assert.deepEqual(await durable(page), created)
+  await page.keyboard.press('Control+c')
+  await page.getByRole('button', { name: 'New diagram', exact: true }).click()
+  await page.waitForFunction(() => document.querySelectorAll('.react-flow__node').length === 0)
+  await page.keyboard.press('Control+v')
+  await page.waitForFunction(() => document.querySelectorAll('.react-flow__node').length === 1)
+  const pasted = await durable(page)
+  assert.deepEqual(pasted.entities[0].customIcon, custom.customIcon)
+  target.customClipboard = { crossDocument: true, normalizedPngPreserved: true }
   target.imports = ['SVG rasterized to 512x256 PNG', 'PNG', 'JPEG/JPG', 'GIF still', 'WebP', 'Unsafe SVG rejected atomically']
   const mixed = { ...created, title: `Offline integrated ${architecture}`, synthetic: true, legendVisible: false, entities: [
     ...registry.map((item, index) => ({ id: item.icon, kind: 'component', label: item.label, subtitle: item.subtitle, icon: item.icon, color: item.color, parentId: null, layer: 'foreground', width: 220, height: 120, x: index % 4 * 250, y: Math.floor(index / 4) * 140 })),
@@ -245,7 +268,7 @@ async function featureChecks(application, page, architecture, target) {
     assert.ok(content.text.length > 100)
   }
   target.theme = { documentUnchanged: true, exportsByteIdentical: true, persistedAfterMove: false }
-  target.checks.push('Five native file-input formats, 512px SVG normalization, atomic unsafe rejection and undo', '17 vendor + 14 Microsoft + custom icon slots visible in both exports; honest classification/search', 'Light/dark screenshots, unchanged document/export bytes and local feature/license notices')
+  target.checks.push('Five native file-input formats, animated GIF red first frame, 512px SVG normalization, atomic unsafe rejection, undo and cross-document custom clipboard', '17 vendor + 14 Microsoft + custom icon slots visible in both exports; honest classification/search', 'Light/dark screenshots, unchanged document/export bytes and local feature/license notices')
   return mixed
 }
 
@@ -260,15 +283,18 @@ try {
     target.artifact = { filename: path.basename(portable), bytes: artifact.size, modified: artifact.mtime.toISOString(), sha256: createHash('sha256').update(await readFile(portable)).digest('hex'), qualification: 'Current integrated final build; passed only after runtime checks and cleanup' }
     const packagedRoot = path.join(root, 'release', architecture === 'arm64' ? 'win-arm64-unpacked' : 'win-unpacked')
     const archive = path.join(packagedRoot, 'resources', 'app.asar')
+    target.bundle = { bytes: (await stat(archive)).size, sha256: createHash('sha256').update(await readFile(archive)).digest('hex'), compiledFilesCompared: 0 }
     const files = listPackage(archive).map(name => name.replaceAll('\\', '/'))
     assert.ok(files.every(name => /^\/(?:dist|electron)(?:\/|$)/.test(name) || name === '/package.json'))
     assert.ok(!files.some(name => /node_modules|\.test\.|\/src\/|\.env|\.git|test-results|cache/i.test(name)))
     for (const resource of ['dist/branding/app-icon.ico', 'dist/THIRD-PARTY-NOTICES.md', 'dist/VENDOR-NOTICES.md', 'dist/MICROSOFT-APP-NOTICES.md', 'dist/licenses/DOMPurify-LICENSE.txt', 'dist/licenses/IBM-Plex-OFL.txt', 'electron/main.mjs']) assert.ok(extractFile(archive, resource.replaceAll('/', path.sep)).length > 10)
+    for (const name of ['main.mjs', 'policy.mjs', 'protocol.mjs', 'security.mjs']) assert.deepEqual(extractFile(archive, path.join('electron', name)), await readFile(path.join(root, 'electron', name)), `Stale packaged shell: ${name}`)
     for (const file of await readdir(path.join(root, 'dist'), { recursive: true, withFileTypes: true })) {
       if (!file.isFile()) continue
       const absolute = path.join(file.parentPath, file.name)
       const relative = path.relative(path.join(root, 'dist'), absolute)
       assert.deepEqual(extractFile(archive, path.join('dist', relative)), await readFile(absolute), `Stale compiled asset: ${relative}`)
+      target.bundle.compiledFilesCompared++
     }
     assert.ok(files.some(name => /elk-worker.*\.js$/.test(name)))
     assert.ok(files.some(name => /plex-sans.*\.ttf$/.test(name)))
@@ -276,11 +302,13 @@ try {
     target.checks.push('ASAR allowlist, branding, worker, font, MIT/Chromium/font/icon notices')
     const appData = await mkdtemp(path.join(output, `profile-${architecture}-`))
     let application
+    let lastPage
     try {
       console.log(`VERIFY ${architecture}: existing portable ${portable}; isolated profile ${appData}`)
       let launched = await launch(portable, appData, target)
       application = launched.application
       const page = launched.page
+      lastPage = page
       target.checks.push('Actual portable launcher, packaged runtime, offline emulation, secure origin, no Node globals')
       const initial = await durable(page)
       await editTitle(page, `Desktop offline ${architecture}`)
@@ -338,24 +366,41 @@ try {
       target.checks.push('New diagram and native file-input JSON Open')
       const finalDocument = await featureChecks(application, page, architecture, target)
       assert.deepEqual(launched.errors, [])
+      assert.deepEqual(application.diagnostics.renderer.externalRequests, [])
       await application.close(); application = undefined
       const moved = path.join(output, `moved-${architecture}`, path.basename(portable))
       await mkdir(path.dirname(moved), { recursive: true })
       await cp(portable, moved)
       launched = await launch(moved, appData, target)
       application = launched.application
+      lastPage = launched.page
       assert.deepEqual(await durable(launched.page), finalDocument)
       assert.equal(await launched.page.getByRole('button', { name: 'Switch to light theme', exact: true }).isVisible(), true)
       target.theme.persistedAfterMove = true
       await launched.page.screenshot({ path: path.join(output, `${architecture}-moved-relaunched-dark.png`) })
       target.checks.push('Autosave survives close/relaunch after moving portable executable')
       assert.deepEqual(launched.errors, [])
+      assert.deepEqual(application.diagnostics.renderer.externalRequests, [])
+      await launched.page.getByRole('button', { name: 'Switch to light theme', exact: true }).click()
+      assert.deepEqual(await durable(launched.page), finalDocument)
+      await application.close(); application = undefined
+      launched = await launch(portable, appData, target)
+      application = launched.application
+      lastPage = launched.page
+      assert.deepEqual(await durable(launched.page), finalDocument)
+      assert.equal(await launched.page.getByRole('button', { name: 'Switch to dark theme', exact: true }).isVisible(), true)
+      await launched.page.screenshot({ path: path.join(output, `${architecture}-relaunched-light.png`) })
+      target.theme.lightAndDarkPersistedAfterRelaunch = true
+      target.checks.push('Both light and dark preferences survive close/relaunch without document changes')
+      assert.deepEqual(launched.errors, [])
+      assert.deepEqual(application.diagnostics.renderer.externalRequests, [])
       target.passed = true
       console.log(`PASS ${architecture}: ${target.checks.join('; ')}`)
     } catch (error) {
       target.error = error.stack
       if (error.cleanupError) target.cleanupError = error.cleanupError
       if (error.diagnostics) target.sessions.push(error.diagnostics)
+      if (lastPage) try { await lastPage.screenshot({ path: path.join(output, `${architecture}-failure.png`), timeout: 5000 }) } catch (screenshotError) { target.failureScreenshotError = screenshotError.message }
       console.error(`FAIL ${architecture}: ${error.message}`)
     } finally {
       if (application) try { await application.close() } catch (error) { target.cleanupError = error.stack; target.passed = false }
@@ -371,7 +416,12 @@ try {
     }
     if (architectures.length === 2) await writeFile(path.join(root, 'release', 'SHA256SUMS.json'), JSON.stringify({ generatedAt: new Date().toISOString(), host: report.host, artifacts: report.targets.map(target => ({ architecture: target.architecture, execution: target.execution, ...target.artifact })) }, null, 2) + '\n')
   }
+} catch (error) {
+  report.passed = false
+  report.error = error.stack
+  throw error
 } finally {
+  report.completedAt = new Date().toISOString()
   await writeFile(path.join(output, 'desktop-report.json'), JSON.stringify(report, null, 2) + '\n')
 }
 if (!report.passed) process.exitCode = 1

@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises'
 import { test } from 'node:test'
 import { secureSession, secureWindow } from '../security.mjs'
 import config from '../../electron-builder.config.cjs'
+import { compute7zCompressArgs } from 'app-builder-lib/out/targets/archive.js'
 
 test('should_deny_permissions_and_remote_requests_in_the_electron_session', () => {
   const callbacks = {}
@@ -75,4 +76,8 @@ test('should_use_stable_profile_by_default_and_standard_explicit_test_profile_sw
   assert.match(source, /app\.commandLine\.getSwitchValue\('user-data-dir'\)/)
   assert.match(source, /app\.getPath\('appData'\)/)
   assert.match(source, /PROFILE_NAME/)
+})
+
+test('should_avoid_native_arm64_archive_filters_when_building_nsis_portables', () => {
+  assert.ok(compute7zCompressArgs('7z', { compression: config.compression }).includes('-mx=0'))
 })

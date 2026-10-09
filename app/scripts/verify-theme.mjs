@@ -103,7 +103,7 @@ try {
       await inspect(page, `${label}-dark-menu`, viewport)
       await page.getByRole('button', { name: 'Close export menu' }).click()
       if (viewport.width <= 640) await page.getByRole('button', { name: 'Open component library' }).click()
-      const computeGroup = page.getByRole('button', { name: /Azure: Compute & Apps/ })
+      const computeGroup = page.getByRole('button', { name: 'Azure / Microsoft: Compute & Apps (10)', exact: true })
       if (await computeGroup.getAttribute('aria-expanded') !== 'true') await computeGroup.click()
       await page.getByLabel('Search components').fill('App Service')
       await inspect(page, `${label}-dark-library`, viewport)

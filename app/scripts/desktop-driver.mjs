@@ -163,6 +163,17 @@ async function freePort() {
   return port
 }
 
+export async function offlineWindow(context, timeout) {
+  const page = context.pages()[0] ?? await context.waitForEvent('page', { timeout })
+  await page.waitForURL('ads://studio/', { waitUntil: 'domcontentloaded', timeout })
+  await context.setOffline(true)
+  await page.reload({ waitUntil: 'domcontentloaded', timeout })
+  const network = await context.newCDPSession(page)
+  await network.send('Network.enable')
+  await network.send('Network.overrideNetworkState', { offline: true, latency: 0, downloadThroughput: -1, uploadThroughput: -1 })
+  return page
+}
+
 // Portable NSIS launchers detach instead of forwarding Electron's stderr.
 // Attach to test-supplied loopback ports, never add an inspector in the shell.
 export async function launchDesktop({ executablePath, cwd, env, profileRoot, timeout = 60_000 }) {
@@ -177,6 +188,7 @@ export async function launchDesktop({ executablePath, cwd, env, profileRoot, tim
   child.on('error', error => { spawnError = error })
   const owned = new Map()
   const diagnostics = { executablePath, profileRoot, launcherPid: child.pid, inspectorPort, browserPort, targets: [], processes: [], cleanup: [] }
+  child.once('exit', (code, signal) => { diagnostics.launcherExit = { code, signal }; diagnostics.launcherOutput = log })
   let socket, transport, browser, electronObject
   let cleaned = false
   const deadline = Date.now() + timeout
@@ -244,7 +256,7 @@ export async function launchDesktop({ executablePath, cwd, env, profileRoot, tim
       }
       if (!transport) await delay(100)
     }
-    if (!transport) throw new Error(`Portable Electron main inspector did not open: ${log}`)
+    if (!transport) throw new Error(`Portable Electron main inspector did not open; launcher exit ${JSON.stringify(diagnostics.launcherExit ?? 'still running')}: ${log}`)
     electronObject = await captureMainExports(transport, profileRoot)
     await evaluate(({ app }) => app.whenReady().then(() => true))
     const runtime = await evaluate(() => ({ pid: process.pid, type: process.type, executable: process.execPath, versions: process.versions, argv: process.argv }))
@@ -257,7 +269,7 @@ export async function launchDesktop({ executablePath, cwd, env, profileRoot, tim
     const context = browser.contexts()[0]
     return {
       evaluate, diagnostics,
-      async firstWindow() { return context.pages()[0] ?? await context.waitForEvent('page', { timeout: Math.max(1, deadline - Date.now()) }) },
+      async firstWindow() { return offlineWindow(context, Math.max(1, deadline - Date.now())) },
       async close() {
         await evaluate(({ app }) => { setImmediate(() => app.quit()); return true }).catch(() => {})
         await cleanup()
