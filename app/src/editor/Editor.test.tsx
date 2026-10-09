@@ -1,0 +1,592 @@
+// @vitest-environment jsdom
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { EditorProps } from '../contracts.ts'
+import { createDocument, sampleDiagram } from '../model.ts'
+import { allLibraryItems, genericLibrary } from '../catalog.ts'
+import { isSelectableIcon, menuGroups, searchGroups, selectionLibrary } from '../catalog/presentation.ts'
+import { iconFixture } from '../custom-icons/test-fixtures.ts'
+import { importCustomIcon } from '../custom-icons/import.ts'
+
+vi.mock('../custom-icons/import.ts', () => ({ importCustomIcon: vi.fn() }))
+
+const flow = vi.hoisted(() => ({ props: {} as Record<string, any> }))
+vi.mock('../scene.ts', async importOriginal => {
+  const scene = await importOriginal<typeof import('../scene.ts')>()
+  return { ...scene, buildScene: vi.fn(scene.buildScene), entityMarkup: vi.fn(scene.entityMarkup), connectionMarkup: vi.fn(scene.connectionMarkup) }
+})
+vi.mock('@xyflow/react', () => ({
+  ReactFlowProvider: ({ children }: any) => children,
+  ReactFlow: (props: any) => { flow.props = props; const Tile = props.nodeTypes.architecture; const Link = props.edgeTypes.architecture; return <div data-testid="flow"><button onClick={() => props.onPaneClick({ clientX: 83, clientY: 99 })}>Canvas point</button>{props.nodes.map((node: any) => <div key={node.id} data-testid={`tile-${node.id}`}><button onClick={(event) => { props.onNodesChange([{ type: 'select', id: node.id, selected: true }]); props.onNodeClick(event, node) }}>{node.id}</button><Tile {...node} /></div>)}<svg>{props.edges.map((edge: any) => <g key={edge.id} data-testid={`link-${edge.id}`}><Link {...edge} /></g>)}</svg>{props.edges.map((edge: any) => <button key={edge.id} onClick={(event) => props.onEdgeClick(event, edge)}>{edge.id}</button>)}{props.children}</div> },
+  Background: () => null, BackgroundVariant: { Dots: 'dots' },
+  Handle: (props: any) => <span aria-label={props['aria-label']} data-connectable={props.isConnectable} />,
+  NodeResizer: (props: any) => <span data-testid="resizer" data-visible={props.isVisible} data-min-width={props.minWidth} data-min-height={props.minHeight} onMouseDown={props.onResizeStart} />,
+  Position: { Top: 'top', Right: 'right', Bottom: 'bottom', Left: 'left' }, ConnectionMode: { Loose: 'loose' },
+  useReactFlow: () => ({ fitView: vi.fn(), screenToFlowPosition: (point: any) => point, zoomIn: vi.fn(), zoomOut: vi.fn() }),
+}))
+import Editor from './Editor.tsx'
+import { buildScene, connectionMarkup, entityMarkup } from '../scene.ts'
+
+function setup(overrides: Partial<EditorProps> = {}) {
+  const props: EditorProps = { document: createDocument('blank'), canUndo: true, canRedo: true, readOnly: false, saveState: 'saved', backupDirty: true, message: '', isArranging: false, isExporting: false, onCommand: vi.fn(), onUndo: vi.fn(), onRedo: vi.fn(), onNew: vi.fn(), onOpen: vi.fn(), onImport: vi.fn(), onSaveJson: vi.fn(), onArrange: vi.fn(), onExport: vi.fn(), onPreviewChange: vi.fn(), ...overrides }
+  const view = render(<Editor {...props} />)
+  return { props, ...view }
+}
+function normalizedSvg(markup: string) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  svg.innerHTML = markup
+  return svg.innerHTML
+}
+afterEach(() => { cleanup(); vi.clearAllMocks() })
+
+describe('controlled editor', () => {
+  it('should_replace_selected_artwork_atomically_when_import_finishes', async () => {
+    const { props } = setup({ document: sampleDiagram() })
+    const customIcon = iconFixture()
+    vi.mocked(importCustomIcon).mockResolvedValueOnce(customIcon)
+    fireEvent.click(screen.getByText('gateway'))
+    await act(async () => fireEvent.change(screen.getByLabelText('Import icon file'), { target: { files: [new File(['image'], 'icon.png', { type: 'image/png' })] } }))
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'updateEntity', id: 'gateway', patch: { customIcon } })
+    expect(props.onArrange).not.toHaveBeenCalled()
+  })
+  it('should_create_a_component_when_import_finishes_without_selection', async () => {
+    const { props } = setup()
+    const customIcon = iconFixture()
+    vi.mocked(importCustomIcon).mockResolvedValueOnce(customIcon)
+    await act(async () => fireEvent.change(screen.getByLabelText('Import icon file'), { target: { files: [new File(['image'], 'icon.png')] } }))
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'addEntity', entity: expect.objectContaining({ kind: 'component', label: customIcon.name, icon: 'service', customIcon, width: 220 }) })
+    expect(props.onArrange).not.toHaveBeenCalled()
+  })
+  it.each(['document', 'selection', 'readonly', 'same-revision-replacement', 'pending-preview'])('should_not_apply_async_import_when_%s_changes', async reason => {
+    const { props, rerender } = setup({ document: sampleDiagram() })
+    let resolve!: (value: ReturnType<typeof iconFixture>) => void
+    vi.mocked(importCustomIcon).mockReturnValueOnce(new Promise(complete => { resolve = complete }))
+    fireEvent.click(screen.getByText('gateway'))
+    fireEvent.change(screen.getByLabelText('Import icon file'), { target: { files: [new File(['image'], 'icon.png')] } })
+    if (reason === 'selection') fireEvent.click(screen.getByText('app'))
+    else if (reason === 'readonly') rerender(<Editor {...props} readOnly />)
+    else if (reason === 'pending-preview') fireEvent.change(screen.getByLabelText('Component label'), { target: { value: 'Intervening edit' } })
+    else rerender(<Editor {...props} document={{ ...props.document, revision: reason === 'document' ? 1 : props.document.revision }} />)
+    await act(async () => resolve(iconFixture()))
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(screen.getByRole('status').textContent).toContain('Import again')
+  })
+  it('should_preserve_artwork_when_import_fails_or_file_dialog_is_cancelled', async () => {
+    const { props } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('gateway'))
+    fireEvent.change(screen.getByLabelText('Import icon file'), { target: { files: [] } })
+    expect(importCustomIcon).not.toHaveBeenCalled()
+    vi.mocked(importCustomIcon).mockRejectedValueOnce(new Error('Choose a valid PNG'))
+    await act(async () => fireEvent.change(screen.getByLabelText('Import icon file'), { target: { files: [new File(['bad'], 'bad.png')] } }))
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(screen.getByRole('status').textContent).toContain('Choose a valid PNG')
+  })
+  it('should_clear_custom_artwork_in_one_command_when_clear_or_type_selection_is_used', () => {
+    const document = sampleDiagram()
+    document.entities = document.entities.map(entity => entity.id === 'gateway' ? { ...entity, customIcon: iconFixture() } : entity)
+    const { props } = setup({ document })
+    fireEvent.click(screen.getByText('gateway'))
+    expect((screen.getByLabelText('Custom icon name') as HTMLInputElement).readOnly).toBe(true)
+    expect(screen.getByAltText('Custom icon preview').getAttribute('src')).toBe(iconFixture().dataUrl)
+    fireEvent.click(screen.getByLabelText('Clear custom icon'))
+    expect(props.onCommand).toHaveBeenLastCalledWith({ type: 'updateEntity', id: 'gateway', patch: { customIcon: undefined } })
+    fireEvent.change(screen.getByLabelText('Component type'), { target: { value: 'microsoft-teams' } })
+    expect(props.onCommand).toHaveBeenLastCalledWith({ type: 'updateEntity', id: 'gateway', patch: { icon: 'microsoft-teams', customIcon: undefined } })
+  })
+  it.each(['name', 'dataUrl', 'width', 'height', 'removed'] as const)('should_refresh_custom_paint_when_%s_changes', field => {
+    const document = sampleDiagram()
+    const customIcon = iconFixture()
+    document.entities = document.entities.map(entity => entity.id === 'gateway' ? { ...entity, customIcon } : entity)
+    const { props, rerender } = setup({ document })
+    vi.mocked(entityMarkup).mockClear()
+    const changed = field === 'removed' ? undefined : { ...customIcon, [field]: field === 'name' ? 'Another.png' : field === 'dataUrl' ? iconFixture(2, 1, 1).dataUrl : 3 }
+    rerender(<Editor {...props} document={{ ...document, entities: document.entities.map(entity => entity.id === 'gateway' ? { ...entity, customIcon: changed } : entity) }} />)
+    expect(entityMarkup).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ id: 'gateway', customIcon: changed }), expect.anything())
+  })
+  it('should_allow_theme_but_guard_imports_when_readonly', async () => {
+    const { props } = setup({ document: sampleDiagram(), readOnly: true })
+    expect((screen.getByLabelText('Import custom icon') as HTMLButtonElement).disabled).toBe(true)
+    await act(async () => fireEvent.change(screen.getByLabelText('Import icon file'), { target: { files: [new File(['image'], 'icon.png')] } }))
+    expect(importCustomIcon).not.toHaveBeenCalled()
+    const theme = screen.getByRole('button', { name: /Switch to .* theme/ })
+    expect((theme as HTMLButtonElement).disabled).toBe(false)
+    fireEvent.click(theme)
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(props.onPreviewChange).not.toHaveBeenCalled()
+  })
+  it('should_reuse_scene_when_only_selection_camera_or_session_state_changes', () => {
+    const { props, rerender } = setup({ document: sampleDiagram() })
+    vi.mocked(buildScene).mockClear()
+    fireEvent.click(screen.getByText('gateway'))
+    act(() => flow.props.onMove(null, { zoom: .75 }))
+    fireEvent.change(screen.getByLabelText('Search components'), { target: { value: 'API' } })
+    rerender(<Editor {...props} saveState="saving" backupDirty={false} message="Saving snapshot" />)
+    expect(buildScene).not.toHaveBeenCalled()
+    const next = { ...props.document, title: 'Replacement at same revision' }
+    rerender(<Editor {...props} document={next} />)
+    expect(buildScene).toHaveBeenCalledExactlyOnceWith(next)
+  })
+  it('should_reuse_unchanged_tile_and_link_paint_when_selection_or_position_changes', () => {
+    const { props, rerender } = setup({ document: sampleDiagram() })
+    vi.mocked(entityMarkup).mockClear(); vi.mocked(connectionMarkup).mockClear()
+    fireEvent.click(screen.getByText('gateway'))
+    rerender(<Editor {...props} document={{ ...props.document, revision: 1, entities: props.document.entities.map(entity => entity.id === 'gateway' ? { ...entity, x: entity.x + 8 } : { ...entity }) }} />)
+    expect(entityMarkup).not.toHaveBeenCalled()
+    expect(screen.getByTestId('tile-gateway').querySelector('.tile-selected')).not.toBeNull()
+    expect(flow.props.nodes.find((node: any) => node.id === 'gateway').position.x).toBe(40)
+    const expected = buildScene({ ...props.document, revision: 1, entities: props.document.entities.map(entity => entity.id === 'gateway' ? { ...entity, x: entity.x + 8 } : entity) })
+    for (const edge of expected.connections) expect(screen.getByTestId(`link-${edge.id}`).querySelector('path')?.getAttribute('d')).toBe(edge.path)
+    expect(vi.mocked(connectionMarkup).mock.calls.length).toBeLessThan(props.document.connections.length)
+  })
+  it.each([
+    ['label', 'Updated label'], ['subtitle', 'Updated subtitle'], ['icon', 'server'], ['status', 'planned'], ['color', '#123456'], ['width', 280], ['height', 140], ['kind', 'rectangle'],
+  ])('should_refresh_tile_paint_when_%s_changes', (field, value) => {
+    const { props, rerender } = setup({ document: sampleDiagram() })
+    vi.mocked(entityMarkup).mockClear()
+    const document = { ...props.document, revision: 1, entities: props.document.entities.map(entity => entity.id === 'gateway' ? { ...entity, [field]: value } : entity) }
+    rerender(<Editor {...props} document={document} />)
+    expect(entityMarkup).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ id: 'gateway', [field]: value }), expect.anything())
+    const node = flow.props.nodes.find((node: any) => node.id === 'gateway')
+    expect(screen.getByTestId('tile-gateway').querySelector('svg')?.innerHTML).toBe(normalizedSvg(entityMarkup(node.data.entity, vi.mocked(entityMarkup).mock.calls[0][1])))
+  })
+  it('should_refresh_handles_and_resizer_when_writability_selection_or_minimum_size_changes', () => {
+    const { props, rerender } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('platform'))
+    const resizer = () => within(screen.getByTestId('tile-platform')).getByTestId('resizer')
+    expect(resizer().getAttribute('data-visible')).toBe('true')
+    const node = flow.props.nodes.find((candidate: any) => candidate.id === 'platform')
+    const Tile = flow.props.nodeTypes.architecture
+    const isolated = render(<Tile {...node} />)
+    isolated.rerender(<Tile {...node} data={{ ...node.data, minWidth: 901 }} />)
+    expect(within(isolated.container).getByTestId('resizer').getAttribute('data-min-width')).toBe('901')
+    isolated.rerender(<Tile {...node} data={{ ...node.data, minWidth: 901, minHeight: 701 }} />)
+    expect(within(isolated.container).getByTestId('resizer').getAttribute('data-min-height')).toBe('701')
+    isolated.rerender(<Tile {...node} selected={false} data={{ ...node.data, minWidth: 901, minHeight: 701 }} />)
+    expect(within(isolated.container).getByTestId('resizer').getAttribute('data-visible')).toBe('false')
+    const onResizeStart = vi.fn()
+    isolated.rerender(<Tile {...node} data={{ ...node.data, startResize: onResizeStart }} />)
+    fireEvent.mouseDown(within(isolated.container).getByTestId('resizer'))
+    expect(onResizeStart).toHaveBeenCalledExactlyOnceWith(expect.anything())
+    isolated.unmount()
+    rerender(<Editor {...props} readOnly saveState="read-only" />)
+    expect(resizer().getAttribute('data-visible')).toBe('false')
+    expect(screen.getByLabelText(`${props.document.entities.find(entity => entity.id === 'gateway')!.label} right connector`).getAttribute('data-connectable')).toBe('false')
+    rerender(<Editor {...props} />)
+    fireEvent.keyDown(window, { key: 'Escape' })
+    act(() => node.data.startResize())
+    act(() => flow.props.onNodesChange([{ type: 'dimensions', id: 'platform', dimensions: { width: 760, height: 520 }, resizing: false }]))
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'resize', id: 'platform', width: 760, height: 520 })
+  })
+  it.each([
+    ['path', 'M 1 2 L 30 40'], ['label', 'Changed route'], ['style', 'dashed'], ['arrow', 'both'], ['labelPosition', { x: 345, y: 234 }],
+  ])('should_refresh_link_paint_when_%s_changes', (field, value) => {
+    setup({ document: sampleDiagram() })
+    const edge = flow.props.edges.find((candidate: any) => candidate.id === 'route')
+    const Link = flow.props.edgeTypes.architecture
+    const view = render(<svg><Link {...edge} /></svg>)
+    vi.mocked(connectionMarkup).mockClear()
+    const connection = { ...edge.data.connection, [field]: value }
+    view.rerender(<svg><Link {...edge} data={{ connection }} /></svg>)
+    expect(connectionMarkup).toHaveBeenCalledExactlyOnceWith(connection)
+    expect(view.container.querySelector('g g')?.innerHTML).toBe(normalizedSvg(connectionMarkup(connection)))
+  })
+  it('should_keep_current_preview_geometry_and_restore_canonical_paint_when_cancelled', () => {
+    setup({ document: sampleDiagram() })
+    const originalNode = flow.props.nodes.find((node: any) => node.id === 'gateway')
+    const originalLinks = flow.props.edges
+    act(() => flow.props.onNodeDrag({}, originalNode, [{ ...originalNode, position: { x: 144, y: 64 } }]))
+    const previewLinks = flow.props.edges
+    expect(flow.props.nodes.find((node: any) => node.id === 'gateway').position.x).toBe(144)
+    expect(previewLinks.find((edge: any) => edge.id === 'route').data.connection.path).not.toBe(originalLinks.find((edge: any) => edge.id === 'route').data.connection.path)
+    vi.mocked(buildScene).mockClear()
+    fireEvent.click(screen.getByLabelText('Export'))
+    expect(buildScene).not.toHaveBeenCalled()
+    expect(flow.props.edges).toBe(previewLinks)
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(flow.props.nodes.find((node: any) => node.id === 'gateway').position).toEqual(originalNode.position)
+    for (const edge of originalLinks) expect(screen.getByTestId(`link-${edge.id}`).querySelector('path')?.getAttribute('d')).toBe(edge.data.connection.path)
+  })
+  it.each(['sourceSide', 'targetSide'] as const)('should_refresh_outer_handle_and_full_link_when_%s_changes', side => {
+    const { props, rerender } = setup({ document: sampleDiagram() })
+    const document = { ...props.document, revision: 1, connections: props.document.connections.map(connection => connection.id === 'route' ? { ...connection, [side]: 'left' as const } : connection) }
+    rerender(<Editor {...props} document={document} />)
+    const edge = flow.props.edges.find((candidate: any) => candidate.id === 'route')
+    expect(edge[side === 'sourceSide' ? 'sourceHandle' : 'targetHandle']).toBe('left')
+    expect(screen.getByTestId('link-route').querySelector('path')?.getAttribute('d')).toBe(edge.data.connection.path)
+    expect(screen.getByTestId('link-route').querySelector(':scope > g > g')?.innerHTML).toBe(normalizedSvg(connectionMarkup(edge.data.connection)))
+  })
+  it('should_emit_one_typing_command_when_title_session_blurs', () => {
+    const { props } = setup()
+    const title = screen.getByLabelText('Document title')
+    fireEvent.change(title, { target: { value: 'New' } })
+    fireEvent.change(title, { target: { value: 'New title' } })
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(props.onPreviewChange).toHaveBeenCalledTimes(2)
+    fireEvent.blur(title)
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'metadata', patch: { title: 'New title' } })
+    expect(props.onPreviewChange).toHaveBeenLastCalledWith(null)
+  })
+  it('should_place_catalog_component_when_palette_and_canvas_are_clicked', () => {
+    const { props } = setup()
+    fireEvent.click(screen.getByRole('button', { name: 'Insert App Service' }))
+    fireEvent.click(screen.getByText('Canvas point'))
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'addEntity', entity: expect.objectContaining({ kind: 'component', icon: 'azure-app', x: 80, y: 96, parentId: null }) })
+    expect(props.onArrange).not.toHaveBeenCalled()
+  })
+  it('should_insert_on_latest_edge_geometry_with_latest_callback_and_ordinal_ids_after_document_rerender', () => {
+    const { props, rerender } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByRole('button', { name: 'Insert App Service' }))
+    fireEvent.click(screen.getByText('Canvas point'))
+    const first = vi.mocked(props.onCommand).mock.calls[0][0]
+    if (first.type !== 'addEntity') throw new Error('Expected the first catalog insertion')
+    const prefix = first.entity.id.slice(0, -1)
+    expect(first.entity.id).toBe(`${prefix}1`)
+    fireEvent.click(screen.getByText('route'))
+    const oldPosition = flow.props.edges.find((edge: any) => edge.id === 'route').data.connection.labelPosition
+    const latestDocument = { ...props.document, title: 'LatestOriginalDoc', revision: 1, entities: [...props.document.entities.map(entity => entity.id === 'gateway' ? { ...entity, label: 'LatestOriginalDoc', x: entity.x + 160 } : entity), { ...first.entity, id: `${prefix}2` }] }
+    const latestCommand = vi.fn()
+    rerender(<Editor {...props} document={latestDocument} onCommand={latestCommand} saveState="saving" />)
+    expect(screen.getByLabelText('Document title').getAttribute('value')).toBe('LatestOriginalDoc')
+    expect(screen.getByTestId('tile-gateway').querySelector('svg')?.getAttribute('aria-label')).toBe('LatestOriginalDoc')
+    const latestPosition = flow.props.edges.find((edge: any) => edge.id === 'route').data.connection.labelPosition
+    expect(latestPosition).not.toEqual(oldPosition)
+    fireEvent.click(screen.getByRole('button', { name: 'Insert App Service' }))
+    expect(props.onCommand).toHaveBeenCalledTimes(1)
+    expect(latestCommand).toHaveBeenCalledTimes(1)
+    const command = latestCommand.mock.calls[0][0]
+    expect(command).toMatchObject({ type: 'insertOnConnection', connectionId: 'route', entity: { id: `${prefix}3`, icon: 'azure-app', label: 'App Service' }, upstreamId: `${prefix}4`, downstreamId: `${prefix}5` })
+    expect(command.entity.x).toBe(Math.round(latestPosition.x / 8) * 8 - Math.round(command.entity.width / 16) * 8)
+    expect(command.entity.y).toBe(Math.round(latestPosition.y / 8) * 8 - Math.round(command.entity.height / 16) * 8)
+    rerender(<Editor {...props} document={latestDocument} onCommand={latestCommand} readOnly saveState="read-only" />)
+    expect((screen.getByRole('button', { name: 'Insert App Service' }) as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Insert App Service' }))
+    expect(latestCommand).toHaveBeenCalledTimes(1)
+  })
+  it('should_batch_drag_and_resize_when_gestures_finish', () => {
+    const { props } = setup({ document: sampleDiagram() })
+    const node = flow.props.nodes.find((candidate: any) => candidate.id === 'platform')
+    act(() => flow.props.onNodeDrag({}, node, [{ ...node, position: { x: 400, y: 80 } }]))
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(props.onPreviewChange).toHaveBeenLastCalledWith(expect.objectContaining({ entities: expect.arrayContaining([expect.objectContaining({ id: 'platform', x: 400 })]) }))
+    act(() => flow.props.onNodeDragStop({}, node, [{ ...node, position: { x: 416, y: 80 } }]))
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'move', positions: [{ id: 'platform', x: 416, y: 80 }] })
+    expect(props.onPreviewChange).toHaveBeenLastCalledWith(null)
+    act(() => flow.props.onNodesChange([{ type: 'dimensions', id: 'platform', dimensions: { width: 720, height: 500 }, resizing: true }]))
+    expect(props.onCommand).toHaveBeenCalledTimes(1)
+    act(() => flow.props.onNodesChange([{ type: 'dimensions', id: 'platform', dimensions: { width: 720, height: 500 }, resizing: false }]))
+    expect(props.onCommand).toHaveBeenLastCalledWith({ type: 'resize', id: 'platform', width: 720, height: 500 })
+    expect(props.document.entities[0].width).toBe(680)
+  })
+  it('should_preserve_measurement_metadata_when_document_nodes_are_derived', () => {
+    setup({ document: sampleDiagram() })
+    const node = flow.props.nodes.find((candidate: any) => candidate.id === 'gateway')
+    act(() => flow.props.onNodesChange([{ type: 'dimensions', id: node.id, dimensions: { width: 231, height: 97 } }]))
+    fireEvent.click(screen.getByLabelText('Pan tool'))
+    expect(flow.props.nodes.find((candidate: any) => candidate.id === node.id).measured).toEqual({ width: 231, height: 97 })
+    expect(node.data.entity.width).toBe(220)
+  })
+  it('should_not_rerender_when_passive_measurements_are_unchanged', () => {
+    setup({ document: sampleDiagram() })
+    const change = { type: 'dimensions', id: 'gateway', dimensions: { width: 231, height: 97 } }
+    act(() => flow.props.onNodesChange([change]))
+    const stable = flow.props
+    act(() => flow.props.onNodesChange([change]))
+    expect(flow.props).toBe(stable)
+  })
+  it('should_copy_nudge_and_insert_atomically_when_selection_actions_run', () => {
+    const { props } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('gateway'))
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    expect(props.onCommand).toHaveBeenLastCalledWith({ type: 'move', positions: [{ id: 'gateway', x: 40, y: 64 }] })
+    fireEvent.keyDown(window, { key: 'c', ctrlKey: true })
+    expect(props.onCommand).toHaveBeenCalledTimes(1)
+    fireEvent.keyDown(window, { key: 'v', ctrlKey: true })
+    expect(props.onCommand).toHaveBeenLastCalledWith({ type: 'paste', fragment: expect.objectContaining({ entities: [expect.objectContaining({ id: 'gateway', parentId: null })] }), idMap: { gateway: expect.any(String) }, offset: { x: 32, y: 32 } })
+    fireEvent.click(screen.getByText('route'))
+    fireEvent.click(screen.getByLabelText('Insert App Service'))
+    expect(props.onCommand).toHaveBeenLastCalledWith({ type: 'insertOnConnection', connectionId: 'route', entity: expect.objectContaining({ icon: 'azure-app', kind: 'component' }), upstreamId: expect.any(String), downstreamId: expect.any(String) })
+  })
+  it('should_guard_all_mutations_but_allow_export_when_read_only', () => {
+    const { props } = setup({ document: sampleDiagram(), readOnly: true, saveState: 'read-only' })
+    expect((screen.getByLabelText('Document title') as HTMLInputElement).disabled).toBe(true)
+    expect((screen.getByLabelText('Insert App Service') as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.change(screen.getByLabelText('Document title'), { target: { value: 'Forbidden' } })
+    fireEvent.click(screen.getByText('gateway'))
+    for (const key of ['Delete', 'ArrowRight', 'z', 'y', 'x', 'v', 'd']) fireEvent.keyDown(window, { key, ctrlKey: key.length === 1 })
+    act(() => flow.props.onNodeDragStop({}, {}, [{ id: 'gateway', position: { x: 0, y: 0 } }]))
+    act(() => flow.props.onConnect({ source: 'app', target: 'sql' }))
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(props.onUndo).not.toHaveBeenCalled()
+    expect(props.onRedo).not.toHaveBeenCalled()
+    expect(flow.props.nodesDraggable).toBe(false)
+    expect(flow.props.nodesConnectable).toBe(false)
+    fireEvent.click(screen.getByLabelText('Export'))
+    fireEvent.click(screen.getByLabelText('Export SVG'))
+    expect(props.onExport).toHaveBeenCalledExactlyOnceWith({ format: 'svg', scale: 1, transparent: false })
+  })
+  it('should_forward_file_history_and_busy_state_when_toolbar_is_used', () => {
+    const { props } = setup({ isArranging: true, isExporting: true, saveState: 'error', message: 'Storage unavailable. Save JSON.' })
+    for (const [label, callback] of [['New diagram', props.onNew], ['Open JSON', props.onOpen], ['Import skill JSON', props.onImport], ['Save JSON', props.onSaveJson], ['Undo', props.onUndo], ['Redo', props.onRedo]] as const) { fireEvent.click(screen.getByLabelText(label)); expect(callback).toHaveBeenCalledTimes(1) }
+    expect((screen.getByLabelText('Auto-arrange') as HTMLButtonElement).disabled).toBe(true)
+    expect((screen.getByLabelText('Export') as HTMLButtonElement).disabled).toBe(true)
+    expect(within(screen.getByRole('contentinfo')).getByText('Save failed')).toBeTruthy()
+    expect(screen.getByText('JSON backup needed')).toBeTruthy()
+    expect(screen.getByRole('status').textContent).toContain('Storage unavailable')
+  })
+  it('should_cancel_a_drag_without_committing_when_escape_precedes_drag_stop', () => {
+    const { props } = setup({ document: sampleDiagram() })
+    const node = flow.props.nodes.find((candidate: any) => candidate.id === 'gateway')
+    act(() => flow.props.onNodeDrag({}, node, [{ ...node, position: { x: 80, y: 64 } }]))
+    fireEvent.keyDown(window, { key: 'Escape' })
+    act(() => flow.props.onNodeDragStop({}, node, [{ ...node, position: { x: 80, y: 64 } }]))
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(props.onPreviewChange).toHaveBeenLastCalledWith(null)
+  })
+  it('should_allow_the_next_resize_when_a_previous_tool_was_cancelled', () => {
+    const { props } = setup({ document: sampleDiagram() })
+    fireEvent.keyDown(window, { key: 'Escape' })
+    const node = flow.props.nodes.find((candidate: any) => candidate.id === 'platform')
+    act(() => node.data.startResize())
+    act(() => flow.props.onNodesChange([{ type: 'dimensions', id: 'platform', dimensions: { width: 760, height: 520 }, resizing: true }]))
+    act(() => flow.props.onNodesChange([{ type: 'dimensions', id: 'platform', dimensions: { width: 760, height: 520 }, resizing: false }]))
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'resize', id: 'platform', width: 760, height: 520 })
+  })
+  it('should_not_recommit_an_active_drag_when_history_action_cancels_it', () => {
+    const { props } = setup({ document: sampleDiagram() })
+    const node = flow.props.nodes.find((candidate: any) => candidate.id === 'gateway')
+    act(() => flow.props.onNodeDrag({}, node, [{ ...node, position: { x: 80, y: 64 } }]))
+    fireEvent.keyDown(window, { key: 'z', ctrlKey: true })
+    act(() => flow.props.onNodeDragStop({}, node, [{ ...node, position: { x: 80, y: 64 } }]))
+    expect(props.onUndo).toHaveBeenCalledExactlyOnceWith()
+    expect(props.onCommand).not.toHaveBeenCalled()
+  })
+  it('should_preview_valid_hex_and_commit_once_when_color_typing_finishes', () => {
+    const { props } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('gateway'))
+    const hex = screen.getByLabelText('Hex color')
+    fireEvent.change(hex, { target: { value: '#123' } })
+    fireEvent.change(hex, { target: { value: '#123456' } })
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(props.onPreviewChange).toHaveBeenLastCalledWith(expect.objectContaining({ entities: expect.arrayContaining([expect.objectContaining({ id: 'gateway', color: '#123456' })]) }))
+    fireEvent.blur(hex)
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'updateEntity', id: 'gateway', patch: { color: '#123456' } })
+    expect(props.onPreviewChange).toHaveBeenLastCalledWith(null)
+  })
+  it('should_cancel_color_preview_and_report_invalid_hex_when_typing_is_invalid', () => {
+    const { props } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('gateway'))
+    const hex = screen.getByLabelText('Hex color')
+    fireEvent.change(hex, { target: { value: '#abc' } })
+    fireEvent.change(hex, { target: { value: '#abcd' } })
+    fireEvent.blur(hex)
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(screen.getByRole('alert').textContent).toContain('#RGB')
+    expect(props.onPreviewChange).toHaveBeenLastCalledWith(null)
+  })
+  it('should_discard_typing_draft_when_revision_or_writability_changes', () => {
+    const { props, rerender } = setup()
+    fireEvent.change(screen.getByLabelText('Document title'), { target: { value: 'Draft' } })
+    rerender(<Editor {...props} document={{ ...props.document, revision: 1, title: 'Caller title' }} />)
+    fireEvent.blur(screen.getByLabelText('Document title'))
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect((screen.getByLabelText('Document title') as HTMLInputElement).value).toBe('Caller title')
+    fireEvent.change(screen.getByLabelText('Document title'), { target: { value: 'Second draft' } })
+    rerender(<Editor {...props} readOnly saveState="read-only" />)
+    fireEvent.blur(screen.getByLabelText('Document title'))
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(props.onPreviewChange).toHaveBeenLastCalledWith(null)
+  })
+  it('should_emit_group_parent_and_remove_commands_when_selection_controls_run', () => {
+    const { props } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('gateway'))
+    fireEvent.change(screen.getByLabelText('Parent boundary'), { target: { value: 'data' } })
+    expect(props.onCommand).toHaveBeenLastCalledWith({ type: 'reparent', ids: ['gateway'], parentId: 'data' })
+    act(() => flow.props.onNodesChange([{ type: 'select', id: 'app', selected: true }]))
+    fireEvent.click(screen.getByLabelText('Group selection'))
+    expect(props.onCommand).toHaveBeenLastCalledWith({ type: 'group', ids: ['gateway', 'app'], boundary: expect.objectContaining({ kind: 'boundary', parentId: 'application' }) })
+    fireEvent.click(screen.getByText('platform'))
+    fireEvent.click(screen.getByLabelText('Ungroup selection'))
+    expect(props.onCommand).toHaveBeenLastCalledWith({ type: 'ungroup', boundaryIds: ['platform'] })
+    fireEvent.click(screen.getByText('gateway'))
+    fireEvent.keyDown(window, { key: 'x', ctrlKey: true })
+    expect(props.onCommand).toHaveBeenLastCalledWith({ type: 'remove', entityIds: ['gateway'], connectionIds: [] })
+    fireEvent.keyDown(window, { key: 'v', ctrlKey: true })
+    expect(props.onCommand).toHaveBeenLastCalledWith(expect.objectContaining({ type: 'paste', fragment: expect.objectContaining({ entities: [expect.objectContaining({ id: 'gateway' })] }) }))
+  })
+  it('should_emit_endpoint_sides_and_reconnect_when_connection_controls_run', () => {
+    const { props } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('route'))
+    for (const [label, value, patch] of [['Connection line', 'dashed', { style: 'dashed' }], ['Connection direction', 'both', { arrow: 'both' }], ['Source side', 'left', { sourceSide: 'left' }], ['Target side', 'bottom', { targetSide: 'bottom' }], ['Connection target', 'sql', { to: 'sql' }]] as const) {
+      fireEvent.change(screen.getByLabelText(label), { target: { value } })
+      expect(props.onCommand).toHaveBeenLastCalledWith({ type: 'updateConnection', id: 'route', patch })
+    }
+    act(() => flow.props.onReconnect({ id: 'route' }, { source: 'gateway', target: 'sql', sourceHandle: 'top', targetHandle: 'left' }))
+    expect(props.onCommand).toHaveBeenLastCalledWith({ type: 'updateConnection', id: 'route', patch: { from: 'gateway', to: 'sql', sourceSide: 'top', targetSide: 'left' } })
+    const calls = (props.onCommand as any).mock.calls.length
+    act(() => flow.props.onConnect({ source: 'gateway', target: 'gateway' }))
+    act(() => flow.props.onConnect({ source: 'note', target: 'app' }))
+    expect(props.onCommand).toHaveBeenCalledTimes(calls)
+    expect(screen.getByRole('status').textContent).toContain('two different')
+  })
+  it('should_preserve_line_breaks_and_order_when_text_is_edited', () => {
+    const { props } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('note'))
+    const note = screen.getByLabelText('Note text')
+    expect(note.tagName).toBe('TEXTAREA')
+    const text = 'First line\nSecond line\n\nLast line'
+    fireEvent.change(note, { target: { value: text } })
+    fireEvent.keyDown(note, { key: 'Enter' })
+    expect(props.onCommand).not.toHaveBeenCalled()
+    fireEvent.blur(note)
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'updateEntity', id: 'note', patch: { label: text } })
+    fireEvent.click(screen.getByLabelText('Send to background'))
+    expect(props.onCommand).toHaveBeenLastCalledWith({ type: 'order', ids: ['note'], layer: 'background' })
+  })
+  it('should_search_all_catalogs_and_reopen_panels_when_controls_are_used', () => {
+    setup()
+    const appGroup = menuGroups('azure').find(group => group.items.some(item => item.icon === 'azure-app'))!
+    expect(screen.getAllByRole('button', { name: /^Insert / })).toHaveLength(appGroup.items.length)
+    fireEvent.click(screen.getByRole('tab', { name: /Software/ }))
+    expect(screen.getAllByRole('button', { name: /^Insert / }).map(button => button.getAttribute('aria-label')).sort()).toEqual(menuGroups('software').flatMap(group => group.items.map(item => `Insert ${item.label}`)).sort())
+    fireEvent.change(screen.getByLabelText('Search components'), { target: { value: 'PostgreSQL' } })
+    expect(screen.getAllByLabelText('Insert Azure Database for PostgreSQL').some(button => button.getAttribute('data-icon') === 'azure-postgresql')).toBe(true)
+    expect(screen.getAllByRole('button', { name: /^Insert / }).map(button => button.getAttribute('data-icon')).sort()).toEqual(searchGroups('PostgreSQL').flatMap(group => group.items.map(item => item.icon)).sort())
+    fireEvent.click(screen.getByLabelText('Close component library'))
+    expect(screen.getByLabelText('Component library').className).not.toContain('open')
+    fireEvent.click(screen.getByLabelText('Open component library'))
+    expect(screen.getByLabelText('Component library').className).toContain('open')
+    fireEvent.click(screen.getByLabelText('Close properties'))
+    fireEvent.click(screen.getByLabelText('Open properties'))
+    expect(screen.getByLabelText('Properties').className).toContain('open')
+  })
+  it('should_keep_group_state_out_of_history_and_geometry_when_document_edits_commit', () => {
+    const { props, rerender } = setup({ document: sampleDiagram() })
+    const group = menuGroups('azure').find(group => !group.items.some(item => item.icon === 'azure-app'))!
+    const headerName = `Azure / Microsoft: ${group.label} (${group.items.length})`
+    fireEvent.click(screen.getByRole('button', { name: headerName }))
+    fireEvent.click(screen.getByText('gateway'))
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'move', positions: [{ id: 'gateway', x: 40, y: 64 }] })
+    const next = { ...props.document, revision: 1, entities: props.document.entities.map(entity => entity.id === 'gateway' ? { ...entity, x: 40 } : entity) }
+    rerender(<Editor {...props} document={next} />)
+    expect(screen.getByRole('button', { name: headerName }).getAttribute('aria-expanded')).toBe('true')
+    fireEvent.change(screen.getByLabelText('Search components'), { target: { value: 'OneLake' } })
+    fireEvent.change(screen.getByLabelText('Search components'), { target: { value: '' } })
+    expect(screen.getByRole('button', { name: headerName }).getAttribute('aria-expanded')).toBe('true')
+    expect(props.onCommand).toHaveBeenCalledTimes(1)
+    expect(props.onPreviewChange).not.toHaveBeenCalled()
+    expect(props.document.entities.find(entity => entity.id === 'gateway')?.x).toBe(32)
+  })
+  it.each(['azure-app', 'azure-function', 'azure-api', 'azure-sql', 'azure-storage', 'azure-network', 'azure-aks', 'azure-container-apps', 'azure-vm', 'azure-front-door', 'azure-application-gateway', 'azure-load-balancer', 'azure-private-endpoint', 'azure-cosmos', 'azure-postgresql', 'azure-redis', 'azure-service-bus', 'azure-event-grid', 'azure-event-hubs', 'azure-logic-apps', 'azure-key-vault', 'azure-entra', 'azure-managed-identities', 'azure-monitor', 'software', 'fabric', 'new-azure', 'vendor-oracle', 'vendor-hp', 'vendor-hpe', 'microsoft-sharepoint', 'microsoft-teams', 'microsoft-business-central'])('should_use_identical_click_and_drag_commands_when_inserting_%s', key => {
+    const item = key === 'software' ? genericLibrary[3] : key === 'fabric' ? selectionLibrary.find(item => /onelake/i.test(item.label))! : key === 'new-azure' ? selectionLibrary.find(item => item.catalog === 'azure' && item.icon.includes('batch'))! : selectionLibrary.find(item => item.icon === key)!
+    expect(item).toBeTruthy()
+    const { props } = setup()
+    fireEvent.change(screen.getByLabelText('Search components'), { target: { value: item.label } })
+    const row = screen.getAllByRole('button', { name: `Insert ${item.label}` }).find(button => button.getAttribute('data-icon') === item.icon)!
+    expect(row).toBeTruthy()
+    const dataTransfer = { setData: vi.fn(), getData: vi.fn(() => JSON.stringify({ icon: item.icon })), effectAllowed: '' }
+    fireEvent.dragStart(row, { dataTransfer })
+    expect(dataTransfer.setData).toHaveBeenCalledExactlyOnceWith('application/diagrammer', JSON.stringify({ icon: item.icon }))
+    fireEvent.click(row)
+    fireEvent.click(screen.getByText('Canvas point'))
+    expect(props.onCommand).toHaveBeenLastCalledWith({ type: 'addEntity', entity: expect.objectContaining({ icon: item.icon, label: item.label, subtitle: item.subtitle, color: item.color, x: 80, y: 96, parentId: null }) })
+    const clickCommand = vi.mocked(props.onCommand).mock.calls[0][0]
+    fireEvent.drop(screen.getByLabelText('Architecture canvas'), { dataTransfer, clientX: 83, clientY: 99 })
+    const dropCommand = vi.mocked(props.onCommand).mock.calls[1][0]
+    expect(dropCommand).toEqual({ ...clickCommand, entity: expect.objectContaining({ ...(clickCommand as { entity: object }).entity, id: expect.any(String), x: expect.any(Number), y: expect.any(Number) }) })
+    expect(props.onArrange).not.toHaveBeenCalled()
+  })
+  it('should_offer_every_category_for_type_and_edge_insertion_when_fabric_is_selected', () => {
+    const item = selectionLibrary.find(item => /onelake/i.test(item.label))!
+    const { props } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('gateway'))
+    const type = screen.getByLabelText('Component type')
+    expect(within(type).getAllByRole('option').map(option => (option as HTMLOptionElement).value).sort()).toEqual(selectionLibrary.map(item => item.icon).sort())
+    fireEvent.change(type, { target: { value: item.icon } })
+    expect(props.onCommand).toHaveBeenLastCalledWith({ type: 'updateEntity', id: 'gateway', patch: { icon: item.icon, customIcon: undefined } })
+    fireEvent.click(screen.getByText('route'))
+    expect(within(screen.getByLabelText('Insertion component')).getAllByRole('option')).toHaveLength(selectionLibrary.length)
+    fireEvent.change(screen.getByLabelText('Insertion component'), { target: { value: item.icon } })
+    fireEvent.click(screen.getByRole('button', { name: 'Insert on connection' }))
+    expect(props.onCommand).toHaveBeenLastCalledWith({ type: 'insertOnConnection', connectionId: 'route', entity: expect.objectContaining({ icon: item.icon }), upstreamId: expect.any(String), downstreamId: expect.any(String) })
+  })
+  it('should_allow_fabric_browsing_but_guard_all_new_insertion_paths_when_readonly', () => {
+    const item = selectionLibrary.find(item => /onelake/i.test(item.label))!
+    const { props } = setup({ document: sampleDiagram(), readOnly: true, saveState: 'read-only' })
+    fireEvent.click(screen.getByRole('button', { name: /^Azure \/ Microsoft: Microsoft Fabric/ }))
+    fireEvent.change(screen.getByLabelText('Search components'), { target: { value: 'OneLake' } })
+    const row = screen.getAllByRole('button', { name: `Insert ${item.label}` }).find(button => button.getAttribute('data-icon') === item.icon) as HTMLButtonElement
+    expect(row.disabled).toBe(true); expect(row.draggable).toBe(false)
+    fireEvent.click(row)
+    fireEvent.drop(screen.getByLabelText('Architecture canvas'), { dataTransfer: { getData: () => JSON.stringify({ icon: item.icon }) } })
+    fireEvent.click(screen.getByText('route'))
+    expect((screen.getByLabelText('Insertion component') as HTMLSelectElement).disabled).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Insert on connection' }))
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(props.onPreviewChange).not.toHaveBeenCalled()
+  })
+  it.each(['retired', 'variant'])('should_keep_saved_%s_current_value_without_mutation_when_properties_open', kind => {
+    const item = allLibraryItems.find(item => !isSelectableIcon(item.icon) && (kind === 'retired' ? /bonsai/i.test(item.label) : item.catalog === 'fabric'))!
+    expect(item).toBeTruthy()
+    const document = sampleDiagram()
+    const { props } = setup({ document: { ...document, entities: document.entities.map(entity => entity.id === 'gateway' ? { ...entity, icon: item.icon } : entity) } })
+    fireEvent.click(screen.getByText('gateway'))
+    const select = screen.getByLabelText('Component type') as HTMLSelectElement
+    expect(select.value).toBe(item.icon)
+    expect(select.selectedOptions[0].textContent).toBe(`${item.label} (Saved legacy icon)`)
+    expect(Array.from(select.options).map(option => option.value).sort()).toEqual([...selectionLibrary.map(entry => entry.icon), item.icon].sort())
+    expect(props.onCommand).not.toHaveBeenCalled()
+    fireEvent.drop(screen.getByLabelText('Architecture canvas'), { dataTransfer: { getData: () => JSON.stringify({ icon: item.icon }) }, clientX: 83, clientY: 99 })
+    expect(props.onCommand).not.toHaveBeenCalled()
+  })
+  it('should_delegate_metadata_direction_and_exports_when_document_controls_run', () => {
+    const { props } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByLabelText('Synthetic diagram'))
+    expect(props.onCommand).toHaveBeenLastCalledWith({ type: 'metadata', patch: { synthetic: false } })
+    fireEvent.click(screen.getByLabelText('Show legend'))
+    expect(props.onCommand).toHaveBeenLastCalledWith({ type: 'metadata', patch: { legendVisible: false } })
+    fireEvent.click(screen.getByLabelText('Down layout'))
+    expect(props.onCommand).toHaveBeenLastCalledWith({ type: 'metadata', patch: { direction: 'DOWN' } })
+    fireEvent.click(screen.getByLabelText('Auto-arrange'))
+    expect(props.onArrange).toHaveBeenCalledExactlyOnceWith('RIGHT')
+    fireEvent.keyDown(window, { key: 'z', ctrlKey: true })
+    fireEvent.keyDown(window, { key: 'z', ctrlKey: true, shiftKey: true })
+    fireEvent.keyDown(window, { key: 'y', ctrlKey: true })
+    expect(props.onUndo).toHaveBeenCalledTimes(1)
+    expect(props.onRedo).toHaveBeenCalledTimes(2)
+    fireEvent.click(screen.getByLabelText('Export'))
+    fireEvent.click(screen.getByLabelText('Transparent background', { selector: 'input' }))
+    fireEvent.click(screen.getByLabelText('Export PNG 2x'))
+    expect(props.onExport).toHaveBeenCalledExactlyOnceWith({ format: 'png', scale: 2, transparent: true })
+  })
+  it('should_guard_drop_and_every_inspector_field_when_read_only', () => {
+    const { props } = setup({ document: sampleDiagram(), readOnly: true, saveState: 'read-only' })
+    const dataTransfer = { getData: () => '{"icon":"service"}', types: ['application/diagrammer'] }
+    fireEvent.drop(screen.getByLabelText('Architecture canvas'), { dataTransfer, clientX: 60, clientY: 90 })
+    fireEvent.click(screen.getByText('gateway'))
+    for (const label of ['Component label', 'Component subtitle', 'Component type', 'Component status', 'Parent boundary', 'Hex color']) expect((screen.getByLabelText(label) as HTMLInputElement).disabled).toBe(true)
+    fireEvent.change(screen.getByLabelText('Component type'), { target: { value: 'server' } })
+    fireEvent.change(screen.getByLabelText('Parent boundary'), { target: { value: 'data' } })
+    act(() => flow.props.onNodesChange([{ type: 'dimensions', id: 'platform', dimensions: { width: 800, height: 800 }, resizing: false }]))
+    fireEvent.click(screen.getByText('route'))
+    for (const label of ['Connection label', 'Connection source', 'Connection target', 'Source side', 'Target side', 'Connection line', 'Connection direction', 'Insertion component']) expect((screen.getByLabelText(label) as HTMLInputElement).disabled).toBe(true)
+    fireEvent.click(screen.getByLabelText('Document properties'))
+    expect((screen.getByLabelText('Synthetic diagram') as HTMLInputElement).disabled).toBe(true)
+    expect((screen.getByLabelText('Show legend') as HTMLInputElement).disabled).toBe(true)
+    expect(props.onCommand).not.toHaveBeenCalled()
+  })
+  it('should_retain_selection_when_caller_rejects_a_new_group', () => {
+    const { props, rerender } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('gateway'))
+    fireEvent.click(screen.getByLabelText('Group selection'))
+    rerender(<Editor {...props} message="Boundary limit reached. Ungroup a boundary first." />)
+    expect(screen.getByLabelText('Component label')).toBeTruthy()
+    expect(screen.getByRole('status').textContent).toContain('Boundary limit')
+  })
+  it('should_render_shared_legend_only_when_caller_metadata_enables_it', () => {
+    const { props, rerender } = setup({ document: sampleDiagram() })
+    expect(screen.getByLabelText('Diagram legend').textContent).toContain('Planned')
+    rerender(<Editor {...props} document={{ ...props.document, legendVisible: false, revision: 1 }} />)
+    expect(screen.queryByLabelText('Diagram legend')).toBeNull()
+  })
+})

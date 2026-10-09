@@ -1,0 +1,14 @@
+{
+  "dynamics": {
+    "url": "https://download.microsoft.com/download/498606aa-6d27-4f13-aa5c-1401078c153b/Dynamics-365-icons-scalable.zip",
+    "documentationUrl": "https://learn.microsoft.com/en-us/dynamics365/get-started/icons",
+    "sha256": "f5f4d96aaa637b71e47136cc74e9a4a69b8a81f7e43c1c5756f00b5cea9ffe02",
+    "licenseEntry": "CELA_Licenses_Public_Use_Icons.pdf"
+  },
+  "power": {
+    "url": "https://download.microsoft.com/download/498606aa-6d27-4f13-aa5c-1401078c153b/Power-Platform-icons-scalable.zip",
+    "documentationUrl": "https://learn.microsoft.com/en-us/power-platform/guidance/icons",
+    "sha256": "d5abafebbce553690caf7b42dd14b8335bf2c0dfc09f46bd9ac8041187da2c3a",
+    "licenseEntry": "CELA_Licenses_Public_Use_Icons.pdf"
+  }
+}

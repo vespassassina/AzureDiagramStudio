@@ -1,0 +1,572 @@
+{
+  "schemaVersion": 1,
+  "id": "example-event-driven-v1",
+  "title": "Event-driven Azure integration",
+  "subtitle": "Illustrative notification, command and stream processing. No live integration is implied.",
+  "synthetic": true,
+  "legendVisible": true,
+  "legend": [
+    {
+      "label": "Illustrative flow",
+      "color": "#6c8587"
+    },
+    {
+      "label": "Supporting dependency",
+      "color": "#6c8587",
+      "dashed": true
+    }
+  ],
+  "revision": 1,
+  "direction": "RIGHT",
+  "entities": [
+    {
+      "id": "event-producers",
+      "kind": "boundary",
+      "label": "Producer boundary",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 0,
+      "y": 0,
+      "width": 288,
+      "height": 620,
+      "color": "azure",
+      "subtitle": "Application-owned event sources"
+    },
+    {
+      "id": "event-messaging",
+      "kind": "boundary",
+      "label": "Integration boundary",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 400,
+      "y": 0,
+      "width": 288,
+      "height": 620,
+      "color": "teal",
+      "subtitle": "Notifications, commands and streams"
+    },
+    {
+      "id": "event-processing",
+      "kind": "boundary",
+      "label": "Consumer boundary",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 800,
+      "y": 0,
+      "width": 288,
+      "height": 810,
+      "color": "amber",
+      "subtitle": "Independent processing and storage"
+    },
+    {
+      "id": "event-operations",
+      "kind": "boundary",
+      "label": "Platform operations",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 0,
+      "y": 850,
+      "width": 688,
+      "height": 230,
+      "color": "gray",
+      "subtitle": "Secrets and observability"
+    },
+    {
+      "id": "event-apim",
+      "kind": "component",
+      "label": "API Management",
+      "parentId": "event-producers",
+      "layer": "foreground",
+      "x": 24,
+      "y": 92,
+      "width": 240,
+      "height": 112,
+      "color": "azure",
+      "subtitle": "Command API gateway",
+      "icon": "azure-api",
+      "status": "synthetic"
+    },
+    {
+      "id": "event-app",
+      "kind": "component",
+      "label": "App Service",
+      "parentId": "event-producers",
+      "layer": "foreground",
+      "x": 24,
+      "y": 280,
+      "width": 240,
+      "height": 112,
+      "color": "azure",
+      "subtitle": "Producer application",
+      "icon": "azure-app",
+      "status": "synthetic"
+    },
+    {
+      "id": "event-uploads",
+      "kind": "component",
+      "label": "Storage account",
+      "parentId": "event-producers",
+      "layer": "foreground",
+      "x": 24,
+      "y": 468,
+      "width": 240,
+      "height": 112,
+      "color": "azure",
+      "subtitle": "Incoming documents",
+      "icon": "azure-storage",
+      "status": "synthetic"
+    },
+    {
+      "id": "event-grid",
+      "kind": "component",
+      "label": "Event Grid",
+      "parentId": "event-messaging",
+      "layer": "foreground",
+      "x": 24,
+      "y": 468,
+      "width": 240,
+      "height": 112,
+      "color": "teal",
+      "subtitle": "Document notifications",
+      "icon": "azure-event-grid",
+      "status": "synthetic"
+    },
+    {
+      "id": "event-bus",
+      "kind": "component",
+      "label": "Service Bus",
+      "parentId": "event-messaging",
+      "layer": "foreground",
+      "x": 24,
+      "y": 280,
+      "width": 240,
+      "height": 112,
+      "color": "teal",
+      "subtitle": "Reliable work queue",
+      "icon": "azure-service-bus",
+      "status": "synthetic"
+    },
+    {
+      "id": "event-hubs",
+      "kind": "component",
+      "label": "Event Hubs",
+      "parentId": "event-messaging",
+      "layer": "foreground",
+      "x": 24,
+      "y": 92,
+      "width": 240,
+      "height": 112,
+      "color": "teal",
+      "subtitle": "Telemetry stream",
+      "icon": "azure-event-hubs",
+      "status": "synthetic"
+    },
+    {
+      "id": "event-handler",
+      "kind": "component",
+      "label": "Functions",
+      "parentId": "event-processing",
+      "layer": "foreground",
+      "x": 24,
+      "y": 468,
+      "width": 240,
+      "height": 112,
+      "color": "amber",
+      "subtitle": "Notification handler",
+      "icon": "azure-function",
+      "status": "synthetic"
+    },
+    {
+      "id": "event-worker",
+      "kind": "component",
+      "label": "Functions",
+      "parentId": "event-processing",
+      "layer": "foreground",
+      "x": 24,
+      "y": 280,
+      "width": 240,
+      "height": 112,
+      "color": "amber",
+      "subtitle": "Queue and stream worker",
+      "icon": "azure-function",
+      "status": "synthetic"
+    },
+    {
+      "id": "event-cosmos",
+      "kind": "component",
+      "label": "Cosmos DB",
+      "parentId": "event-processing",
+      "layer": "foreground",
+      "x": 24,
+      "y": 656,
+      "width": 240,
+      "height": 112,
+      "color": "amber",
+      "subtitle": "NoSQL result documents",
+      "icon": "azure-cosmos",
+      "status": "synthetic"
+    },
+    {
+      "id": "event-archive",
+      "kind": "component",
+      "label": "Storage account",
+      "parentId": "event-processing",
+      "layer": "foreground",
+      "x": 24,
+      "y": 92,
+      "width": 240,
+      "height": 112,
+      "color": "amber",
+      "subtitle": "Processed event archive",
+      "icon": "azure-storage",
+      "status": "synthetic"
+    },
+    {
+      "id": "event-vault",
+      "kind": "component",
+      "label": "Key Vault",
+      "parentId": "event-operations",
+      "layer": "foreground",
+      "x": 24,
+      "y": 92,
+      "width": 240,
+      "height": 112,
+      "color": "gray",
+      "subtitle": "Consumer secrets",
+      "icon": "azure-key-vault",
+      "status": "synthetic"
+    },
+    {
+      "id": "event-monitor",
+      "kind": "component",
+      "label": "Azure Monitor",
+      "parentId": "event-operations",
+      "layer": "foreground",
+      "x": 424,
+      "y": 92,
+      "width": 240,
+      "height": 112,
+      "color": "gray",
+      "subtitle": "Consumer telemetry",
+      "icon": "azure-monitor",
+      "status": "synthetic"
+    }
+  ],
+  "connections": [
+    {
+      "id": "event-driven-flow-1",
+      "from": "event-apim",
+      "to": "event-app",
+      "label": "Accept commands",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "bottom",
+      "targetSide": "top",
+      "points": [
+        {
+          "x": 144,
+          "y": 204
+        },
+        {
+          "x": 144,
+          "y": 280
+        }
+      ],
+      "labelPosition": {
+        "x": 144,
+        "y": 240
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "event-driven-flow-2",
+      "from": "event-app",
+      "to": "event-bus",
+      "label": "Queue work",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "right",
+      "targetSide": "left",
+      "points": [
+        {
+          "x": 264,
+          "y": 336
+        },
+        {
+          "x": 424,
+          "y": 336
+        }
+      ],
+      "labelPosition": {
+        "x": 344,
+        "y": 329
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "event-driven-flow-3",
+      "from": "event-app",
+      "to": "event-hubs",
+      "label": "Publish telemetry",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "right",
+      "targetSide": "left",
+      "points": [
+        {
+          "x": 264,
+          "y": 312
+        },
+        {
+          "x": 344,
+          "y": 312
+        },
+        {
+          "x": 344,
+          "y": 148
+        },
+        {
+          "x": 424,
+          "y": 148
+        }
+      ],
+      "labelPosition": {
+        "x": 344,
+        "y": 205
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "event-driven-flow-4",
+      "from": "event-uploads",
+      "to": "event-grid",
+      "label": "Notify upload",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "right",
+      "targetSide": "left",
+      "points": [
+        {
+          "x": 264,
+          "y": 524
+        },
+        {
+          "x": 424,
+          "y": 524
+        }
+      ],
+      "labelPosition": {
+        "x": 344,
+        "y": 517
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "event-driven-flow-5",
+      "from": "event-grid",
+      "to": "event-handler",
+      "label": "Dispatch",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "right",
+      "targetSide": "left",
+      "points": [
+        {
+          "x": 664,
+          "y": 524
+        },
+        {
+          "x": 824,
+          "y": 524
+        }
+      ],
+      "labelPosition": {
+        "x": 744,
+        "y": 517
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "event-driven-flow-6",
+      "from": "event-handler",
+      "to": "event-cosmos",
+      "label": "Write metadata",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "bottom",
+      "targetSide": "top",
+      "points": [
+        {
+          "x": 944,
+          "y": 580
+        },
+        {
+          "x": 944,
+          "y": 656
+        }
+      ],
+      "labelPosition": {
+        "x": 944,
+        "y": 612
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "event-driven-flow-7",
+      "from": "event-bus",
+      "to": "event-worker",
+      "label": "Handle work",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "right",
+      "targetSide": "left",
+      "points": [
+        {
+          "x": 664,
+          "y": 336
+        },
+        {
+          "x": 824,
+          "y": 336
+        }
+      ],
+      "labelPosition": {
+        "x": 744,
+        "y": 329
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "event-driven-flow-8",
+      "from": "event-hubs",
+      "to": "event-worker",
+      "label": "Read stream",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "right",
+      "targetSide": "left",
+      "points": [
+        {
+          "x": 664,
+          "y": 148
+        },
+        {
+          "x": 744,
+          "y": 148
+        },
+        {
+          "x": 744,
+          "y": 312
+        },
+        {
+          "x": 824,
+          "y": 312
+        }
+      ],
+      "labelPosition": {
+        "x": 744,
+        "y": 205
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "event-driven-flow-9",
+      "from": "event-worker",
+      "to": "event-archive",
+      "label": "Archive",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "top",
+      "targetSide": "bottom",
+      "points": [
+        {
+          "x": 944,
+          "y": 280
+        },
+        {
+          "x": 944,
+          "y": 204
+        }
+      ],
+      "labelPosition": {
+        "x": 944,
+        "y": 240
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "event-driven-flow-10",
+      "from": "event-worker",
+      "to": "event-vault",
+      "label": "Read secrets",
+      "style": "dashed",
+      "arrow": "forward",
+      "sourceSide": "left",
+      "targetSide": "bottom",
+      "points": [
+        {
+          "x": 824,
+          "y": 336
+        },
+        {
+          "x": 764,
+          "y": 336
+        },
+        {
+          "x": 764,
+          "y": 1120
+        },
+        {
+          "x": 144,
+          "y": 1120
+        },
+        {
+          "x": 144,
+          "y": 1054
+        }
+      ],
+      "labelPosition": {
+        "x": 440,
+        "y": 1120
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "event-driven-flow-11",
+      "from": "event-worker",
+      "to": "event-monitor",
+      "label": "Emit telemetry",
+      "style": "dashed",
+      "arrow": "forward",
+      "sourceSide": "right",
+      "targetSide": "bottom",
+      "points": [
+        {
+          "x": 1064,
+          "y": 336
+        },
+        {
+          "x": 1140,
+          "y": 336
+        },
+        {
+          "x": 1140,
+          "y": 1150
+        },
+        {
+          "x": 544,
+          "y": 1150
+        },
+        {
+          "x": 544,
+          "y": 1054
+        }
+      ],
+      "labelPosition": {
+        "x": 860,
+        "y": 1150
+      },
+      "routeRevision": 1
+    }
+  ]
+}

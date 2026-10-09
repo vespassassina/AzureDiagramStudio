@@ -1,0 +1,515 @@
+{
+  "schemaVersion": 1,
+  "id": "example-enterprise-integration-v1",
+  "title": "Microsoft & enterprise integration",
+  "subtitle": "Synthetic illustration. Named badges are not corporate logos; SimpleBadge is original custom artwork.",
+  "synthetic": true,
+  "legendVisible": true,
+  "legend": [
+    {
+      "label": "Illustrative flow",
+      "color": "#6c8587"
+    },
+    {
+      "label": "Supporting dependency",
+      "color": "#6c8587",
+      "dashed": true
+    }
+  ],
+  "revision": 1,
+  "direction": "RIGHT",
+  "entities": [
+    {
+      "id": "web-edge",
+      "kind": "boundary",
+      "label": "Microsoft workspace",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 0,
+      "y": 100,
+      "width": 288,
+      "height": 430,
+      "color": "azure",
+      "subtitle": "Documents and business records"
+    },
+    {
+      "id": "web-apps",
+      "kind": "boundary",
+      "label": "Integration team",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 400,
+      "y": 100,
+      "width": 288,
+      "height": 620,
+      "color": "teal",
+      "subtitle": "Orchestration and custom processing"
+    },
+    {
+      "id": "web-data",
+      "kind": "boundary",
+      "label": "Enterprise systems",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 800,
+      "y": 100,
+      "width": 288,
+      "height": 620,
+      "color": "amber",
+      "subtitle": "Original named integration badges"
+    },
+    {
+      "id": "web-ops",
+      "kind": "boundary",
+      "label": "Platform operations",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 400,
+      "y": 800,
+      "width": 688,
+      "height": 230,
+      "color": "gray",
+      "subtitle": "Secrets and observability"
+    },
+    {
+      "id": "web-users",
+      "kind": "component",
+      "label": "Business users",
+      "parentId": null,
+      "layer": "foreground",
+      "x": -320,
+      "y": 192,
+      "width": 240,
+      "height": 112,
+      "color": "source",
+      "subtitle": "Illustrative participants",
+      "icon": "user",
+      "status": "synthetic"
+    },
+    {
+      "id": "web-front",
+      "kind": "component",
+      "label": "SharePoint",
+      "parentId": "web-edge",
+      "layer": "foreground",
+      "x": 24,
+      "y": 92,
+      "width": 240,
+      "height": 112,
+      "color": "azure",
+      "subtitle": "Original named badge",
+      "icon": "microsoft-sharepoint",
+      "status": "synthetic"
+    },
+    {
+      "id": "web-apim",
+      "kind": "component",
+      "label": "Dynamics 365",
+      "parentId": "web-edge",
+      "layer": "foreground",
+      "x": 24,
+      "y": 280,
+      "width": 240,
+      "height": 112,
+      "color": "azure",
+      "subtitle": "Official architecture glyph",
+      "icon": "microsoft-dynamics365",
+      "status": "synthetic"
+    },
+    {
+      "id": "web-site",
+      "kind": "component",
+      "label": "Logic Apps",
+      "parentId": "web-apps",
+      "layer": "foreground",
+      "x": 24,
+      "y": 92,
+      "width": 240,
+      "height": 112,
+      "color": "teal",
+      "subtitle": "Illustrative workflow",
+      "icon": "azure-logic-apps",
+      "status": "synthetic"
+    },
+    {
+      "id": "web-bus",
+      "kind": "component",
+      "label": "Service Bus",
+      "parentId": "web-apps",
+      "layer": "foreground",
+      "x": 24,
+      "y": 280,
+      "width": 240,
+      "height": 112,
+      "color": "teal",
+      "subtitle": "Background work queue",
+      "icon": "azure-service-bus",
+      "status": "synthetic"
+    },
+    {
+      "id": "web-functions",
+      "kind": "component",
+      "label": "SimpleBadge",
+      "parentId": "web-apps",
+      "layer": "foreground",
+      "x": 24,
+      "y": 468,
+      "width": 240,
+      "height": 112,
+      "color": "teal",
+      "subtitle": "Original custom PNG, not a logo",
+      "icon": "service",
+      "status": "synthetic",
+      "customIcon": {
+        "name": "SimpleBadge",
+        "dataUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAFSklEQVR4AeyaPWhUWRTHzwsJu+XGbndZFhfchd0msCCssCxrsSvRUrBRtHAS0davFFpoEb9axWQsFG0ESw1qoYigIAhpFFRQRNQusVQS8rz/V83Mu/fd+7zf8chcfHPOueec+/+9NxMOM0T8L6oCDCCq/EQMgAFEViByee0TsGZq8q/RQ53z3x3uPBs93FkSq+TVadJgqdJKaAbtdHwbAUD4slx5QAVNFkS/imTDYvGrWYHhSiuhGbSDhk3hSgCjU52bEL5pM/sMFBAgKi0VoVIAFbWS/lfsYXNbBYSWlaaSfTUA1eeWoCaJZZONAkLTStuBHDUA5crKzoEYfutIAZm2dQAF/euoXrppInVWSrStARDf4L9E6m/Vl5VpWwMgVOA/NYUInl41bWUAPNXmtDIFGIBMlYA2BhBQbFkpBiBTJaCNAQQUW1aKAchUCWhjAAHFlpViADJVAtoCAgh4qoxKeQUw9uPPdGXHXnp37CwtTM9mtdAzescZfPL0BgCNz00epPHfx+jbkRGfZ/CSGz2jd5wBZ/FSRCT1BmD/xs1ZCi806XsBBM7SZ3T4xhuAjev+cNhm3FQ+z+INAO6cuLK5q+7zLN4AuDt+PdO1+Ue0ZfY0fX9kb7VwDVs9Mn1LdgCOzF2jiasX6MGrF/RpeblauIYNvvQl7+8wKwC4y8/ev91/gp538CGmx5T8ZVYALj66pxXUJEabJGBAVgAev3mllcYkRpvEYYAuVVYAdIfJ0Z8VgD9/WqvV2CRGmyRgQFYAdq3/RyuNSYw2ScCArABsHVtP+/7+TykPfIhRBiToyAoA9Ds+vhX/SVeTT7ohAWN2ABLQzGkLDMCpnO2TMYD2mjndwQCcytk+GQNor5nTHasTgFOJ/CaLAgATS8zwY83zY9fvRRocAGb2mN1jhh9jnh+7fq/4uA4KAHceZvYoLFvwrZmaIN2S7YVNtw9+1ECsbMGHHmU+X7agAHKY1YfuMSiAHGb1oXsMCsDXY5xz3qAAcpjVh+4xKIAcZvWhewwKALN6zOxVHxnwmfyIV7XfZC9qqPbDhx5Vfh/2oABwAMzsZ7ftpg1r19E3w8PVwjVs8CHG50IN1ELNGPUHz+YQwGBq9XvcZdcnDtD74+eqhWvY1DvcelALNWPV7z1NFAC9DXzt1wwg8h3AABhAZAUil+cngAFEViBy+eyeAMzzVZo1+VR7YtuzAoBZPWb2KtHgQ4zKn6I9KwAms3qTmJRAZAXAZFZvEuMSgG2urADYHjbF/VkBMJnVm8SkBCIrACazepMYBvCFCmCKiZm9ajt8iFH5U7Rn9QRAwNTm+ejJZmUHAIfFXZ7KPB/92CxvAD4uLdn0ldRen2fxBuDOiydJiWjTjM+zeANw5s4N8nnn2AjaZi/OgLO02dMm1huA+bevaXzmFM09nc8SBIRH7zgDztJG1Dax3gCgCTS+/fI5+uHoPu0PbvHDWeNl8ANe21zoGb3jDDiLr+UVgK+mV1NeBhCZJgNgAJEViFyenwAGEFmByOX5CWAAkRWIXJ6fgAQBLEfuaTWXr2lbewJKopdyBdhqq4BM2xqAoqS7toV4v1wBmbZ1AENDl+Tb2WqrQCHRtgZgYXrmIZU0Y1uM9w8oIDSttB0w1wDAv3iyu4cKuoVrXg4UEFpWmkpSSQEgbnG6u4mfBChhucSdX2mpSKMEgHhQK4qhDQAhvsGfC1vtzyhh41e/AsuVVkJ4aAcN+9397xoBIHRBfCcgyYcT3d8WT3RHxCp4dZs0GKm0Eh/j0A4aNi0tgKbN7LNXgAHYa2iVgQFo5PPt/gwAAP//emhpTQAAAAZJREFUAwBwzmDuZCPUYAAAAABJRU5ErkJggg==",
+        "width": 96,
+        "height": 96
+      }
+    },
+    {
+      "id": "web-sql",
+      "kind": "component",
+      "label": "SAP",
+      "parentId": "web-data",
+      "layer": "foreground",
+      "x": 24,
+      "y": 92,
+      "width": 240,
+      "height": 112,
+      "color": "amber",
+      "subtitle": "Named integration badge",
+      "icon": "vendor-sap",
+      "status": "synthetic"
+    },
+    {
+      "id": "web-storage",
+      "kind": "component",
+      "label": "Oracle",
+      "parentId": "web-data",
+      "layer": "foreground",
+      "x": 24,
+      "y": 468,
+      "width": 240,
+      "height": 112,
+      "color": "amber",
+      "subtitle": "Named integration badge",
+      "icon": "vendor-oracle",
+      "status": "synthetic"
+    },
+    {
+      "id": "web-keyvault",
+      "kind": "component",
+      "label": "Key Vault",
+      "parentId": "web-ops",
+      "layer": "foreground",
+      "x": 24,
+      "y": 92,
+      "width": 240,
+      "height": 112,
+      "color": "gray",
+      "subtitle": "Workflow secrets",
+      "icon": "azure-key-vault",
+      "status": "synthetic"
+    },
+    {
+      "id": "web-monitor",
+      "kind": "component",
+      "label": "Azure Monitor",
+      "parentId": "web-ops",
+      "layer": "foreground",
+      "x": 424,
+      "y": 92,
+      "width": 240,
+      "height": 112,
+      "color": "gray",
+      "subtitle": "Workflow telemetry",
+      "icon": "azure-monitor",
+      "status": "synthetic"
+    }
+  ],
+  "connections": [
+    {
+      "id": "enterprise-integration-flow-1",
+      "from": "web-users",
+      "to": "web-front",
+      "label": "Submit file",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "right",
+      "targetSide": "left",
+      "points": [
+        {
+          "x": -80,
+          "y": 248
+        },
+        {
+          "x": 24,
+          "y": 248
+        }
+      ],
+      "labelPosition": {
+        "x": -28,
+        "y": 241
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "enterprise-integration-flow-2",
+      "from": "web-front",
+      "to": "web-apim",
+      "label": "Lookup record",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "bottom",
+      "targetSide": "top",
+      "points": [
+        {
+          "x": 144,
+          "y": 304
+        },
+        {
+          "x": 144,
+          "y": 380
+        }
+      ],
+      "labelPosition": {
+        "x": 144,
+        "y": 329
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "enterprise-integration-flow-3",
+      "from": "web-apim",
+      "to": "web-site",
+      "label": "Send update",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "right",
+      "targetSide": "left",
+      "points": [
+        {
+          "x": 264,
+          "y": 436
+        },
+        {
+          "x": 344,
+          "y": 436
+        },
+        {
+          "x": 344,
+          "y": 248
+        },
+        {
+          "x": 424,
+          "y": 248
+        }
+      ],
+      "labelPosition": {
+        "x": 344,
+        "y": 338
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "enterprise-integration-flow-4",
+      "from": "web-site",
+      "to": "web-sql",
+      "label": "Post order",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "right",
+      "targetSide": "left",
+      "points": [
+        {
+          "x": 664,
+          "y": 248
+        },
+        {
+          "x": 824,
+          "y": 248
+        }
+      ],
+      "labelPosition": {
+        "x": 744,
+        "y": 241
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "enterprise-integration-flow-5",
+      "from": "web-site",
+      "to": "web-storage",
+      "label": "Query",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "right",
+      "targetSide": "left",
+      "points": [
+        {
+          "x": 664,
+          "y": 248
+        },
+        {
+          "x": 714,
+          "y": 248
+        },
+        {
+          "x": 714,
+          "y": 599
+        },
+        {
+          "x": 824,
+          "y": 599
+        }
+      ],
+      "labelPosition": {
+        "x": 714,
+        "y": 500
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "enterprise-integration-flow-6",
+      "from": "web-site",
+      "to": "web-bus",
+      "label": "Queue task",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "bottom",
+      "targetSide": "top",
+      "points": [
+        {
+          "x": 544,
+          "y": 304
+        },
+        {
+          "x": 544,
+          "y": 380
+        }
+      ],
+      "labelPosition": {
+        "x": 544,
+        "y": 329
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "enterprise-integration-flow-7",
+      "from": "web-bus",
+      "to": "web-functions",
+      "label": "Process task",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "bottom",
+      "targetSide": "top",
+      "points": [
+        {
+          "x": 544,
+          "y": 492
+        },
+        {
+          "x": 544,
+          "y": 568
+        }
+      ],
+      "labelPosition": {
+        "x": 544,
+        "y": 517
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "enterprise-integration-flow-8",
+      "from": "web-functions",
+      "to": "web-storage",
+      "label": "Write result",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "right",
+      "targetSide": "left",
+      "points": [
+        {
+          "x": 664,
+          "y": 624
+        },
+        {
+          "x": 824,
+          "y": 624
+        }
+      ],
+      "labelPosition": {
+        "x": 744,
+        "y": 617
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "enterprise-integration-flow-9",
+      "from": "web-site",
+      "to": "web-keyvault",
+      "label": "Read secrets",
+      "style": "dashed",
+      "arrow": "forward",
+      "sourceSide": "left",
+      "targetSide": "left",
+      "points": [
+        {
+          "x": 424,
+          "y": 248
+        },
+        {
+          "x": 360,
+          "y": 248
+        },
+        {
+          "x": 360,
+          "y": 948
+        },
+        {
+          "x": 424,
+          "y": 948
+        }
+      ],
+      "labelPosition": {
+        "x": 360,
+        "y": 780
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "enterprise-integration-flow-10",
+      "from": "web-site",
+      "to": "web-monitor",
+      "label": "Emit telemetry",
+      "style": "dashed",
+      "arrow": "forward",
+      "sourceSide": "right",
+      "targetSide": "left",
+      "points": [
+        {
+          "x": 664,
+          "y": 276
+        },
+        {
+          "x": 764,
+          "y": 276
+        },
+        {
+          "x": 764,
+          "y": 948
+        },
+        {
+          "x": 824,
+          "y": 948
+        }
+      ],
+      "labelPosition": {
+        "x": 764,
+        "y": 780
+      },
+      "routeRevision": 1
+    }
+  ]
+}

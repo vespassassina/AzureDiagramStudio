@@ -1,0 +1,637 @@
+{
+  "schemaVersion": 1,
+  "id": "example-fabric-onelake-v1",
+  "title": "Fabric & OneLake analytics",
+  "subtitle": "Illustrative batch and streaming paths across workspace ownership. No connected data is implied.",
+  "synthetic": true,
+  "legendVisible": true,
+  "legend": [
+    {
+      "label": "Illustrative flow",
+      "color": "#6c8587"
+    },
+    {
+      "label": "Supporting dependency",
+      "color": "#6c8587",
+      "dashed": true
+    }
+  ],
+  "revision": 1,
+  "direction": "RIGHT",
+  "entities": [
+    {
+      "id": "fabric-source",
+      "kind": "boundary",
+      "label": "Source systems",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 0,
+      "y": 0,
+      "width": 288,
+      "height": 430,
+      "color": "source",
+      "subtitle": "Data owned outside the workspace"
+    },
+    {
+      "id": "fabric-engineering",
+      "kind": "boundary",
+      "label": "Engineering workspace",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 400,
+      "y": 0,
+      "width": 650,
+      "height": 430,
+      "color": "fabric",
+      "subtitle": "Ingestion and transformation"
+    },
+    {
+      "id": "fabric-serving",
+      "kind": "boundary",
+      "label": "Analytics workspace",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 400,
+      "y": 600,
+      "width": 650,
+      "height": 430,
+      "color": "azure",
+      "subtitle": "Curated and real-time data"
+    },
+    {
+      "id": "fabric-business",
+      "kind": "boundary",
+      "label": "Business workspace",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 0,
+      "y": 600,
+      "width": 288,
+      "height": 430,
+      "color": "teal",
+      "subtitle": "Governed consumption"
+    },
+    {
+      "id": "fabric-sql",
+      "kind": "component",
+      "label": "SQL Database",
+      "parentId": "fabric-source",
+      "layer": "foreground",
+      "x": 24,
+      "y": 92,
+      "width": 240,
+      "height": 112,
+      "color": "source",
+      "subtitle": "Illustrative source tables",
+      "icon": "azure-sql",
+      "status": "synthetic"
+    },
+    {
+      "id": "fabric-hubs",
+      "kind": "component",
+      "label": "Event Hubs",
+      "parentId": "fabric-source",
+      "layer": "foreground",
+      "x": 24,
+      "y": 284,
+      "width": 240,
+      "height": 112,
+      "color": "source",
+      "subtitle": "Illustrative event source",
+      "icon": "azure-event-hubs",
+      "status": "synthetic"
+    },
+    {
+      "id": "fabric-pipeline",
+      "kind": "component",
+      "label": "Data pipeline",
+      "parentId": "fabric-engineering",
+      "layer": "foreground",
+      "x": 24,
+      "y": 92,
+      "width": 240,
+      "height": 112,
+      "color": "fabric",
+      "subtitle": "Batch orchestration",
+      "icon": "fabric-pipeline-20-item",
+      "status": "synthetic"
+    },
+    {
+      "id": "fabric-dataflow",
+      "kind": "component",
+      "label": "Dataflow Gen2",
+      "parentId": "fabric-engineering",
+      "layer": "foreground",
+      "x": 374,
+      "y": 92,
+      "width": 240,
+      "height": 112,
+      "color": "fabric",
+      "subtitle": "Low-code preparation",
+      "icon": "fabric-dataflow-gen2-20-item",
+      "status": "synthetic"
+    },
+    {
+      "id": "fabric-lakehouse",
+      "kind": "component",
+      "label": "Lakehouse",
+      "parentId": "fabric-engineering",
+      "layer": "foreground",
+      "x": 374,
+      "y": 284,
+      "width": 240,
+      "height": 112,
+      "color": "fabric",
+      "subtitle": "Delta tables and files",
+      "icon": "fabric-lakehouse-20-item",
+      "status": "synthetic"
+    },
+    {
+      "id": "fabric-notebook",
+      "kind": "component",
+      "label": "Notebook",
+      "parentId": "fabric-engineering",
+      "layer": "foreground",
+      "x": 24,
+      "y": 284,
+      "width": 240,
+      "height": 112,
+      "color": "fabric",
+      "subtitle": "Spark transformation",
+      "icon": "fabric-notebook-20-item",
+      "status": "synthetic"
+    },
+    {
+      "id": "fabric-onelake",
+      "kind": "component",
+      "label": "OneLake",
+      "parentId": "fabric-serving",
+      "layer": "foreground",
+      "x": 24,
+      "y": 92,
+      "width": 240,
+      "height": 112,
+      "color": "azure",
+      "subtitle": "Shared logical data lake",
+      "icon": "fabric-one-lake-20-color",
+      "status": "synthetic"
+    },
+    {
+      "id": "fabric-warehouse",
+      "kind": "component",
+      "label": "Warehouse",
+      "parentId": "fabric-serving",
+      "layer": "foreground",
+      "x": 24,
+      "y": 284,
+      "width": 240,
+      "height": 112,
+      "color": "azure",
+      "subtitle": "Curated SQL analytics",
+      "icon": "fabric-data-warehouse-20-item",
+      "status": "synthetic"
+    },
+    {
+      "id": "fabric-eventstream",
+      "kind": "component",
+      "label": "Eventstream",
+      "parentId": "fabric-serving",
+      "layer": "foreground",
+      "x": 374,
+      "y": 92,
+      "width": 240,
+      "height": 112,
+      "color": "azure",
+      "subtitle": "Stream ingestion",
+      "icon": "fabric-eventstream-20-item",
+      "status": "synthetic"
+    },
+    {
+      "id": "fabric-eventhouse",
+      "kind": "component",
+      "label": "Eventhouse",
+      "parentId": "fabric-serving",
+      "layer": "foreground",
+      "x": 374,
+      "y": 284,
+      "width": 240,
+      "height": 112,
+      "color": "azure",
+      "subtitle": "Real-time analytics",
+      "icon": "fabric-event-house-20-item",
+      "status": "synthetic"
+    },
+    {
+      "id": "fabric-model",
+      "kind": "component",
+      "label": "Semantic model",
+      "parentId": "fabric-business",
+      "layer": "foreground",
+      "x": 24,
+      "y": 92,
+      "width": 240,
+      "height": 112,
+      "color": "teal",
+      "subtitle": "Business measures",
+      "icon": "fabric-semantic-model-20-item",
+      "status": "synthetic"
+    },
+    {
+      "id": "fabric-powerbi",
+      "kind": "component",
+      "label": "Power BI",
+      "parentId": "fabric-business",
+      "layer": "foreground",
+      "x": 24,
+      "y": 284,
+      "width": 240,
+      "height": 112,
+      "color": "teal",
+      "subtitle": "Business reports",
+      "icon": "fabric-power-bi-20-color",
+      "status": "synthetic"
+    }
+  ],
+  "connections": [
+    {
+      "id": "fabric-onelake-flow-1",
+      "from": "fabric-sql",
+      "to": "fabric-pipeline",
+      "label": "Extract",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "right",
+      "targetSide": "left",
+      "points": [
+        {
+          "x": 264,
+          "y": 148
+        },
+        {
+          "x": 424,
+          "y": 148
+        }
+      ],
+      "labelPosition": {
+        "x": 344,
+        "y": 141
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "fabric-onelake-flow-2",
+      "from": "fabric-pipeline",
+      "to": "fabric-dataflow",
+      "label": "Prepare",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "right",
+      "targetSide": "left",
+      "points": [
+        {
+          "x": 664,
+          "y": 148
+        },
+        {
+          "x": 774,
+          "y": 148
+        }
+      ],
+      "labelPosition": {
+        "x": 719,
+        "y": 141
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "fabric-onelake-flow-3",
+      "from": "fabric-dataflow",
+      "to": "fabric-lakehouse",
+      "label": "Load",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "bottom",
+      "targetSide": "top",
+      "points": [
+        {
+          "x": 894,
+          "y": 204
+        },
+        {
+          "x": 894,
+          "y": 284
+        }
+      ],
+      "labelPosition": {
+        "x": 894,
+        "y": 240
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "fabric-onelake-flow-4",
+      "from": "fabric-lakehouse",
+      "to": "fabric-notebook",
+      "label": "Transform",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "left",
+      "targetSide": "right",
+      "points": [
+        {
+          "x": 774,
+          "y": 340
+        },
+        {
+          "x": 664,
+          "y": 340
+        }
+      ],
+      "labelPosition": {
+        "x": 719,
+        "y": 333
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "fabric-onelake-flow-5",
+      "from": "fabric-notebook",
+      "to": "fabric-warehouse",
+      "label": "Publish tables",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "bottom",
+      "targetSide": "left",
+      "points": [
+        {
+          "x": 544,
+          "y": 396
+        },
+        {
+          "x": 544,
+          "y": 480
+        },
+        {
+          "x": 350,
+          "y": 480
+        },
+        {
+          "x": 350,
+          "y": 940
+        },
+        {
+          "x": 424,
+          "y": 940
+        }
+      ],
+      "labelPosition": {
+        "x": 350,
+        "y": 770
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "fabric-onelake-flow-6",
+      "from": "fabric-lakehouse",
+      "to": "fabric-onelake",
+      "label": "Store files",
+      "style": "dashed",
+      "arrow": "forward",
+      "sourceSide": "right",
+      "targetSide": "right",
+      "points": [
+        {
+          "x": 1014,
+          "y": 340
+        },
+        {
+          "x": 1100,
+          "y": 340
+        },
+        {
+          "x": 1100,
+          "y": 540
+        },
+        {
+          "x": 724,
+          "y": 540
+        },
+        {
+          "x": 724,
+          "y": 748
+        },
+        {
+          "x": 664,
+          "y": 748
+        }
+      ],
+      "labelPosition": {
+        "x": 910,
+        "y": 540
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "fabric-onelake-flow-7",
+      "from": "fabric-warehouse",
+      "to": "fabric-onelake",
+      "label": "Store tables",
+      "style": "dashed",
+      "arrow": "forward",
+      "sourceSide": "top",
+      "targetSide": "bottom",
+      "points": [
+        {
+          "x": 544,
+          "y": 884
+        },
+        {
+          "x": 544,
+          "y": 804
+        }
+      ],
+      "labelPosition": {
+        "x": 544,
+        "y": 838
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "fabric-onelake-flow-8",
+      "from": "fabric-hubs",
+      "to": "fabric-eventstream",
+      "label": "Stream events",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "right",
+      "targetSide": "top",
+      "points": [
+        {
+          "x": 264,
+          "y": 340
+        },
+        {
+          "x": 320,
+          "y": 340
+        },
+        {
+          "x": 320,
+          "y": 570
+        },
+        {
+          "x": 894,
+          "y": 570
+        },
+        {
+          "x": 894,
+          "y": 692
+        }
+      ],
+      "labelPosition": {
+        "x": 620,
+        "y": 570
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "fabric-onelake-flow-9",
+      "from": "fabric-eventstream",
+      "to": "fabric-eventhouse",
+      "label": "Ingest",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "bottom",
+      "targetSide": "top",
+      "points": [
+        {
+          "x": 894,
+          "y": 804
+        },
+        {
+          "x": 894,
+          "y": 884
+        }
+      ],
+      "labelPosition": {
+        "x": 894,
+        "y": 838
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "fabric-onelake-flow-10",
+      "from": "fabric-warehouse",
+      "to": "fabric-model",
+      "label": "Model",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "left",
+      "targetSide": "right",
+      "points": [
+        {
+          "x": 424,
+          "y": 940
+        },
+        {
+          "x": 380,
+          "y": 940
+        },
+        {
+          "x": 380,
+          "y": 800
+        },
+        {
+          "x": 310,
+          "y": 800
+        },
+        {
+          "x": 310,
+          "y": 748
+        },
+        {
+          "x": 264,
+          "y": 748
+        }
+      ],
+      "labelPosition": {
+        "x": 345,
+        "y": 800
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "fabric-onelake-flow-11",
+      "from": "fabric-eventhouse",
+      "to": "fabric-model",
+      "label": "Query",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "left",
+      "targetSide": "right",
+      "points": [
+        {
+          "x": 774,
+          "y": 940
+        },
+        {
+          "x": 724,
+          "y": 940
+        },
+        {
+          "x": 724,
+          "y": 1070
+        },
+        {
+          "x": 350,
+          "y": 1070
+        },
+        {
+          "x": 350,
+          "y": 775
+        },
+        {
+          "x": 310,
+          "y": 775
+        },
+        {
+          "x": 310,
+          "y": 727
+        },
+        {
+          "x": 264,
+          "y": 727
+        }
+      ],
+      "labelPosition": {
+        "x": 590,
+        "y": 1070
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "fabric-onelake-flow-12",
+      "from": "fabric-model",
+      "to": "fabric-powerbi",
+      "label": "Visualize",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "bottom",
+      "targetSide": "top",
+      "points": [
+        {
+          "x": 144,
+          "y": 804
+        },
+        {
+          "x": 144,
+          "y": 884
+        }
+      ],
+      "labelPosition": {
+        "x": 144,
+        "y": 838
+      },
+      "routeRevision": 1
+    }
+  ]
+}

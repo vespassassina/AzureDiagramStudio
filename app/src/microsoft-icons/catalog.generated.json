@@ -1,0 +1,436 @@
+[
+  {
+    "icon": "microsoft-sharepoint",
+    "label": "SharePoint",
+    "subtitle": "Original named badge (not official)",
+    "color": "#62696c",
+    "category": "Microsoft Apps",
+    "catalog": "azure",
+    "source": {
+      "entry": "app/src/assets/microsoft/microsoft-sharepoint.svg",
+      "url": "https://learn.microsoft.com/en-us/sharepoint/introduction",
+      "sha256": "b0d85108739330c741cb53950d71430f1b331ae498ec9039af0b5c5805e3fd53",
+      "categories": [
+        "Microsoft Apps"
+      ],
+      "entries": [
+        "app/src/assets/microsoft/microsoft-sharepoint.svg"
+      ]
+    },
+    "aliases": [
+      "SharePoint Online",
+      "Microsoft SharePoint",
+      "SPO"
+    ],
+    "keywords": [
+      "Microsoft Apps",
+      "original named badge",
+      "intranet",
+      "sites",
+      "collaboration",
+      "document management"
+    ]
+  },
+  {
+    "icon": "microsoft-business-central",
+    "label": "Dynamics 365 Business Central",
+    "subtitle": "Official architecture icon",
+    "color": "#0b8f8f",
+    "category": "Microsoft Apps",
+    "catalog": "azure",
+    "source": {
+      "entry": "Dynamics 365 App Icons/BusinessCentral_scalable.svg",
+      "url": "https://download.microsoft.com/download/498606aa-6d27-4f13-aa5c-1401078c153b/Dynamics-365-icons-scalable.zip",
+      "sha256": "5effb9327ab3914ba1a4660c1a95282253ba6fb911580d227c62a222a4a76be8",
+      "categories": [
+        "Microsoft Apps"
+      ],
+      "entries": [
+        "Dynamics 365 App Icons/BusinessCentral_scalable.svg"
+      ]
+    },
+    "aliases": [
+      "Dynamics 365 Business Central",
+      "Business Central",
+      "BC",
+      "Dynamics NAV",
+      "Navision"
+    ],
+    "keywords": [
+      "Microsoft Apps",
+      "official architecture icon",
+      "ERP",
+      "finance",
+      "small business"
+    ]
+  },
+  {
+    "icon": "microsoft-dynamics365",
+    "label": "Dynamics 365",
+    "subtitle": "Official architecture icon",
+    "color": "#2266e3",
+    "category": "Microsoft Apps",
+    "catalog": "azure",
+    "source": {
+      "entry": "Dynamics 365 Product Family Icons/Dynamics365_scalable.svg",
+      "url": "https://download.microsoft.com/download/498606aa-6d27-4f13-aa5c-1401078c153b/Dynamics-365-icons-scalable.zip",
+      "sha256": "5017e931a0f5e724247a9c49e15e22bb22e252d5343e0a40f7f38366d2aeb388",
+      "categories": [
+        "Microsoft Apps"
+      ],
+      "entries": [
+        "Dynamics 365 Product Family Icons/Dynamics365_scalable.svg"
+      ]
+    },
+    "aliases": [
+      "Microsoft Dynamics 365",
+      "D365",
+      "Dynamics"
+    ],
+    "keywords": [
+      "Microsoft Apps",
+      "official architecture icon",
+      "CRM",
+      "ERP",
+      "product family"
+    ]
+  },
+  {
+    "icon": "microsoft-m365",
+    "label": "Microsoft 365",
+    "subtitle": "Original named badge (not official)",
+    "color": "#62696c",
+    "category": "Microsoft Apps",
+    "catalog": "azure",
+    "source": {
+      "entry": "app/src/assets/microsoft/microsoft-m365.svg",
+      "url": "https://learn.microsoft.com/en-us/microsoft-365/solutions/architecture-icons-templates",
+      "sha256": "67445db657b61b35340b318ab4ec854ccc45c7c3d5ccd963bb59485dc57bed5d",
+      "categories": [
+        "Microsoft Apps"
+      ],
+      "entries": [
+        "app/src/assets/microsoft/microsoft-m365.svg"
+      ]
+    },
+    "aliases": [
+      "M365",
+      "Office 365",
+      "O365",
+      "Microsoft Office"
+    ],
+    "keywords": [
+      "Microsoft Apps",
+      "original named badge",
+      "productivity suite",
+      "collaboration"
+    ]
+  },
+  {
+    "icon": "microsoft-copilot",
+    "label": "Microsoft 365 Copilot",
+    "subtitle": "Original named badge (not official)",
+    "color": "#62696c",
+    "category": "Microsoft Apps",
+    "catalog": "azure",
+    "source": {
+      "entry": "app/src/assets/microsoft/microsoft-copilot.svg",
+      "url": "https://learn.microsoft.com/en-us/microsoft-365/copilot/microsoft-365-copilot-overview",
+      "sha256": "28eb4c6b8256330a27d747e7ead7db7130b02bfd9df7f29a146d7da3395c1de9",
+      "categories": [
+        "Microsoft Apps"
+      ],
+      "entries": [
+        "app/src/assets/microsoft/microsoft-copilot.svg"
+      ]
+    },
+    "aliases": [
+      "Microsoft 365 Copilot",
+      "M365 Copilot",
+      "Copilot for Microsoft 365"
+    ],
+    "keywords": [
+      "Microsoft Apps",
+      "original named badge",
+      "work assistant",
+      "enterprise productivity",
+      "not consumer Copilot"
+    ]
+  },
+  {
+    "icon": "microsoft-copilot-studio",
+    "label": "Microsoft Copilot Studio",
+    "subtitle": "Official architecture icon",
+    "color": "#127d9f",
+    "category": "Microsoft Apps",
+    "catalog": "azure",
+    "source": {
+      "entry": "CopilotStudio_scalable.svg",
+      "url": "https://download.microsoft.com/download/498606aa-6d27-4f13-aa5c-1401078c153b/Power-Platform-icons-scalable.zip",
+      "sha256": "c614fa6b9b7d33048c6c4efcdd508e5b7818d296cbd1cd7d8848bb2dd1be4fd0",
+      "categories": [
+        "Microsoft Apps"
+      ],
+      "entries": [
+        "CopilotStudio_scalable.svg"
+      ]
+    },
+    "aliases": [
+      "Copilot Studio",
+      "Power Virtual Agents",
+      "PVA"
+    ],
+    "keywords": [
+      "Microsoft Apps",
+      "official architecture icon",
+      "Power Platform",
+      "agent builder",
+      "low code"
+    ]
+  },
+  {
+    "icon": "microsoft-excel",
+    "label": "Excel",
+    "subtitle": "Original named badge (not official)",
+    "color": "#62696c",
+    "category": "Microsoft Apps",
+    "catalog": "azure",
+    "source": {
+      "entry": "app/src/assets/microsoft/microsoft-excel.svg",
+      "url": "https://learn.microsoft.com/en-us/office365/servicedescriptions/office-applications-service-description/office-applications#microsoft-excel",
+      "sha256": "86a530474684af612833ff092d2b55a8514a4afbdfb6f9e0dbaafa4c36bc6565",
+      "categories": [
+        "Microsoft Apps"
+      ],
+      "entries": [
+        "app/src/assets/microsoft/microsoft-excel.svg"
+      ]
+    },
+    "aliases": [
+      "Excel",
+      "Microsoft Excel"
+    ],
+    "keywords": [
+      "Microsoft Apps",
+      "original named badge",
+      "spreadsheet",
+      "workbook",
+      "Office"
+    ]
+  },
+  {
+    "icon": "microsoft-word",
+    "label": "Word",
+    "subtitle": "Original named badge (not official)",
+    "color": "#62696c",
+    "category": "Microsoft Apps",
+    "catalog": "azure",
+    "source": {
+      "entry": "app/src/assets/microsoft/microsoft-word.svg",
+      "url": "https://learn.microsoft.com/en-us/office365/servicedescriptions/office-applications-service-description/office-applications#microsoft-word",
+      "sha256": "a7192e9a3898ed314c1835fe87a1d9196efba6d226149514115d13903adea247",
+      "categories": [
+        "Microsoft Apps"
+      ],
+      "entries": [
+        "app/src/assets/microsoft/microsoft-word.svg"
+      ]
+    },
+    "aliases": [
+      "Word",
+      "Microsoft Word"
+    ],
+    "keywords": [
+      "Microsoft Apps",
+      "original named badge",
+      "word processor",
+      "document",
+      "Office"
+    ]
+  },
+  {
+    "icon": "microsoft-powerpoint",
+    "label": "PowerPoint",
+    "subtitle": "Original named badge (not official)",
+    "color": "#62696c",
+    "category": "Microsoft Apps",
+    "catalog": "azure",
+    "source": {
+      "entry": "app/src/assets/microsoft/microsoft-powerpoint.svg",
+      "url": "https://learn.microsoft.com/en-us/office365/servicedescriptions/office-applications-service-description/office-applications#microsoft-powerpoint",
+      "sha256": "311a4ec25371b87943c51aeab4a0cb083744dda5429d07d97aa6f8726a5a5a72",
+      "categories": [
+        "Microsoft Apps"
+      ],
+      "entries": [
+        "app/src/assets/microsoft/microsoft-powerpoint.svg"
+      ]
+    },
+    "aliases": [
+      "PowerPoint",
+      "Microsoft PowerPoint",
+      "PPT"
+    ],
+    "keywords": [
+      "Microsoft Apps",
+      "original named badge",
+      "slides",
+      "presentation",
+      "Office"
+    ]
+  },
+  {
+    "icon": "microsoft-teams",
+    "label": "Microsoft Teams",
+    "subtitle": "Original named badge (not official)",
+    "color": "#62696c",
+    "category": "Microsoft Apps",
+    "catalog": "azure",
+    "source": {
+      "entry": "app/src/assets/microsoft/microsoft-teams.svg",
+      "url": "https://learn.microsoft.com/en-us/microsoftteams/teams-overview",
+      "sha256": "a8e86cb20d9b46014bd9253df6d22b623d57a7de547e570f1e4e18bf9605ba33",
+      "categories": [
+        "Microsoft Apps"
+      ],
+      "entries": [
+        "app/src/assets/microsoft/microsoft-teams.svg"
+      ]
+    },
+    "aliases": [
+      "Teams",
+      "MS Teams"
+    ],
+    "keywords": [
+      "Microsoft Apps",
+      "original named badge",
+      "meeting",
+      "chat",
+      "collaboration"
+    ]
+  },
+  {
+    "icon": "microsoft-outlook",
+    "label": "Outlook",
+    "subtitle": "Original named badge (not official)",
+    "color": "#62696c",
+    "category": "Microsoft Apps",
+    "catalog": "azure",
+    "source": {
+      "entry": "app/src/assets/microsoft/microsoft-outlook.svg",
+      "url": "https://learn.microsoft.com/en-us/office365/servicedescriptions/office-applications-service-description/office-applications#microsoft-outlook",
+      "sha256": "110f297dd758ad55346c10d555e690db3f0682cd7beeb8a1c44e3e898d5f9c48",
+      "categories": [
+        "Microsoft Apps"
+      ],
+      "entries": [
+        "app/src/assets/microsoft/microsoft-outlook.svg"
+      ]
+    },
+    "aliases": [
+      "Outlook",
+      "Microsoft Outlook"
+    ],
+    "keywords": [
+      "Microsoft Apps",
+      "original named badge",
+      "email",
+      "calendar",
+      "mail client",
+      "not Exchange Server"
+    ]
+  },
+  {
+    "icon": "microsoft-onedrive",
+    "label": "OneDrive",
+    "subtitle": "Original named badge (not official)",
+    "color": "#62696c",
+    "category": "Microsoft Apps",
+    "catalog": "azure",
+    "source": {
+      "entry": "app/src/assets/microsoft/microsoft-onedrive.svg",
+      "url": "https://learn.microsoft.com/en-us/sharepoint/introduction",
+      "sha256": "6a0cc71e43c6a732a544b826135685d82eaa021aa19f79fe35b94fedfd72cebc",
+      "categories": [
+        "Microsoft Apps"
+      ],
+      "entries": [
+        "app/src/assets/microsoft/microsoft-onedrive.svg"
+      ]
+    },
+    "aliases": [
+      "OneDrive",
+      "Microsoft OneDrive",
+      "OneDrive for Business"
+    ],
+    "keywords": [
+      "Microsoft Apps",
+      "original named badge",
+      "file sync",
+      "personal files",
+      "cloud storage"
+    ]
+  },
+  {
+    "icon": "microsoft-power-apps",
+    "label": "Power Apps",
+    "subtitle": "Official architecture icon",
+    "color": "#91328f",
+    "category": "Microsoft Apps",
+    "catalog": "azure",
+    "source": {
+      "entry": "Power Platform/PowerApps_scalable.svg",
+      "url": "https://download.microsoft.com/download/498606aa-6d27-4f13-aa5c-1401078c153b/Power-Platform-icons-scalable.zip",
+      "sha256": "c357907ad0a2d24a6d8c82b23fe4d2aaa4a4524076991f74770fc043a4cc455a",
+      "categories": [
+        "Microsoft Apps"
+      ],
+      "entries": [
+        "Power Platform/PowerApps_scalable.svg"
+      ]
+    },
+    "aliases": [
+      "Power Apps",
+      "PowerApps",
+      "Microsoft Power Apps"
+    ],
+    "keywords": [
+      "Microsoft Apps",
+      "official architecture icon",
+      "Power Platform",
+      "low code",
+      "business apps"
+    ]
+  },
+  {
+    "icon": "microsoft-power-automate",
+    "label": "Power Automate",
+    "subtitle": "Official architecture icon",
+    "color": "#2266e3",
+    "category": "Microsoft Apps",
+    "catalog": "azure",
+    "source": {
+      "entry": "Power Platform/PowerAutomate_scalable.svg",
+      "url": "https://download.microsoft.com/download/498606aa-6d27-4f13-aa5c-1401078c153b/Power-Platform-icons-scalable.zip",
+      "sha256": "2025db7bb3feec49d75681934b8561fb958cf11bdf0e2acf6e2b28db5c755e8d",
+      "categories": [
+        "Microsoft Apps"
+      ],
+      "entries": [
+        "Power Platform/PowerAutomate_scalable.svg"
+      ]
+    },
+    "aliases": [
+      "Power Automate",
+      "Microsoft Flow",
+      "Flow"
+    ],
+    "keywords": [
+      "Microsoft Apps",
+      "official architecture icon",
+      "Power Platform",
+      "workflow",
+      "automation"
+    ]
+  }
+]
