@@ -2,19 +2,19 @@
   {
     "icon": "vendor-oracle",
     "label": "Oracle",
-    "subtitle": "Named integration badge",
+    "subtitle": "Vendor product icon",
     "color": "#62696c",
     "category": "Vendors",
     "catalog": "software",
     "source": {
-      "entry": "app/src/assets/vendors/vendor-oracle.svg",
+      "entry": "app/src/assets/vendors/vendor-oracle.png",
       "url": "https://www.oracle.com/legal/trademarks.html",
-      "sha256": "3fa9d27267fd4ec61250317b1e78e1bd621546c5953763bd1f1fb2a88f040d23",
+      "sha256": "c20c4ae2ebd375a3262e14609f3cc9de36ea5ff0481b7c3fd5b9ebb0983a2460",
       "categories": [
         "Vendors"
       ],
       "entries": [
-        "app/src/assets/vendors/vendor-oracle.svg"
+        "app/src/assets/vendors/vendor-oracle.png"
       ]
     },
     "aliases": [
@@ -22,7 +22,7 @@
     ],
     "keywords": [
       "vendor",
-      "named integration badge",
+      "vendor product icon",
       "database",
       "enterprise software"
     ]
@@ -30,19 +30,19 @@
   {
     "icon": "vendor-sap",
     "label": "SAP",
-    "subtitle": "Named integration badge",
+    "subtitle": "Vendor product icon",
     "color": "#62696c",
     "category": "Vendors",
     "catalog": "software",
     "source": {
-      "entry": "app/src/assets/vendors/vendor-sap.svg",
+      "entry": "app/src/assets/vendors/vendor-sap.png",
       "url": "https://www.sap.com/about/legal/trademark.html",
-      "sha256": "665a2cde1307840d8cbd8817cb459b67817ca48ab23caae8e9dca794795cefc6",
+      "sha256": "2fd3f284317be5d92d502cae235f3b1118702d77cc84525f85497106274add55",
       "categories": [
         "Vendors"
       ],
       "entries": [
-        "app/src/assets/vendors/vendor-sap.svg"
+        "app/src/assets/vendors/vendor-sap.png"
       ]
     },
     "aliases": [
@@ -50,7 +50,7 @@
     ],
     "keywords": [
       "vendor",
-      "named integration badge",
+      "vendor product icon",
       "ERP",
       "enterprise software"
     ]
@@ -58,19 +58,19 @@
   {
     "icon": "vendor-ibm",
     "label": "IBM",
-    "subtitle": "Named integration badge",
+    "subtitle": "Vendor product icon",
     "color": "#62696c",
     "category": "Vendors",
     "catalog": "software",
     "source": {
-      "entry": "app/src/assets/vendors/vendor-ibm.svg",
+      "entry": "app/src/assets/vendors/vendor-ibm.png",
       "url": "https://www.ibm.com/legal/copytrade",
-      "sha256": "10a9566bf10db3cf5bec859cc27278379fc3177e8919813fd746e7e240cd651d",
+      "sha256": "002bf16e498f94efaf9a53d59ab1796fda6662675b7e1ee20e4681449babbd67",
       "categories": [
         "Vendors"
       ],
       "entries": [
-        "app/src/assets/vendors/vendor-ibm.svg"
+        "app/src/assets/vendors/vendor-ibm.png"
       ]
     },
     "aliases": [
@@ -78,26 +78,26 @@
     ],
     "keywords": [
       "vendor",
-      "named integration badge",
+      "vendor product icon",
       "enterprise computing"
     ]
   },
   {
     "icon": "vendor-aws",
     "label": "AWS",
-    "subtitle": "Named integration badge",
+    "subtitle": "Vendor product icon",
     "color": "#62696c",
     "category": "Vendors",
     "catalog": "software",
     "source": {
-      "entry": "app/src/assets/vendors/vendor-aws.svg",
+      "entry": "app/src/assets/vendors/vendor-aws.png",
       "url": "https://aws.amazon.com/trademark-guidelines/",
-      "sha256": "3420cd4d7d5015f4ea387913cb8a9e8970f80e8ec13461f409b7dadb070600c2",
+      "sha256": "218088b686acff127255c0ace0113e5d40d985f77cb2b2c2a82b98ea5058adcf",
       "categories": [
         "Vendors"
       ],
       "entries": [
-        "app/src/assets/vendors/vendor-aws.svg"
+        "app/src/assets/vendors/vendor-aws.png"
       ]
     },
     "aliases": [
@@ -106,26 +106,26 @@
     ],
     "keywords": [
       "vendor",
-      "named integration badge",
+      "vendor product icon",
       "cloud provider"
     ]
   },
   {
     "icon": "vendor-gcp",
     "label": "Google Cloud",
-    "subtitle": "Named integration badge",
+    "subtitle": "Vendor product icon",
     "color": "#62696c",
     "category": "Vendors",
     "catalog": "software",
     "source": {
-      "entry": "app/src/assets/vendors/vendor-gcp.svg",
+      "entry": "app/src/assets/vendors/vendor-gcp.png",
       "url": "https://about.google/brand-resource-center/guidance/",
-      "sha256": "4612e94416c8c8a805b356e522bccde12dc96282a5648720f2d4cd7d3dc016f3",
+      "sha256": "e6786befba0594198155098853e31442163d9577a35f8079f62953ed1b8d7f6e",
       "categories": [
         "Vendors"
       ],
       "entries": [
-        "app/src/assets/vendors/vendor-gcp.svg"
+        "app/src/assets/vendors/vendor-gcp.png"
       ]
     },
     "aliases": [
@@ -135,26 +135,26 @@
     ],
     "keywords": [
       "vendor",
-      "named integration badge",
+      "vendor product icon",
       "cloud provider"
     ]
   },
   {
     "icon": "vendor-hp",
     "label": "HP",
-    "subtitle": "Named integration badge",
+    "subtitle": "Vendor product icon",
     "color": "#62696c",
     "category": "Vendors",
     "catalog": "software",
     "source": {
-      "entry": "app/src/assets/vendors/vendor-hp.svg",
+      "entry": "app/src/assets/vendors/vendor-hp.png",
       "url": "https://www.hp.com/",
-      "sha256": "37110bd401ebfe6ec25dee51a40f05b6cde7cb1637b20f829ee607b76c61f19d",
+      "sha256": "62ca988466f98f0b28c2483ac46448b36ea10e1d939c5baedef1b77345ed5258",
       "categories": [
         "Vendors"
       ],
       "entries": [
-        "app/src/assets/vendors/vendor-hp.svg"
+        "app/src/assets/vendors/vendor-hp.png"
       ]
     },
     "aliases": [
@@ -164,7 +164,7 @@
     ],
     "keywords": [
       "vendor",
-      "named integration badge",
+      "vendor product icon",
       "personal computing",
       "printing"
     ]
@@ -172,19 +172,19 @@
   {
     "icon": "vendor-hpe",
     "label": "HPE",
-    "subtitle": "Named integration badge",
+    "subtitle": "Vendor product icon",
     "color": "#62696c",
     "category": "Vendors",
     "catalog": "software",
     "source": {
-      "entry": "app/src/assets/vendors/vendor-hpe.svg",
+      "entry": "app/src/assets/vendors/vendor-hpe.png",
       "url": "https://www.hpe.com/us/en/about/legal/trademarks.html",
-      "sha256": "e96be6fe54d6c614a4e756baf197591f4102349aced7dc0f68f07bc101b6fe09",
+      "sha256": "8666964c1320c2a2e0ae9a9cb6ac013046ad67477a499f416674eb721b424ae4",
       "categories": [
         "Vendors"
       ],
       "entries": [
-        "app/src/assets/vendors/vendor-hpe.svg"
+        "app/src/assets/vendors/vendor-hpe.png"
       ]
     },
     "aliases": [
@@ -192,26 +192,26 @@
     ],
     "keywords": [
       "vendor",
-      "named integration badge",
+      "vendor product icon",
       "enterprise infrastructure"
     ]
   },
   {
     "icon": "vendor-red-hat",
     "label": "Red Hat",
-    "subtitle": "Named integration badge",
+    "subtitle": "Vendor product icon",
     "color": "#62696c",
     "category": "Vendors",
     "catalog": "software",
     "source": {
-      "entry": "app/src/assets/vendors/vendor-red-hat.svg",
+      "entry": "app/src/assets/vendors/vendor-red-hat.png",
       "url": "https://www.redhat.com/en/about/trademark-guidelines-and-policies",
-      "sha256": "f2f14a36f91a313fc64f192aace3adb0fcd5da34bbb81c6fe5f156834473dd2e",
+      "sha256": "bb92168446f810d00c7f3ed5becd8dff1379670cee7fc13ddb2d17c4d410884d",
       "categories": [
         "Vendors"
       ],
       "entries": [
-        "app/src/assets/vendors/vendor-red-hat.svg"
+        "app/src/assets/vendors/vendor-red-hat.png"
       ]
     },
     "aliases": [
@@ -219,7 +219,7 @@
     ],
     "keywords": [
       "vendor",
-      "named integration badge",
+      "vendor product icon",
       "Linux",
       "enterprise software"
     ]
@@ -227,19 +227,19 @@
   {
     "icon": "vendor-salesforce",
     "label": "Salesforce",
-    "subtitle": "Named integration badge",
+    "subtitle": "Vendor product icon",
     "color": "#62696c",
     "category": "Vendors",
     "catalog": "software",
     "source": {
-      "entry": "app/src/assets/vendors/vendor-salesforce.svg",
+      "entry": "app/src/assets/vendors/vendor-salesforce.png",
       "url": "https://www.salesforce.com/company/legal/",
-      "sha256": "c3031c49ae577d271502d2db39007eebdbf82b8bf0d493eb349fc7f1b0892153",
+      "sha256": "abcc0840c906aef643ba63da8d2d3f1487a8324ccc6ea7f122dd06168099e586",
       "categories": [
         "Vendors"
       ],
       "entries": [
-        "app/src/assets/vendors/vendor-salesforce.svg"
+        "app/src/assets/vendors/vendor-salesforce.png"
       ]
     },
     "aliases": [
@@ -247,26 +247,26 @@
     ],
     "keywords": [
       "vendor",
-      "named integration badge",
+      "vendor product icon",
       "CRM"
     ]
   },
   {
     "icon": "vendor-servicenow",
     "label": "ServiceNow",
-    "subtitle": "Named integration badge",
+    "subtitle": "Vendor product icon",
     "color": "#62696c",
     "category": "Vendors",
     "catalog": "software",
     "source": {
-      "entry": "app/src/assets/vendors/vendor-servicenow.svg",
+      "entry": "app/src/assets/vendors/vendor-servicenow.png",
       "url": "https://www.servicenow.com/company/legal.html",
-      "sha256": "4147ca95b023e312e041dd36fb225e9184d556e81ada1e9bdb8aa4747399b1a3",
+      "sha256": "fbcbb7c98b23ce172ea7db8e04ccc35d7a3e04b23ffda0d133cf345825041511",
       "categories": [
         "Vendors"
       ],
       "entries": [
-        "app/src/assets/vendors/vendor-servicenow.svg"
+        "app/src/assets/vendors/vendor-servicenow.png"
       ]
     },
     "aliases": [
@@ -274,7 +274,7 @@
     ],
     "keywords": [
       "vendor",
-      "named integration badge",
+      "vendor product icon",
       "ITSM",
       "workflow"
     ]
@@ -282,19 +282,19 @@
   {
     "icon": "vendor-snowflake",
     "label": "Snowflake",
-    "subtitle": "Named integration badge",
+    "subtitle": "Vendor product icon",
     "color": "#62696c",
     "category": "Vendors",
     "catalog": "software",
     "source": {
-      "entry": "app/src/assets/vendors/vendor-snowflake.svg",
+      "entry": "app/src/assets/vendors/vendor-snowflake.png",
       "url": "https://www.snowflake.com/en/legal/",
-      "sha256": "bd4d970f5609bf1d2e8d4e2226f652d06cda62d7b502218e2ec21440748e185d",
+      "sha256": "06bc457cfa7bb0482ffc3b1ee8d128007667003e31c4315e032b5b8773895472",
       "categories": [
         "Vendors"
       ],
       "entries": [
-        "app/src/assets/vendors/vendor-snowflake.svg"
+        "app/src/assets/vendors/vendor-snowflake.png"
       ]
     },
     "aliases": [
@@ -302,26 +302,26 @@
     ],
     "keywords": [
       "vendor",
-      "named integration badge",
+      "vendor product icon",
       "data warehouse"
     ]
   },
   {
     "icon": "vendor-docker",
     "label": "Docker",
-    "subtitle": "Named integration badge",
+    "subtitle": "Vendor product icon",
     "color": "#62696c",
     "category": "Vendors",
     "catalog": "software",
     "source": {
-      "entry": "app/src/assets/vendors/vendor-docker.svg",
+      "entry": "app/src/assets/vendors/vendor-docker.png",
       "url": "https://www.docker.com/legal/",
-      "sha256": "6453597db0bcbd90a2768f08593f1572e86364f815ba35730370d1a9e0ee8afa",
+      "sha256": "9bb28dc5437e94b2dcd1ac5d3befbc384a64876e9a4e0d2988c82add245d833d",
       "categories": [
         "Vendors"
       ],
       "entries": [
-        "app/src/assets/vendors/vendor-docker.svg"
+        "app/src/assets/vendors/vendor-docker.png"
       ]
     },
     "aliases": [
@@ -329,26 +329,26 @@
     ],
     "keywords": [
       "vendor",
-      "named integration badge",
+      "vendor product icon",
       "containers"
     ]
   },
   {
     "icon": "vendor-kubernetes",
     "label": "Kubernetes",
-    "subtitle": "Named integration badge",
+    "subtitle": "Vendor product icon",
     "color": "#62696c",
     "category": "Vendors",
     "catalog": "software",
     "source": {
-      "entry": "app/src/assets/vendors/vendor-kubernetes.svg",
+      "entry": "app/src/assets/vendors/vendor-kubernetes.png",
       "url": "https://www.cncf.io/brand-guidelines/",
-      "sha256": "421975a7c2bcf7afb6c1862af03b8aca998f5a983178ddd6d6832fa84b881e9a",
+      "sha256": "ec1b5613b4ef76b4f118dbbf3253c42a886dfef607ab611303d437a9ed4c7810",
       "categories": [
         "Vendors"
       ],
       "entries": [
-        "app/src/assets/vendors/vendor-kubernetes.svg"
+        "app/src/assets/vendors/vendor-kubernetes.png"
       ]
     },
     "aliases": [
@@ -356,7 +356,7 @@
     ],
     "keywords": [
       "vendor",
-      "named integration badge",
+      "vendor product icon",
       "containers",
       "orchestration",
       "open source project"
@@ -365,19 +365,19 @@
   {
     "icon": "vendor-postgresql",
     "label": "PostgreSQL",
-    "subtitle": "Named integration badge",
+    "subtitle": "Vendor product icon",
     "color": "#62696c",
     "category": "Vendors",
     "catalog": "software",
     "source": {
-      "entry": "app/src/assets/vendors/vendor-postgresql.svg",
+      "entry": "app/src/assets/vendors/vendor-postgresql.png",
       "url": "https://www.postgresql.org/about/policies/trademarks/",
-      "sha256": "7ff1af446e8e4898990f99ccf7e271a2a7357974e0e156c870b7e0ccaae136c0",
+      "sha256": "8cbe35841072ecd008d87391b73af5a8f6289f686099728c83bbc880976e1b6b",
       "categories": [
         "Vendors"
       ],
       "entries": [
-        "app/src/assets/vendors/vendor-postgresql.svg"
+        "app/src/assets/vendors/vendor-postgresql.png"
       ]
     },
     "aliases": [
@@ -385,7 +385,7 @@
     ],
     "keywords": [
       "vendor",
-      "named integration badge",
+      "vendor product icon",
       "database",
       "open source project"
     ]
@@ -393,19 +393,19 @@
   {
     "icon": "vendor-vmware",
     "label": "VMware",
-    "subtitle": "Named integration badge",
+    "subtitle": "Vendor product icon",
     "color": "#62696c",
     "category": "Vendors",
     "catalog": "software",
     "source": {
-      "entry": "app/src/assets/vendors/vendor-vmware.svg",
+      "entry": "app/src/assets/vendors/vendor-vmware.png",
       "url": "https://www.broadcom.com/company/legal/trademarks",
-      "sha256": "2b2160520c7e4edb9a04063c9bd125770663d88337a3b79821b2a72fb9cb7fe5",
+      "sha256": "51f681016b2e085b9e8dabc4b6471ad45e78b1a4d57647df39a71d46ea09cfe6",
       "categories": [
         "Vendors"
       ],
       "entries": [
-        "app/src/assets/vendors/vendor-vmware.svg"
+        "app/src/assets/vendors/vendor-vmware.png"
       ]
     },
     "aliases": [
@@ -413,26 +413,26 @@
     ],
     "keywords": [
       "vendor",
-      "named integration badge",
+      "vendor product icon",
       "virtualization"
     ]
   },
   {
     "icon": "vendor-broadcom",
     "label": "Broadcom",
-    "subtitle": "Named integration badge",
+    "subtitle": "Vendor product icon",
     "color": "#62696c",
     "category": "Vendors",
     "catalog": "software",
     "source": {
-      "entry": "app/src/assets/vendors/vendor-broadcom.svg",
+      "entry": "app/src/assets/vendors/vendor-broadcom.png",
       "url": "https://www.broadcom.com/company/legal/trademarks",
-      "sha256": "3fef5faa6b07c46221e871574c4f0493170bf0bac648f9f2c5ec1c77c46f99cb",
+      "sha256": "1e4749d06fdeed496504df47d6b0ee6d35f1cc245c38e6423ab75643eedd9ec9",
       "categories": [
         "Vendors"
       ],
       "entries": [
-        "app/src/assets/vendors/vendor-broadcom.svg"
+        "app/src/assets/vendors/vendor-broadcom.png"
       ]
     },
     "aliases": [
@@ -440,7 +440,7 @@
     ],
     "keywords": [
       "vendor",
-      "named integration badge",
+      "vendor product icon",
       "infrastructure software",
       "semiconductors"
     ]
@@ -448,19 +448,19 @@
   {
     "icon": "vendor-databricks",
     "label": "Databricks",
-    "subtitle": "Named integration badge",
+    "subtitle": "Vendor product icon",
     "color": "#62696c",
     "category": "Vendors",
     "catalog": "software",
     "source": {
-      "entry": "app/src/assets/vendors/vendor-databricks.svg",
+      "entry": "app/src/assets/vendors/vendor-databricks.png",
       "url": "https://www.databricks.com/legal",
-      "sha256": "d1743486bad7d926169771a4b400cbc3a1a26a7ffae6360a904dbf6c8d98e8c5",
+      "sha256": "afeb47cf6637a5324ff1250e7c4b0386108b29551607b062823df74dc357d344",
       "categories": [
         "Vendors"
       ],
       "entries": [
-        "app/src/assets/vendors/vendor-databricks.svg"
+        "app/src/assets/vendors/vendor-databricks.png"
       ]
     },
     "aliases": [
@@ -468,7 +468,7 @@
     ],
     "keywords": [
       "vendor",
-      "named integration badge",
+      "vendor product icon",
       "data analytics",
       "lakehouse"
     ]

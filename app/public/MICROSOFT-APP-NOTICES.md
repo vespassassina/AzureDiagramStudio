@@ -26,155 +26,155 @@ Microsoft 365 Copilot is deliberately not consumer Microsoft Copilot, GitHub Cop
 
 ## Per-Product Provenance
 
-### microsoft-sharepoint: original named badge
+### microsoft-sharepoint: official product icon
 
 - Product: SharePoint
-- Classification: Original named badge (not official)
-- Product identity reference (not an artwork license): https://learn.microsoft.com/en-us/sharepoint/introduction
-- Source entry: app/src/assets/microsoft/microsoft-sharepoint.svg
-- Bundled file: app/src/assets/microsoft/microsoft-sharepoint.svg
-- Artwork SHA-256: b0d85108739330c741cb53950d71430f1b331ae498ec9039af0b5c5805e3fd53
-- Source gap: no exact identifiable product artwork in the inspected Microsoft 365 SVG/stencil collections; no marketing-logo redistribution permission assumed. Original grayscale letters and connector geometry, not a replacement official glyph.
+- Classification: Official product icon
+- Microsoft CDN source: https://res-1.cdn.office.net/files/fabric-cdn-prod_20221209.001/assets/brand-icons/product/png/sharepoint_48x1.png
+- Retrieval: individual PNG downloaded unchanged, then SHA-256 pinned for offline bundling.
+- Source entry: app/src/assets/microsoft/microsoft-sharepoint.png
+- Bundled file: app/src/assets/microsoft/microsoft-sharepoint.png
+- Artwork SHA-256: 57dcf239d66d572e28fac8017903b83b9e2308c80ac09a91e0526316709e0e97
 
 ### microsoft-business-central: official architecture icon
 
 - Product: Dynamics 365 Business Central
 - Classification: Official architecture icon
 - Archive source: https://download.microsoft.com/download/498606aa-6d27-4f13-aa5c-1401078c153b/Dynamics-365-icons-scalable.zip
-- Source entry: Dynamics 365 App Icons/BusinessCentral_scalable.svg
-- Bundled file: app/src/assets/microsoft/microsoft-business-central.svg
-- Artwork SHA-256: 5effb9327ab3914ba1a4660c1a95282253ba6fb911580d227c62a222a4a76be8
 - Archive SHA-256: f5f4d96aaa637b71e47136cc74e9a4a69b8a81f7e43c1c5756f00b5cea9ffe02
 - Permitted-use terms: https://learn.microsoft.com/en-us/dynamics365/get-started/icons
 - Extraction: unchanged bytes from the identified SVG ZIP entry.
+- Source entry: Dynamics 365 App Icons/BusinessCentral_scalable.svg
+- Bundled file: app/src/assets/microsoft/microsoft-business-central.svg
+- Artwork SHA-256: 5effb9327ab3914ba1a4660c1a95282253ba6fb911580d227c62a222a4a76be8
 
 ### microsoft-dynamics365: official architecture icon
 
 - Product: Dynamics 365
 - Classification: Official architecture icon
 - Archive source: https://download.microsoft.com/download/498606aa-6d27-4f13-aa5c-1401078c153b/Dynamics-365-icons-scalable.zip
-- Source entry: Dynamics 365 Product Family Icons/Dynamics365_scalable.svg
-- Bundled file: app/src/assets/microsoft/microsoft-dynamics365.svg
-- Artwork SHA-256: 5017e931a0f5e724247a9c49e15e22bb22e252d5343e0a40f7f38366d2aeb388
 - Archive SHA-256: f5f4d96aaa637b71e47136cc74e9a4a69b8a81f7e43c1c5756f00b5cea9ffe02
 - Permitted-use terms: https://learn.microsoft.com/en-us/dynamics365/get-started/icons
 - Extraction: unchanged bytes from the identified SVG ZIP entry.
+- Source entry: Dynamics 365 Product Family Icons/Dynamics365_scalable.svg
+- Bundled file: app/src/assets/microsoft/microsoft-dynamics365.svg
+- Artwork SHA-256: 5017e931a0f5e724247a9c49e15e22bb22e252d5343e0a40f7f38366d2aeb388
 
-### microsoft-m365: original named badge
+### microsoft-m365: original named badge (not official)
 
 - Product: Microsoft 365
 - Classification: Original named badge (not official)
 - Product identity reference (not an artwork license): https://learn.microsoft.com/en-us/microsoft-365/solutions/architecture-icons-templates
+- Source gap: no exact identifiable product artwork in the inspected Microsoft 365 SVG/stencil collections; no marketing-logo redistribution permission assumed. Original grayscale letters and connector geometry, not a replacement official glyph.
 - Source entry: app/src/assets/microsoft/microsoft-m365.svg
 - Bundled file: app/src/assets/microsoft/microsoft-m365.svg
 - Artwork SHA-256: 67445db657b61b35340b318ab4ec854ccc45c7c3d5ccd963bb59485dc57bed5d
-- Source gap: no exact identifiable product artwork in the inspected Microsoft 365 SVG/stencil collections; no marketing-logo redistribution permission assumed. Original grayscale letters and connector geometry, not a replacement official glyph.
 
-### microsoft-copilot: original named badge
+### microsoft-copilot: original named badge (not official)
 
 - Product: Microsoft 365 Copilot
 - Classification: Original named badge (not official)
 - Product identity reference (not an artwork license): https://learn.microsoft.com/en-us/microsoft-365/copilot/microsoft-365-copilot-overview
+- Source gap: no exact identifiable product artwork in the inspected Microsoft 365 SVG/stencil collections; no marketing-logo redistribution permission assumed. Original grayscale letters and connector geometry, not a replacement official glyph.
 - Source entry: app/src/assets/microsoft/microsoft-copilot.svg
 - Bundled file: app/src/assets/microsoft/microsoft-copilot.svg
 - Artwork SHA-256: 28eb4c6b8256330a27d747e7ead7db7130b02bfd9df7f29a146d7da3395c1de9
-- Source gap: no exact identifiable product artwork in the inspected Microsoft 365 SVG/stencil collections; no marketing-logo redistribution permission assumed. Original grayscale letters and connector geometry, not a replacement official glyph.
 
 ### microsoft-copilot-studio: official architecture icon
 
 - Product: Microsoft Copilot Studio
 - Classification: Official architecture icon
 - Archive source: https://download.microsoft.com/download/498606aa-6d27-4f13-aa5c-1401078c153b/Power-Platform-icons-scalable.zip
-- Source entry: CopilotStudio_scalable.svg
-- Bundled file: app/src/assets/microsoft/microsoft-copilot-studio.svg
-- Artwork SHA-256: c614fa6b9b7d33048c6c4efcdd508e5b7818d296cbd1cd7d8848bb2dd1be4fd0
 - Archive SHA-256: d5abafebbce553690caf7b42dd14b8335bf2c0dfc09f46bd9ac8041187da2c3a
 - Permitted-use terms: https://learn.microsoft.com/en-us/power-platform/guidance/icons
 - Extraction: unchanged bytes from the identified SVG ZIP entry.
+- Source entry: CopilotStudio_scalable.svg
+- Bundled file: app/src/assets/microsoft/microsoft-copilot-studio.svg
+- Artwork SHA-256: c614fa6b9b7d33048c6c4efcdd508e5b7818d296cbd1cd7d8848bb2dd1be4fd0
 
-### microsoft-excel: original named badge
+### microsoft-excel: official product icon
 
 - Product: Excel
-- Classification: Original named badge (not official)
-- Product identity reference (not an artwork license): https://learn.microsoft.com/en-us/office365/servicedescriptions/office-applications-service-description/office-applications#microsoft-excel
-- Source entry: app/src/assets/microsoft/microsoft-excel.svg
-- Bundled file: app/src/assets/microsoft/microsoft-excel.svg
-- Artwork SHA-256: 86a530474684af612833ff092d2b55a8514a4afbdfb6f9e0dbaafa4c36bc6565
-- Source gap: no exact identifiable product artwork in the inspected Microsoft 365 SVG/stencil collections; no marketing-logo redistribution permission assumed. Original grayscale letters and connector geometry, not a replacement official glyph.
+- Classification: Official product icon
+- Microsoft CDN source: https://res-1.cdn.office.net/files/fabric-cdn-prod_20221209.001/assets/brand-icons/product/png/excel_48x1.png
+- Retrieval: individual PNG downloaded unchanged, then SHA-256 pinned for offline bundling.
+- Source entry: app/src/assets/microsoft/microsoft-excel.png
+- Bundled file: app/src/assets/microsoft/microsoft-excel.png
+- Artwork SHA-256: 25847181646d57146e37d5368c8c5799efde8634f8bf75c7a3eea2d98acbbc70
 
-### microsoft-word: original named badge
+### microsoft-word: official product icon
 
 - Product: Word
-- Classification: Original named badge (not official)
-- Product identity reference (not an artwork license): https://learn.microsoft.com/en-us/office365/servicedescriptions/office-applications-service-description/office-applications#microsoft-word
-- Source entry: app/src/assets/microsoft/microsoft-word.svg
-- Bundled file: app/src/assets/microsoft/microsoft-word.svg
-- Artwork SHA-256: a7192e9a3898ed314c1835fe87a1d9196efba6d226149514115d13903adea247
-- Source gap: no exact identifiable product artwork in the inspected Microsoft 365 SVG/stencil collections; no marketing-logo redistribution permission assumed. Original grayscale letters and connector geometry, not a replacement official glyph.
+- Classification: Official product icon
+- Microsoft CDN source: https://res-1.cdn.office.net/files/fabric-cdn-prod_20221209.001/assets/brand-icons/product/png/word_48x1.png
+- Retrieval: individual PNG downloaded unchanged, then SHA-256 pinned for offline bundling.
+- Source entry: app/src/assets/microsoft/microsoft-word.png
+- Bundled file: app/src/assets/microsoft/microsoft-word.png
+- Artwork SHA-256: f75b6a24b1569b660ccee0a66d2e75ee8bcd1d8dd1d875d000d727df465bf175
 
-### microsoft-powerpoint: original named badge
+### microsoft-powerpoint: official product icon
 
 - Product: PowerPoint
-- Classification: Original named badge (not official)
-- Product identity reference (not an artwork license): https://learn.microsoft.com/en-us/office365/servicedescriptions/office-applications-service-description/office-applications#microsoft-powerpoint
-- Source entry: app/src/assets/microsoft/microsoft-powerpoint.svg
-- Bundled file: app/src/assets/microsoft/microsoft-powerpoint.svg
-- Artwork SHA-256: 311a4ec25371b87943c51aeab4a0cb083744dda5429d07d97aa6f8726a5a5a72
-- Source gap: no exact identifiable product artwork in the inspected Microsoft 365 SVG/stencil collections; no marketing-logo redistribution permission assumed. Original grayscale letters and connector geometry, not a replacement official glyph.
+- Classification: Official product icon
+- Microsoft CDN source: https://res-1.cdn.office.net/files/fabric-cdn-prod_20221209.001/assets/brand-icons/product/png/powerpoint_48x1.png
+- Retrieval: individual PNG downloaded unchanged, then SHA-256 pinned for offline bundling.
+- Source entry: app/src/assets/microsoft/microsoft-powerpoint.png
+- Bundled file: app/src/assets/microsoft/microsoft-powerpoint.png
+- Artwork SHA-256: 64690d558b257afa224813fffa64c5f7bb8295082dd56b546c7f931f9128aa51
 
-### microsoft-teams: original named badge
+### microsoft-teams: official product icon
 
 - Product: Microsoft Teams
-- Classification: Original named badge (not official)
-- Product identity reference (not an artwork license): https://learn.microsoft.com/en-us/microsoftteams/teams-overview
-- Source entry: app/src/assets/microsoft/microsoft-teams.svg
-- Bundled file: app/src/assets/microsoft/microsoft-teams.svg
-- Artwork SHA-256: a8e86cb20d9b46014bd9253df6d22b623d57a7de547e570f1e4e18bf9605ba33
-- Source gap: no exact identifiable product artwork in the inspected Microsoft 365 SVG/stencil collections; no marketing-logo redistribution permission assumed. Original grayscale letters and connector geometry, not a replacement official glyph.
+- Classification: Official product icon
+- Microsoft CDN source: https://res-1.cdn.office.net/files/fabric-cdn-prod_20221209.001/assets/brand-icons/product/png/teams_48x1.png
+- Retrieval: individual PNG downloaded unchanged, then SHA-256 pinned for offline bundling.
+- Source entry: app/src/assets/microsoft/microsoft-teams.png
+- Bundled file: app/src/assets/microsoft/microsoft-teams.png
+- Artwork SHA-256: bee8786675eac8d30d4a611b649945701f1cdf9983df03fb704e2917764862a7
 
-### microsoft-outlook: original named badge
+### microsoft-outlook: official product icon
 
 - Product: Outlook
-- Classification: Original named badge (not official)
-- Product identity reference (not an artwork license): https://learn.microsoft.com/en-us/office365/servicedescriptions/office-applications-service-description/office-applications#microsoft-outlook
-- Source entry: app/src/assets/microsoft/microsoft-outlook.svg
-- Bundled file: app/src/assets/microsoft/microsoft-outlook.svg
-- Artwork SHA-256: 110f297dd758ad55346c10d555e690db3f0682cd7beeb8a1c44e3e898d5f9c48
-- Source gap: no exact identifiable product artwork in the inspected Microsoft 365 SVG/stencil collections; no marketing-logo redistribution permission assumed. Original grayscale letters and connector geometry, not a replacement official glyph.
+- Classification: Official product icon
+- Microsoft CDN source: https://res-1.cdn.office.net/files/fabric-cdn-prod_20221209.001/assets/brand-icons/product/png/outlook_48x1.png
+- Retrieval: individual PNG downloaded unchanged, then SHA-256 pinned for offline bundling.
+- Source entry: app/src/assets/microsoft/microsoft-outlook.png
+- Bundled file: app/src/assets/microsoft/microsoft-outlook.png
+- Artwork SHA-256: fe67170a0d546a9dc74d49e4686f9bd4721212c1e495b68a10d92d16e6016518
 
-### microsoft-onedrive: original named badge
+### microsoft-onedrive: official product icon
 
 - Product: OneDrive
-- Classification: Original named badge (not official)
-- Product identity reference (not an artwork license): https://learn.microsoft.com/en-us/sharepoint/introduction
-- Source entry: app/src/assets/microsoft/microsoft-onedrive.svg
-- Bundled file: app/src/assets/microsoft/microsoft-onedrive.svg
-- Artwork SHA-256: 6a0cc71e43c6a732a544b826135685d82eaa021aa19f79fe35b94fedfd72cebc
-- Source gap: no exact identifiable product artwork in the inspected Microsoft 365 SVG/stencil collections; no marketing-logo redistribution permission assumed. Original grayscale letters and connector geometry, not a replacement official glyph.
+- Classification: Official product icon
+- Microsoft CDN source: https://res-1.cdn.office.net/files/fabric-cdn-prod_20221209.001/assets/brand-icons/product/png/onedrive_48x1.png
+- Retrieval: individual PNG downloaded unchanged, then SHA-256 pinned for offline bundling.
+- Source entry: app/src/assets/microsoft/microsoft-onedrive.png
+- Bundled file: app/src/assets/microsoft/microsoft-onedrive.png
+- Artwork SHA-256: 5555a9457583e078a05f1fe673565d6888da479c39378320e7267b924f8fb11b
 
 ### microsoft-power-apps: official architecture icon
 
 - Product: Power Apps
 - Classification: Official architecture icon
 - Archive source: https://download.microsoft.com/download/498606aa-6d27-4f13-aa5c-1401078c153b/Power-Platform-icons-scalable.zip
-- Source entry: Power Platform/PowerApps_scalable.svg
-- Bundled file: app/src/assets/microsoft/microsoft-power-apps.svg
-- Artwork SHA-256: c357907ad0a2d24a6d8c82b23fe4d2aaa4a4524076991f74770fc043a4cc455a
 - Archive SHA-256: d5abafebbce553690caf7b42dd14b8335bf2c0dfc09f46bd9ac8041187da2c3a
 - Permitted-use terms: https://learn.microsoft.com/en-us/power-platform/guidance/icons
 - Extraction: unchanged bytes from the identified SVG ZIP entry.
+- Source entry: Power Platform/PowerApps_scalable.svg
+- Bundled file: app/src/assets/microsoft/microsoft-power-apps.svg
+- Artwork SHA-256: c357907ad0a2d24a6d8c82b23fe4d2aaa4a4524076991f74770fc043a4cc455a
 
 ### microsoft-power-automate: official architecture icon
 
 - Product: Power Automate
 - Classification: Official architecture icon
 - Archive source: https://download.microsoft.com/download/498606aa-6d27-4f13-aa5c-1401078c153b/Power-Platform-icons-scalable.zip
-- Source entry: Power Platform/PowerAutomate_scalable.svg
-- Bundled file: app/src/assets/microsoft/microsoft-power-automate.svg
-- Artwork SHA-256: 2025db7bb3feec49d75681934b8561fb958cf11bdf0e2acf6e2b28db5c755e8d
 - Archive SHA-256: d5abafebbce553690caf7b42dd14b8335bf2c0dfc09f46bd9ac8041187da2c3a
 - Permitted-use terms: https://learn.microsoft.com/en-us/power-platform/guidance/icons
 - Extraction: unchanged bytes from the identified SVG ZIP entry.
+- Source entry: Power Platform/PowerAutomate_scalable.svg
+- Bundled file: app/src/assets/microsoft/microsoft-power-automate.svg
+- Artwork SHA-256: 2025db7bb3feec49d75681934b8561fb958cf11bdf0e2acf6e2b28db5c755e8d
 
 ## Reproduction
 

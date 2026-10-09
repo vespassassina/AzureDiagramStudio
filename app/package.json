@@ -16,6 +16,7 @@
     "test:desktop": "node --test electron/test/*.test.mjs",
     "desktop:stage": "npm run build && node scripts/stage-desktop.mjs",
     "desktop:pack": "npm run test:desktop && npm run desktop:stage && electron-builder --config electron-builder.config.cjs --win --arm64 --publish never && electron-builder --config electron-builder.config.cjs --win --x64 --publish never",
+    "desktop:pack:mac": "npm run test:desktop && npm run desktop:stage && electron-builder --config electron-builder.config.cjs --mac --arm64 --publish never",
     "desktop:verify": "node scripts/verify-desktop.mjs",
     "desktop:checksums": "node scripts/desktop-checksums.mjs"
   },

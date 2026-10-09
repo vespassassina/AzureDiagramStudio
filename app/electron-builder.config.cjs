@@ -11,4 +11,5 @@ module.exports = {
   publish: null,
   win: { target: ['portable'], icon: 'public/branding/app-icon.ico' },
   portable: { requestExecutionLevel: 'user', buildUniversalInstaller: false },
+  mac: { target: ['zip'], artifactName: 'Azure-Diagram-Studio-${version}-mac-${arch}.${ext}' },
 }

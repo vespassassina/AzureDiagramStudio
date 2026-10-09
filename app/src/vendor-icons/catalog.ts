@@ -4,7 +4,7 @@ export type VendorIconKey = `vendor-${string}`
 export type VendorItem = {
   icon: VendorIconKey
   label: string
-  subtitle: 'Named integration badge'
+  subtitle: 'Vendor product icon'
   color: '#62696c'
   category: 'Vendors'
   catalog: 'software'

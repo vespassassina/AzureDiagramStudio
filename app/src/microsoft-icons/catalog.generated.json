@@ -2,19 +2,19 @@
   {
     "icon": "microsoft-sharepoint",
     "label": "SharePoint",
-    "subtitle": "Original named badge (not official)",
-    "color": "#62696c",
+    "subtitle": "Official product icon",
+    "color": "#038387",
     "category": "Microsoft Apps",
     "catalog": "azure",
     "source": {
-      "entry": "app/src/assets/microsoft/microsoft-sharepoint.svg",
-      "url": "https://learn.microsoft.com/en-us/sharepoint/introduction",
-      "sha256": "b0d85108739330c741cb53950d71430f1b331ae498ec9039af0b5c5805e3fd53",
+      "entry": "app/src/assets/microsoft/microsoft-sharepoint.png",
+      "url": "https://res-1.cdn.office.net/files/fabric-cdn-prod_20221209.001/assets/brand-icons/product/png/sharepoint_48x1.png",
+      "sha256": "57dcf239d66d572e28fac8017903b83b9e2308c80ac09a91e0526316709e0e97",
       "categories": [
         "Microsoft Apps"
       ],
       "entries": [
-        "app/src/assets/microsoft/microsoft-sharepoint.svg"
+        "app/src/assets/microsoft/microsoft-sharepoint.png"
       ]
     },
     "aliases": [
@@ -24,7 +24,7 @@
     ],
     "keywords": [
       "Microsoft Apps",
-      "original named badge",
+      "official product icon",
       "intranet",
       "sites",
       "collaboration",
@@ -191,19 +191,19 @@
   {
     "icon": "microsoft-excel",
     "label": "Excel",
-    "subtitle": "Original named badge (not official)",
-    "color": "#62696c",
+    "subtitle": "Official product icon",
+    "color": "#107c41",
     "category": "Microsoft Apps",
     "catalog": "azure",
     "source": {
-      "entry": "app/src/assets/microsoft/microsoft-excel.svg",
-      "url": "https://learn.microsoft.com/en-us/office365/servicedescriptions/office-applications-service-description/office-applications#microsoft-excel",
-      "sha256": "86a530474684af612833ff092d2b55a8514a4afbdfb6f9e0dbaafa4c36bc6565",
+      "entry": "app/src/assets/microsoft/microsoft-excel.png",
+      "url": "https://res-1.cdn.office.net/files/fabric-cdn-prod_20221209.001/assets/brand-icons/product/png/excel_48x1.png",
+      "sha256": "25847181646d57146e37d5368c8c5799efde8634f8bf75c7a3eea2d98acbbc70",
       "categories": [
         "Microsoft Apps"
       ],
       "entries": [
-        "app/src/assets/microsoft/microsoft-excel.svg"
+        "app/src/assets/microsoft/microsoft-excel.png"
       ]
     },
     "aliases": [
@@ -212,7 +212,7 @@
     ],
     "keywords": [
       "Microsoft Apps",
-      "original named badge",
+      "official product icon",
       "spreadsheet",
       "workbook",
       "Office"
@@ -221,19 +221,19 @@
   {
     "icon": "microsoft-word",
     "label": "Word",
-    "subtitle": "Original named badge (not official)",
-    "color": "#62696c",
+    "subtitle": "Official product icon",
+    "color": "#185abd",
     "category": "Microsoft Apps",
     "catalog": "azure",
     "source": {
-      "entry": "app/src/assets/microsoft/microsoft-word.svg",
-      "url": "https://learn.microsoft.com/en-us/office365/servicedescriptions/office-applications-service-description/office-applications#microsoft-word",
-      "sha256": "a7192e9a3898ed314c1835fe87a1d9196efba6d226149514115d13903adea247",
+      "entry": "app/src/assets/microsoft/microsoft-word.png",
+      "url": "https://res-1.cdn.office.net/files/fabric-cdn-prod_20221209.001/assets/brand-icons/product/png/word_48x1.png",
+      "sha256": "f75b6a24b1569b660ccee0a66d2e75ee8bcd1d8dd1d875d000d727df465bf175",
       "categories": [
         "Microsoft Apps"
       ],
       "entries": [
-        "app/src/assets/microsoft/microsoft-word.svg"
+        "app/src/assets/microsoft/microsoft-word.png"
       ]
     },
     "aliases": [
@@ -242,7 +242,7 @@
     ],
     "keywords": [
       "Microsoft Apps",
-      "original named badge",
+      "official product icon",
       "word processor",
       "document",
       "Office"
@@ -251,19 +251,19 @@
   {
     "icon": "microsoft-powerpoint",
     "label": "PowerPoint",
-    "subtitle": "Original named badge (not official)",
-    "color": "#62696c",
+    "subtitle": "Official product icon",
+    "color": "#c43e1c",
     "category": "Microsoft Apps",
     "catalog": "azure",
     "source": {
-      "entry": "app/src/assets/microsoft/microsoft-powerpoint.svg",
-      "url": "https://learn.microsoft.com/en-us/office365/servicedescriptions/office-applications-service-description/office-applications#microsoft-powerpoint",
-      "sha256": "311a4ec25371b87943c51aeab4a0cb083744dda5429d07d97aa6f8726a5a5a72",
+      "entry": "app/src/assets/microsoft/microsoft-powerpoint.png",
+      "url": "https://res-1.cdn.office.net/files/fabric-cdn-prod_20221209.001/assets/brand-icons/product/png/powerpoint_48x1.png",
+      "sha256": "64690d558b257afa224813fffa64c5f7bb8295082dd56b546c7f931f9128aa51",
       "categories": [
         "Microsoft Apps"
       ],
       "entries": [
-        "app/src/assets/microsoft/microsoft-powerpoint.svg"
+        "app/src/assets/microsoft/microsoft-powerpoint.png"
       ]
     },
     "aliases": [
@@ -273,7 +273,7 @@
     ],
     "keywords": [
       "Microsoft Apps",
-      "original named badge",
+      "official product icon",
       "slides",
       "presentation",
       "Office"
@@ -282,19 +282,19 @@
   {
     "icon": "microsoft-teams",
     "label": "Microsoft Teams",
-    "subtitle": "Original named badge (not official)",
-    "color": "#62696c",
+    "subtitle": "Official product icon",
+    "color": "#6264a7",
     "category": "Microsoft Apps",
     "catalog": "azure",
     "source": {
-      "entry": "app/src/assets/microsoft/microsoft-teams.svg",
-      "url": "https://learn.microsoft.com/en-us/microsoftteams/teams-overview",
-      "sha256": "a8e86cb20d9b46014bd9253df6d22b623d57a7de547e570f1e4e18bf9605ba33",
+      "entry": "app/src/assets/microsoft/microsoft-teams.png",
+      "url": "https://res-1.cdn.office.net/files/fabric-cdn-prod_20221209.001/assets/brand-icons/product/png/teams_48x1.png",
+      "sha256": "bee8786675eac8d30d4a611b649945701f1cdf9983df03fb704e2917764862a7",
       "categories": [
         "Microsoft Apps"
       ],
       "entries": [
-        "app/src/assets/microsoft/microsoft-teams.svg"
+        "app/src/assets/microsoft/microsoft-teams.png"
       ]
     },
     "aliases": [
@@ -303,7 +303,7 @@
     ],
     "keywords": [
       "Microsoft Apps",
-      "original named badge",
+      "official product icon",
       "meeting",
       "chat",
       "collaboration"
@@ -312,19 +312,19 @@
   {
     "icon": "microsoft-outlook",
     "label": "Outlook",
-    "subtitle": "Original named badge (not official)",
-    "color": "#62696c",
+    "subtitle": "Official product icon",
+    "color": "#0078d4",
     "category": "Microsoft Apps",
     "catalog": "azure",
     "source": {
-      "entry": "app/src/assets/microsoft/microsoft-outlook.svg",
-      "url": "https://learn.microsoft.com/en-us/office365/servicedescriptions/office-applications-service-description/office-applications#microsoft-outlook",
-      "sha256": "110f297dd758ad55346c10d555e690db3f0682cd7beeb8a1c44e3e898d5f9c48",
+      "entry": "app/src/assets/microsoft/microsoft-outlook.png",
+      "url": "https://res-1.cdn.office.net/files/fabric-cdn-prod_20221209.001/assets/brand-icons/product/png/outlook_48x1.png",
+      "sha256": "fe67170a0d546a9dc74d49e4686f9bd4721212c1e495b68a10d92d16e6016518",
       "categories": [
         "Microsoft Apps"
       ],
       "entries": [
-        "app/src/assets/microsoft/microsoft-outlook.svg"
+        "app/src/assets/microsoft/microsoft-outlook.png"
       ]
     },
     "aliases": [
@@ -333,7 +333,7 @@
     ],
     "keywords": [
       "Microsoft Apps",
-      "original named badge",
+      "official product icon",
       "email",
       "calendar",
       "mail client",
@@ -343,19 +343,19 @@
   {
     "icon": "microsoft-onedrive",
     "label": "OneDrive",
-    "subtitle": "Original named badge (not official)",
-    "color": "#62696c",
+    "subtitle": "Official product icon",
+    "color": "#0078d4",
     "category": "Microsoft Apps",
     "catalog": "azure",
     "source": {
-      "entry": "app/src/assets/microsoft/microsoft-onedrive.svg",
-      "url": "https://learn.microsoft.com/en-us/sharepoint/introduction",
-      "sha256": "6a0cc71e43c6a732a544b826135685d82eaa021aa19f79fe35b94fedfd72cebc",
+      "entry": "app/src/assets/microsoft/microsoft-onedrive.png",
+      "url": "https://res-1.cdn.office.net/files/fabric-cdn-prod_20221209.001/assets/brand-icons/product/png/onedrive_48x1.png",
+      "sha256": "5555a9457583e078a05f1fe673565d6888da479c39378320e7267b924f8fb11b",
       "categories": [
         "Microsoft Apps"
       ],
       "entries": [
-        "app/src/assets/microsoft/microsoft-onedrive.svg"
+        "app/src/assets/microsoft/microsoft-onedrive.png"
       ]
     },
     "aliases": [
@@ -365,7 +365,7 @@
     ],
     "keywords": [
       "Microsoft Apps",
-      "original named badge",
+      "official product icon",
       "file sync",
       "personal files",
       "cloud storage"

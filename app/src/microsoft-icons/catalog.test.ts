@@ -27,7 +27,7 @@ test('should_include_all_ten_required_identities_in_a_compact_microsoft_registry
     assert.match(item.color, /^#[a-f0-9]{6}$/i)
     assert.ok(item.aliases?.length)
     assert.ok(item.keywords?.length)
-    assert.match(item.subtitle, /official.*architecture|original.*badge/i)
+    assert.match(item.subtitle, /official.*(?:architecture|product)|original.*badge/i)
     assert.ok(Object.isFrozen(item) && Object.isFrozen(item.source) && Object.isFrozen(item.source.entries))
   }
   assert.ok(Object.isFrozen(microsoftLibrary) && Object.isFrozen(microsoftAssets))

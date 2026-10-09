@@ -48,6 +48,8 @@ export function validateDefinitions(definitions) {
     if (!Array.isArray(item.aliases) || !item.aliases.length || !Array.isArray(item.keywords)) throw new Error('Missing search terms')
     if (item.classification === 'official-icon') {
       if (!['dynamics', 'power'].includes(item.collection) || !/^[a-f0-9]{64}$/.test(item.sha256 ?? '') || !item.entry || item.entry.includes('..') || !/^#[a-f0-9]{6}$/i.test(item.color ?? '')) throw new Error('Unpinned official artwork')
+    } else if (item.classification === 'official-cdn-png') {
+      if (!/^[a-f0-9]{64}$/.test(item.sha256 ?? '') || !item.url || new URL(item.url).protocol !== 'https:' || !/^#[a-f0-9]{6}$/i.test(item.color ?? '')) throw new Error('Unpinned official CDN PNG')
     } else if (item.classification === 'original-named-badge') {
       if (!/^[A-Z0-9]{2,3}$/.test(item.glyph) || new URL(item.url).protocol !== 'https:') throw new Error('Invalid original badge')
     } else throw new Error('Unknown artwork classification')
@@ -70,19 +72,25 @@ export async function generate(checkOnly = false) {
   const evidence = []
   for (const definition of definitions) {
     const icon = `microsoft-${definition.key}`
-    const official = definition.classification === 'official-icon'
-    const collection = official ? collections[definition.collection] : undefined
-    const filename = `${icon}.svg`
+    const officialArchive = definition.classification === 'official-icon'
+    const officialCdnPng = definition.classification === 'official-cdn-png'
+    const official = officialArchive || officialCdnPng
+    const collection = officialArchive ? collections[definition.collection] : undefined
+    const extension = officialCdnPng ? 'png' : 'svg'
+    const filename = `${icon}.${extension}`
     const bytes = official ? await readFile(new URL(filename, assetDirectory)) : badge(definition)
-    validateArtwork(bytes, 'svg')
+    validateArtwork(bytes, extension)
     const digest = hash(bytes)
     if (official && digest !== definition.sha256) throw new Error(`Official source bytes changed: ${icon}`)
-    const entry = official ? definition.entry : `app/src/assets/microsoft/${filename}`
-    const url = official ? collection.url : definition.url
-    assets[icon] = `data:image/svg+xml;base64,${bytes.toString('base64')}`
-    const subtitle = official ? 'Official architecture icon' : 'Original named badge (not official)'
-    items.push({ icon, label: definition.label, subtitle, color: definition.color ?? '#62696c', category: 'Microsoft Apps', catalog: 'azure', source: { entry, url, sha256: digest, categories: ['Microsoft Apps'], entries: [entry] }, aliases: definition.aliases, keywords: ['Microsoft Apps', official ? 'official architecture icon' : 'original named badge', ...definition.keywords] })
-    evidence.push(`### ${icon}: ${official ? 'official architecture icon' : 'original named badge'}\n\n- Product: ${definition.label}\n- Classification: ${subtitle}\n- ${official ? 'Archive source' : 'Product identity reference (not an artwork license)'}: ${url}\n- Source entry: ${entry}\n- Bundled file: app/src/assets/microsoft/${filename}\n- Artwork SHA-256: ${digest}\n${official ? `- Archive SHA-256: ${collection.sha256}\n- Permitted-use terms: ${collection.documentationUrl}\n- Extraction: unchanged bytes from the identified SVG ZIP entry.\n` : '- Source gap: no exact identifiable product artwork in the inspected Microsoft 365 SVG/stencil collections; no marketing-logo redistribution permission assumed. Original grayscale letters and connector geometry, not a replacement official glyph.\n'}`)
+    const entry = officialArchive ? definition.entry : `app/src/assets/microsoft/${filename}`
+    const url = officialArchive ? collection.url : definition.url
+    const mime = extension === 'png' ? 'image/png' : 'image/svg+xml'
+    const subtitle = officialArchive ? 'Official architecture icon' : officialCdnPng ? 'Official product icon' : 'Original named badge (not official)'
+    const keyword = officialArchive ? 'official architecture icon' : officialCdnPng ? 'official product icon' : 'original named badge'
+    assets[icon] = `data:${mime};base64,${bytes.toString('base64')}`
+    items.push({ icon, label: definition.label, subtitle, color: definition.color ?? '#62696c', category: 'Microsoft Apps', catalog: 'azure', source: { entry, url, sha256: digest, categories: ['Microsoft Apps'], entries: [entry] }, aliases: definition.aliases, keywords: ['Microsoft Apps', keyword, ...definition.keywords] })
+    const sourceDescription = officialArchive ? `- Archive source: ${url}\n- Archive SHA-256: ${collection.sha256}\n- Permitted-use terms: ${collection.documentationUrl}\n- Extraction: unchanged bytes from the identified SVG ZIP entry.\n` : officialCdnPng ? `- Microsoft CDN source: ${url}\n- Retrieval: individual PNG downloaded unchanged, then SHA-256 pinned for offline bundling.\n` : `- Product identity reference (not an artwork license): ${url}\n- Source gap: no exact identifiable product artwork in the inspected Microsoft 365 SVG/stencil collections; no marketing-logo redistribution permission assumed. Original grayscale letters and connector geometry, not a replacement official glyph.\n`
+    evidence.push(`### ${icon}: ${subtitle.toLowerCase()}\n\n- Product: ${definition.label}\n- Classification: ${subtitle}\n${sourceDescription}- Source entry: ${entry}\n- Bundled file: app/src/assets/microsoft/${filename}\n- Artwork SHA-256: ${digest}\n`)
     await emit(new URL(filename, assetDirectory), bytes, checkOnly)
   }
   await emit(new URL('catalog.generated.json', registryDirectory), `${JSON.stringify(items, null, 2)}\n`, checkOnly)
@@ -94,9 +102,12 @@ export async function generate(checkOnly = false) {
   }
   const notices = `# Microsoft Application Artwork Notices\n\nResearch snapshot: 2026-10-09. 14 products: 5 unchanged official architecture SVG icons and 9 original named badges. All 10 DGM-090 required keys are present. No affiliation, sponsorship, or endorsement by Microsoft is asserted. Microsoft product artwork is not Azure Diagram Studio branding. Microsoft and the named products are trademarks of their respective owners.\n\n## Permitted Use\n\nThe official Dynamics 365 and Power Platform documentation permits copying, distributing, and displaying these icons only in architectural diagrams, training materials, or documentation unless Microsoft grants explicit additional permission; all other rights are reserved. Preserve proportions, colors, orientation and complete glyphs; use product names nearby. Do not crop, rotate, flip, distort, recolor, or use them to represent this application. This is not a general logo/marketing license. See public/licenses/microsoft-apps/README.md and the original bundled PDFs.\n\n## Microsoft 365 Source Qualification\n\nThe requested Microsoft 365 architecture page now redirects to the archived previous-versions article. Inspected https://learn.microsoft.com/en-us/microsoft-365/solutions/architecture-icons-templates and its actual downloads:\n\n- SVG: https://go.microsoft.com/fwlink/?linkid=869455 resolves to https://download.microsoft.com/download/2/F/3/2F346655-1F7E-4F5E-BE78-82DA3D507F3A/2024-microsoft-365-content-icons.zip\n- SVG archive SHA-256: 522c4d43cf98a00380b0836f9ec6e06d81fb99758b258c49b6e5f385c05c547a\n- Visio: https://go.microsoft.com/fwlink/?linkid=2056186 resolves to https://download.microsoft.com/download/2/F/3/2F346655-1F7E-4F5E-BE78-82DA3D507F3A/2024-microsoft-365-content-VisioTemplates.zip\n- Visio archive SHA-256: 5ed0a9938b0e286656d3db7fa3f57a24f8579f6229a1a576df7d5f900826ef22\n\nThese downloads contain generic architectural symbols/color palettes, not identified exact glyphs for the nine fallback products. A SharePoint/Teams-colored generic folder, building, or cloud is not a SharePoint/Teams product logo. The productcolors-miscellaneous-symbols-2024.vssx masters were inspected as standard ZIP/XML; no product icons were extracted or decompiled. Existing Azure V24 catalog provenance was inspected read-only; no Office/MS365 legacy glyph was available there. The older Download Center icon-set page (id=41937) was unavailable during research, so its contents/terms were not assumed.\n\nMicrosoft 365 Copilot is deliberately not consumer Microsoft Copilot, GitHub Copilot, or Microsoft Copilot Studio. Its badge makes no marketing-artwork license claim. The current overview calls the Microsoft 365 Copilot app Microsoft Copilot, while retaining Microsoft 365 Copilot license/experience names; this registry identifies the work/productivity experience named by DGM-090. Dynamics 365 is the product family; Business Central is its distinct ERP application. Power Apps and Power Automate use their exact Power Platform artwork. Historical aliases are search aids, not extra menu products or lifecycle assertions. Microsoft Graph is omitted: no exact diagram-licensed glyph was found in the inspected packages.\n\n## Unchanged Bundled License PDFs\n\n${licenseEvidence.join('\n')}\n\n## Per-Product Provenance\n\n${evidence.join('\n')}\n## Reproduction\n\nUse the owned generate-microsoft-import.ps1 script to verify pinned ZIP hashes and extract the five exact SVGs and original license PDFs. Then node app/scripts/generate-microsoft.mjs generates the neutral badges, frozen registry input, embedded assets, and this notice. node app/scripts/generate-microsoft.mjs --check verifies every generated byte offline and refuses changed official hashes. No runtime downloads, arbitrary paths, DOM initialization, package changes, or shared catalog integration are part of this owner slice.\n`
   await emit(noticeFile, notices, checkOnly)
-  const expected = items.map(item => `${item.icon}.svg`).sort()
+  const expected = definitions.map(definition => `microsoft-${definition.key}.${definition.classification === 'official-cdn-png' ? 'png' : 'svg'}`).sort()
   if (JSON.stringify((await readdir(assetDirectory)).sort()) !== JSON.stringify(expected)) throw new Error('Unexpected Microsoft asset files; nothing was deleted')
-  console.log(`${checkOnly ? 'Verified' : 'Generated'} ${items.length} Microsoft products: 5 official architecture icons, 9 original named badges.`)
+  const officialArchitectureCount = definitions.filter(definition => definition.classification === 'official-icon').length
+  const officialProductCount = definitions.filter(definition => definition.classification === 'official-cdn-png').length
+  const originalBadgeCount = definitions.filter(definition => definition.classification === 'original-named-badge').length
+  console.log(`${checkOnly ? 'Verified' : 'Generated'} ${items.length} Microsoft products: ${officialArchitectureCount} official architecture icons, ${officialProductCount} official product PNGs, ${originalBadgeCount} original named badges.`)
 }
 
 async function emit(destination, content, checkOnly) {

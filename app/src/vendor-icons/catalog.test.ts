@@ -9,7 +9,7 @@ import { vendorAssets } from './assets.ts'
 
 const requiredKeys = ['vendor-oracle', 'vendor-sap', 'vendor-ibm', 'vendor-aws', 'vendor-gcp', 'vendor-hp', 'vendor-hpe']
 const hash = (bytes: string | Uint8Array) => createHash('sha256').update(bytes).digest('hex')
-const decodeAsset = (key: string) => decodeURIComponent(vendorAssets[key].split(',').slice(1).join(','))
+const decodeAsset = (key: string) => Buffer.from(vendorAssets[key].split(',').slice(1).join(','), 'base64')
 const projectPath = (relative: string) => resolve(process.cwd(), relative)
 
 test('should_include_seven_requested_identities_in_a_compact_vendor_registry', () => {
@@ -20,13 +20,13 @@ test('should_include_seven_requested_identities_in_a_compact_vendor_registry', (
     assert.match(item.icon, /^vendor-[a-z0-9-]+$/)
     assert.equal(item.category, 'Vendors')
     assert.equal(item.catalog, 'software')
-    assert.equal(item.subtitle, 'Named integration badge')
+    assert.equal(item.subtitle, 'Vendor product icon')
     assert.deepEqual(item.source.categories, ['Vendors'])
     assert.deepEqual(item.source.entries, [item.source.entry])
     assert.match(item.source.url, /^https:\/\//)
     assert.match(item.source.sha256, /^[a-f0-9]{64}$/)
     assert.equal(item.color, '#62696c')
-    assert.ok(item.keywords?.includes('named integration badge'))
+    assert.ok(item.keywords?.includes('vendor product icon'))
   }
 })
 
@@ -51,14 +51,14 @@ test.each([
   assert.ok([item.label, ...(item.aliases ?? [])].includes(alias))
 })
 
-test('should_register_only_bundled_hash_verified_svg_when_assets_are_loaded_offline', () => {
+test('should_register_only_bundled_hash_verified_png_when_assets_are_loaded_offline', () => {
   assert.deepEqual(Object.keys(vendorAssets).sort(), vendorLibrary.map(item => item.icon).sort())
   const files = readdirSync(projectPath('src/assets/vendors')).sort()
-  assert.deepEqual(files, vendorLibrary.map(item => `${item.icon}.svg`).sort())
+  assert.deepEqual(files, vendorLibrary.map(item => `${item.icon}.png`).sort())
   for (const item of vendorLibrary) {
-    assert.equal(item.source.entry, `app/src/assets/vendors/${item.icon}.svg`)
-    const bytes = readFileSync(projectPath(`src/assets/vendors/${item.icon}.svg`))
-    assert.ok(vendorAssets[item.icon].startsWith('data:image/svg+xml;charset=utf-8,'))
+    assert.equal(item.source.entry, `app/src/assets/vendors/${item.icon}.png`)
+    const bytes = readFileSync(projectPath(`src/assets/vendors/${item.icon}.png`))
+    assert.ok(vendorAssets[item.icon].startsWith('data:image/png;base64,'))
     assert.equal(hash(bytes), item.source.sha256)
     assert.equal(hash(decodeAsset(item.icon)), item.source.sha256)
   }
@@ -67,34 +67,18 @@ test('should_register_only_bundled_hash_verified_svg_when_assets_are_loaded_offl
   }
 })
 
-test('should_use_inert_self_contained_xml_and_visible_plain_letters_when_rendering_badges', () => {
-  const allowedElements = new Set(['svg', 'title', 'desc', 'path', 'text'])
-  const allowedAttributes = new Set(['xmlns', 'width', 'height', 'viewBox', 'role', 'd', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'x', 'y', 'font-family', 'font-size', 'font-weight', 'text-anchor'])
+test('should_use_valid_bounded_png_images_when_rendering_vendor_icons', () => {
   for (const item of vendorLibrary) {
-    const source = decodeAsset(item.icon)
-    assert.doesNotMatch(source, /<!DOCTYPE|<!ENTITY|<\?|script|foreignObject|href|url\(|@import|style=/i)
-    const document = new DOMParser().parseFromString(source, 'image/svg+xml')
-    assert.equal(document.querySelector('parsererror'), null)
-    const root = document.documentElement
-    assert.equal(root.localName, 'svg')
-    assert.equal(root.namespaceURI, 'http://www.w3.org/2000/svg')
-    assert.equal(root.getAttribute('viewBox'), '0 0 64 64')
-    assert.equal(root.getAttribute('width'), '64')
-    assert.equal(root.getAttribute('height'), '64')
-    for (const element of [root, ...root.querySelectorAll('*')]) {
-      assert.ok(allowedElements.has(element.localName), `${item.icon}: ${element.localName}`)
-      for (const attribute of element.attributes) assert.ok(allowedAttributes.has(attribute.name), attribute.name)
-    }
-    const glyph = root.querySelector('text')!
-    assert.match(glyph.textContent ?? '', /^[A-Z]{2,3}$/)
-    assert.equal(glyph.getAttribute('font-family'), 'monospace')
-    assert.ok(Number(glyph.getAttribute('font-size')) >= 25)
-    assert.equal(root.querySelector('title')?.textContent, `${item.label}: named integration badge`)
-    assert.match(root.querySelector('desc')?.textContent ?? '', /original.*not.*official.*logo/i)
+    const bytes = decodeAsset(item.icon)
+    assert.deepEqual([...bytes.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10])
+    const width = bytes.readUInt32BE(16)
+    const height = bytes.readUInt32BE(20)
+    assert.ok(width > 0 && width <= 256)
+    assert.ok(height > 0 && height <= 256)
   }
 })
 
-test('should_document_badge_classification_and_trademarks_without_claiming_logo_permission', () => {
+test('should_document_vendor_icons_and_trademarks_without_claiming_logo_permission', () => {
   const notices = readFileSync(projectPath('public/VENDOR-NOTICES.md'), 'utf8')
   const license = readFileSync(projectPath('public/licenses/vendor-badges/README.md'), 'utf8')
   for (const item of vendorLibrary) {
@@ -102,7 +86,7 @@ test('should_document_badge_classification_and_trademarks_without_claiming_logo_
     assert.ok(notices.includes(item.source.url), item.source.url)
   }
   assert.match(notices, /No affiliation, sponsorship, or endorsement/i)
-  assert.match(notices, /17 original named integration badges; 0 official logos/)
+  assert.match(notices, /17 bundled vendor PNG icons/)
   assert.match(license, /does not grant.*trademark/i)
   const registrySource = readFileSync(projectPath('src/vendor-icons/catalog.ts'), 'utf8')
   const assetSource = readFileSync(projectPath('src/vendor-icons/assets.ts'), 'utf8')

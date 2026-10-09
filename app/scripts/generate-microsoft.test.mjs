@@ -34,3 +34,16 @@ test('should_reject_duplicate_keys_paths_and_false_official_classification', asy
   assert.throws(() => validateDefinitions([{ ...definitions[0], classification: 'official-icon', collection: undefined, sha256: undefined }]))
   assert.throws(() => validateDefinitions([{ ...definitions[0], url: 'file:///icon.svg' }]))
 })
+
+test('should_accept_a_pinned_official_microsoft_cdn_png_definition', () => {
+  assert.doesNotThrow(() => validateDefinitions([{
+    key: 'sharepoint',
+    label: 'SharePoint',
+    classification: 'official-cdn-png',
+    url: 'https://res-1.cdn.office.net/files/fabric-cdn-prod_20221209.001/assets/brand-icons/product/png/sharepoint_48x1.png',
+    sha256: 'a'.repeat(64),
+    color: '#038387',
+    aliases: ['SharePoint Online'],
+    keywords: ['collaboration'],
+  }]))
+})

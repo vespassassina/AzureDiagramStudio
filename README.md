@@ -4,8 +4,8 @@
 
 A local architecture editor for Azure, Microsoft Fabric, Microsoft applications and software systems. Draw with architecture glyphs, clearly identified named badges or your own authorized images; describe ownership boundaries, connect components and export without a cloud account. The public source repository is [vespassassina/AzureDiagramStudio](https://github.com/vespassassina/AzureDiagramStudio).
 
-- Searchable Azure/Fabric catalogs, 14 Microsoft app entries (5 official architecture glyphs and 9 original named badges), and generic software components.
-- A vendor icon set of 17 original named integration badges, not 17 official logos: includes Oracle, SAP, IBM, AWS, Google Cloud, HP and HPE as distinct identities.
+- Searchable Azure/Fabric catalogs, 14 Microsoft app entries (5 official architecture glyphs, 7 official product PNGs, and 2 original named badges), and generic software components.
+- A vendor icon set of 17 bundled PNG product icons, including Oracle, SAP, IBM, AWS, Google Cloud, HP and HPE as distinct identities.
 - Custom icon import from SVG, PNG, JPEG, GIF or WebP, embedded as a safe normalized PNG in the editable document.
 - Editable boundaries, annotations, connector labels, statuses and legends.
 - Explicit ELK Auto-arrange, undo/redo and selection clipboard.
@@ -17,22 +17,26 @@ A local architecture editor for Azure, Microsoft Fabric, Microsoft applications 
 
 ## Windows Portable
 
-Release verification pending: no executable download is advertised until uploaded assets and checksums have been read back and verified. The source repository is public. The names below are planned release assets, not current download links.
+[Version 0.1.0 is published](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/v0.1.0). Both portable files and the checksum manifest were uploaded and read back with matching sizes and SHA256 digests.
 
 | Your PC | Release asset name |
 | --- | --- |
-| Windows on ARM, including Snapdragon | `Azure-Diagram-Studio-0.1.0-win-arm64-portable.exe` |
-| Windows on Intel or AMD | `Azure-Diagram-Studio-0.1.0-win-x64-portable.exe` |
+| Windows on ARM, including Snapdragon | [Download ARM64 portable EXE](https://github.com/vespassassina/AzureDiagramStudio/releases/download/v0.1.0/Azure-Diagram-Studio-0.1.0-win-arm64-portable.exe) |
+| Windows on Intel or AMD | [Download x64 portable EXE](https://github.com/vespassassina/AzureDiagramStudio/releases/download/v0.1.0/Azure-Diagram-Studio-0.1.0-win-x64-portable.exe) |
 
-The portable packaging is designed to bundle the complete app, runtime, glyphs, badges and font for offline use without Node.js or cloud sign-in. It has no auto-update service. Final packaging and offline acceptance are pending verification by the release owner; these browser screenshots do not establish either result.
+The portable packages bundle the complete app, Chromium runtime, glyphs, badges, font and layout worker for offline use, without Node.js, a local server or cloud sign-in. They have no auto-update service. Files are approximately 403-404 MB because the portable wrapper uses store-only compression. ARM64 was tested natively; x64 was tested under Windows ARM64 emulation, not certified on native Intel/AMD hardware.
 
-Before launching a downloaded executable, compare its SHA256 with the release's checksum manifest:
+Actual packaged offline checks passed for launch, five image formats, unsafe-image rejection, themes, bundled-worker layout/undo, JSON/SVG/PNG output, autosave/relaunch and moving the executable. Default production launch exposed no debug listener. This capture is from the packaged ARM64 app with networking disabled, not the development browser:
+
+![Actual packaged ARM64 Azure Diagram Studio, offline, with Microsoft/vendor/custom artwork](docs/images/studio-desktop-offline.png)
+
+Before launching a downloaded executable, compare its SHA256 with [SHA256SUMS.txt](https://github.com/vespassassina/AzureDiagramStudio/releases/download/v0.1.0/SHA256SUMS.txt):
 
 ```powershell
 Get-FileHash '.\Azure-Diagram-Studio-0.1.0-win-x64-portable.exe' -Algorithm SHA256
 ```
 
-Unsigned builds may trigger Windows SmartScreen. Verify the source and checksum; follow your organization's policy. Do not disable SmartScreen, antivirus or other protections.
+These files are unsigned and may trigger Windows SmartScreen. Verify the source and checksum; follow your organization's policy. Do not disable SmartScreen, antivirus or other protections. Native save-dialog appearance and SmartScreen UX remain manual checks.
 
 Local autosave is not a transferable backup. Use **Save JSON** before moving computers, clearing browser/profile data or removing the application. Browser and desktop storage are separate; transfer existing localhost diagrams with **Save JSON**, then **Open JSON** in the desktop app. See the [short manual](docs/manual.md).
 
@@ -66,7 +70,7 @@ All four architectures are synthetic illustrations, not deployed systems, securi
 
 [Editable JSON](examples/enterprise-integration.json) | [SVG](docs/images/enterprise-integration.svg) | [PNG](docs/images/enterprise-integration.png)
 
-SharePoint, SAP and Oracle use original named badges; Dynamics 365 uses its published architecture glyph. **SimpleBadge** is original sample artwork, not a corporate logo. Its [SVG source](examples/simple-badge.svg) and [PNG](examples/simple-badge.png) can be used to try **Import custom icon**. The native example embeds the normalized PNG, so it needs no external image file.
+SharePoint uses its bundled Microsoft product PNG; Dynamics 365 uses its published architecture glyph. SAP and Oracle use bundled vendor PNGs. **SimpleBadge** is original sample artwork, not a corporate logo. Its [SVG source](examples/simple-badge.svg) and [PNG](examples/simple-badge.png) can be used to try **Import custom icon**. The native example embeds the normalized PNG, so it needs no external image file.
 
 ## Build From Source
 
@@ -94,4 +98,7 @@ PowerPoint insertion fidelity and uncoached novice usability have not been manua
 
 ## Release Downloads
 
-**Release verification pending.** No verified asset-download URL or checksum-manifest URL is available here yet. This section requires the release owner's update after publication and read-back verification of both Windows executables and their checksums; source availability does not imply a binary release exists.
+- [Windows ARM64 portable](https://github.com/vespassassina/AzureDiagramStudio/releases/download/v0.1.0/Azure-Diagram-Studio-0.1.0-win-arm64-portable.exe)
+- [Windows x64 portable](https://github.com/vespassassina/AzureDiagramStudio/releases/download/v0.1.0/Azure-Diagram-Studio-0.1.0-win-x64-portable.exe)
+- [SHA256 checksum manifest](https://github.com/vespassassina/AzureDiagramStudio/releases/download/v0.1.0/SHA256SUMS.txt)
+- [Release notes and limitations](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/v0.1.0)
