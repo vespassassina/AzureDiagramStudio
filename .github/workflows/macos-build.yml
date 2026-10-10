@@ -1,0 +1,76 @@
+name: macOS build
+
+# Every push and pull request builds, verifies and keeps the Apple Silicon ZIP
+# as a run artifact. A v* tag (or a manual run naming a tag) also attaches it
+# to that GitHub release. Signing is Developer ID when the secrets below exist,
+# ad-hoc otherwise; see docs/macos-build.md.
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to receive the ZIP (blank = build only)
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: macos-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-14
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      # electron-builder reads an empty CSC_LINK as a path, so export the
+      # signing variables only when the secrets exist.
+      - name: Load signing secrets
+        env:
+          CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [ -z "$CERTIFICATE" ]; then
+            if [ -n "$CERTIFICATE_PASSWORD$APPLE_ID" ]; then echo "::warning::Signing secrets are set but MACOS_CERTIFICATE_P12_BASE64 is empty. Signing ad-hoc. Re-export the .p12 and set it again."; fi
+            echo "No Developer ID certificate: signing ad-hoc."; exit 0
+          fi
+          { echo "CSC_LINK=$CERTIFICATE"; echo "CSC_KEY_PASSWORD=$CERTIFICATE_PASSWORD"; } >> "$GITHUB_ENV"
+          if [ -n "$APPLE_ID" ]; then
+            { echo "APPLE_ID=$APPLE_ID"; echo "APPLE_APP_SPECIFIC_PASSWORD=$APPLE_APP_SPECIFIC_PASSWORD"; echo "APPLE_TEAM_ID=$APPLE_TEAM_ID"; } >> "$GITHUB_ENV"
+          else
+            echo "No Apple ID secrets: signing with Developer ID, not notarizing."
+          fi
+      - run: npm ci
+      - run: npm run desktop:pack:mac
+      - run: npm run desktop:verify:mac
+      - name: Report signing
+        run: codesign -dv --verbose=2 release/mac-arm64/*.app 2>&1 | grep -E 'Authority|Signature|TeamIdentifier' || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: azure-diagram-studio-mac-arm64
+          path: app/release/*.zip
+          if-no-files-found: error
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "Azure Diagram Studio $TAG" --notes "Automated build."
+          gh release upload "$TAG" release/*.zip --clobber

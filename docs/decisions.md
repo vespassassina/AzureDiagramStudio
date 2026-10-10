@@ -109,3 +109,14 @@ PO requested uploaded image icons and common third-party vendors while desktop p
 ## 2026-10-09: Microsoft Apps, Themes and Existing Remote Authorized
 
 PO requested SharePoint/Business Central/Dynamics/Microsoft 365/Copilot/Copilot Studio/Office/Teams icons and light/dark themes, and supplied the newly created `vespassassina/AzureDiagramStudio` Git remote. Authorize [DGM-090](specs/DGM-090.md): separately sourced Microsoft app registry, UI-only persisted theme, integration with custom/vendor artwork, and publication to the existing remote without overwriting history. Earlier desktop verification/release/doc requirements remain active. No final acceptance, force push, logo-redistribution assumptions or unsafe Electron bridge is implied.
+
+## 2026-10-10: macOS build on every push, ad-hoc unless Developer ID is supplied
+
+Context: the macOS package built, but its signature was broken (Gatekeeper reports such apps as damaged, with no override), it used the default Electron icon, and the build ran only on manual dispatch. Packaging also hid a renderer crash: icons moved to PNG while `src/assets.ts` still accepted only SVG, so every desktop build opened an empty window.
+
+Decision: sign ad-hoc by default, Developer ID with hardened runtime and notarization when repository secrets exist. Build and verify on every push, pull request and `v*` tag; attach the ZIP to the release on tags. The verifier launches the packaged app and waits for a rendered diagram. Accept PNG data URLs for bundled icons. [macOS build](macos-build.md).
+
+Consequences: until a Developer ID certificate exists, users open the app once via Open Anyway. The two Windows-only unit test files (PowerShell, Edge) still fail on macOS and are not in the macOS gate.
+
+Who: Diego requested; implemented by Claude.
+

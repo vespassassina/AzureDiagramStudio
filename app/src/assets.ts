@@ -15,7 +15,7 @@ for (const item of [...azureLibrary, ...fabricLibrary]) {
 }
 for (const registry of [vendorAssets, microsoftAssets]) {
   for (const [key, source] of Object.entries(registry)) {
-    if (Object.hasOwn(icons, key) || !/^data:image\/svg\+xml;(?:base64|charset=utf-8),/.test(source)) throw new Error(`Invalid bundled icon: ${key}`)
+    if (Object.hasOwn(icons, key) || !/^data:image\/(?:svg\+xml;(?:base64|charset=utf-8)|png;base64),/.test(source)) throw new Error(`Invalid bundled icon: ${key}`)
     icons[key] = source
   }
 }

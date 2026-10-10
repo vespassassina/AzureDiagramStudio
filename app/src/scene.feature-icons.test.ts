@@ -33,7 +33,7 @@ describe('feature icon integration', () => {
     for (const item of [...vendorLibrary, ...microsoftLibrary]) {
       expect(isIconKey(item.icon)).toBe(true)
       expect(isSelectableIcon(item.icon)).toBe(true)
-      expect(visualAssets.icons?.[item.icon]).toMatch(/^data:image\/svg\+xml/)
+      expect(visualAssets.icons?.[item.icon]).toMatch(/^data:image\/(?:svg\+xml|png);/)
       expect(entityMarkup({ ...component, icon: item.icon }, visualAssets)).toContain(visualAssets.icons![item.icon])
       expect(searchGroups(item.label).flatMap(group => group.items).some(candidate => candidate.icon === item.icon)).toBe(true)
     }

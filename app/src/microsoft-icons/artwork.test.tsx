@@ -23,6 +23,6 @@ test('should_render_a_self_contained_svg_export_with_all_microsoft_components', 
   const source = renderToStaticMarkup(<svg xmlns="http://www.w3.org/2000/svg" width={700} height={200} viewBox="0 0 700 200">{microsoftLibrary.map((item, index) => <g key={item.icon} transform={`translate(${index * 45}, 10)`}><image href={microsoftAssets[item.icon]} width={35} height={35} preserveAspectRatio="xMidYMid meet" /><title>{`${item.label}: ${item.subtitle}`}</title></g>)}</svg>)
   const document = new DOMParser().parseFromString(source, 'image/svg+xml')
   assert.equal(document.querySelectorAll('image').length, microsoftLibrary.length)
-  for (const image of document.querySelectorAll('image')) assert.match(image.getAttribute('href') ?? '', /^data:image\/svg\+xml;base64,/)
+  for (const image of document.querySelectorAll('image')) assert.match(image.getAttribute('href') ?? '', /^data:image\/(?:svg\+xml|png);base64,/)
   assert.equal(document.querySelector('parsererror'), null)
 })
