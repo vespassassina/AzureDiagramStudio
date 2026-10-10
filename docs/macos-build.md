@@ -37,7 +37,21 @@ these repository secrets (Settings, Secrets and variables, Actions):
 
 A Developer ID certificate needs the paid Apple Developer Program. An "Apple
 Development" certificate does not work: Gatekeeper rejects it outside your own
-Mac. With the certificate present the build turns on hardened runtime; with the
+Mac.
+
+The quickest way to set the certificate secrets is the helper script. It checks
+the .p12 (certificate type, private key, password), takes the team ID from the
+certificate, uploads, then offers to delete the file:
+
+```bash
+app/scripts/set-macos-signing-secrets.sh path/to/cert.p12
+```
+
+Without a path it uses `Certificates.p12` in the folder above the repository.
+Add `--dry-run` to check without uploading. Set `APPLE_ID` and
+`APPLE_APP_SPECIFIC_PASSWORD` with `gh secret set`.
+
+With the certificate present the build turns on hardened runtime; with the
 Apple ID secrets it also notarizes. The "Report signing" step in the run log
 shows which identity signed the app.
 
