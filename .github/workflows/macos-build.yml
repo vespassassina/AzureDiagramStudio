@@ -46,7 +46,10 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          if [ -z "$CERTIFICATE" ]; then echo "No Developer ID secret: signing ad-hoc."; exit 0; fi
+          if [ -z "$CERTIFICATE" ]; then
+            if [ -n "$CERTIFICATE_PASSWORD$APPLE_ID" ]; then echo "::warning::Signing secrets are set but MACOS_CERTIFICATE_P12_BASE64 is empty. Signing ad-hoc. Re-export the .p12 and set it again."; fi
+            echo "No Developer ID certificate: signing ad-hoc."; exit 0
+          fi
           { echo "CSC_LINK=$CERTIFICATE"; echo "CSC_KEY_PASSWORD=$CERTIFICATE_PASSWORD"; } >> "$GITHUB_ENV"
           if [ -n "$APPLE_ID" ]; then
             { echo "APPLE_ID=$APPLE_ID"; echo "APPLE_APP_SPECIFIC_PASSWORD=$APPLE_APP_SPECIFIC_PASSWORD"; echo "APPLE_TEAM_ID=$APPLE_TEAM_ID"; } >> "$GITHUB_ENV"
