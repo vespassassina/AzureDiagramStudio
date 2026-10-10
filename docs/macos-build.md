@@ -1,57 +1,57 @@
-# macOS Apple Silicon Build Handover
+# macOS Build
 
-Build Azure Diagram Studio on an Apple Silicon Mac running a current supported
-macOS release. The output is a macOS ARM64 application ZIP, not an `.exe`.
+Azure Diagram Studio ships for Apple Silicon Macs as a ZIP holding
+`AzureDiagramStudio.app`. GitHub Actions builds it on every push; you can also
+build it locally.
 
-## Prerequisites
+## Continuous build
 
-- Xcode Command Line Tools: `xcode-select --install`
-- Node.js 26
-- Git
-- Approximately 2 GB of free disk space
+`.github/workflows/macos-build.yml` runs on every push, pull request and `v*`
+tag, on a `macos-14` (Apple Silicon) runner. It:
 
-## Build
+1. runs the Electron shell tests and builds the app;
+2. packages `app/release/Azure-Diagram-Studio-<version>-mac-arm64.zip`;
+3. verifies the ZIP (`npm run desktop:verify:mac`): signature intact, arm64,
+   product icon, and the app launches to a rendered diagram;
+4. keeps the ZIP as the run artifact `azure-diagram-studio-mac-arm64`;
+5. on a `v*` tag, attaches it to that GitHub release, creating the release if
+   needed. To attach to an existing release without a new tag, run the
+   workflow manually and name the tag.
+
+## Signing
+
+Without secrets the app is signed ad-hoc. That seals the bundle but proves no
+identity: on another Mac, Gatekeeper blocks the first launch. The user opens
+it once through System Settings, Privacy & Security, Open Anyway.
+
+To sign with your identity and notarize, so it opens without warnings, add
+these repository secrets (Settings, Secrets and variables, Actions):
+
+| Secret | Value |
+|---|---|
+| `MACOS_CERTIFICATE_P12_BASE64` | Developer ID Application certificate and key, exported as .p12, base64: `base64 -i cert.p12 \| pbcopy` |
+| `MACOS_CERTIFICATE_PASSWORD` | the .p12 export password |
+| `APPLE_ID` | Apple ID email of the developer account |
+| `APPLE_APP_SPECIFIC_PASSWORD` | app-specific password from account.apple.com |
+| `APPLE_TEAM_ID` | ten-character team ID |
+
+A Developer ID certificate needs the paid Apple Developer Program. An "Apple
+Development" certificate does not work: Gatekeeper rejects it outside your own
+Mac. With the certificate present the build turns on hardened runtime; with the
+Apple ID secrets it also notarizes. The "Report signing" step in the run log
+shows which identity signed the app.
+
+## Local build
+
+Needs an Apple Silicon Mac, Xcode Command Line Tools (`xcode-select
+--install`), Node.js 26 and about 2 GB free.
 
 ```bash
-# Clone or update the exact delivery branch.
-git clone https://github.com/vespassassina/AzureDiagramStudio.git
-cd AzureDiagramStudio
-git switch feat/DGM-070-desktop-release
-git pull --ff-only
-
 cd app
 npm ci
 npm run desktop:pack:mac
+npm run desktop:verify:mac
+open release/mac-arm64/AzureDiagramStudio.app
 ```
 
-The build runs the Electron desktop tests, production build, and macOS ARM64
-packaging. It writes this artifact:
-
-```text
-app/release/Azure-Diagram-Studio-0.1.0-mac-arm64.zip
-```
-
-## Verify
-
-```bash
-cd app
-shasum -a 256 release/Azure-Diagram-Studio-0.1.0-mac-arm64.zip
-unzip -t release/Azure-Diagram-Studio-0.1.0-mac-arm64.zip
-open release/mac-arm64/Azure\ Diagram\ Studio.app
-```
-
-The package is unsigned and is not notarized. Follow your organization's
-macOS security policy; do not bypass platform protections.
-
-## Upload To GitHub Release
-
-After inspecting the ZIP and checksum, upload it to the existing `v0.1.0`
-release using an authenticated GitHub CLI session:
-
-```bash
-gh release upload v0.1.0 release/Azure-Diagram-Studio-0.1.0-mac-arm64.zip --clobber
-```
-
-Alternatively, dispatch the repository's **Build macOS ARM64 release** Actions
-workflow with the `v0.1.0` tag. It builds on `macos-14` and uploads the same
-artifact automatically.
+Local builds are ad-hoc signed unless `CSC_LINK` points at a Developer ID .p12.
