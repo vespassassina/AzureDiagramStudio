@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
+import { createRequire } from 'node:module'
 import { test } from 'node:test'
 import { secureSession, secureWindow } from '../security.mjs'
 import config from '../../electron-builder.config.cjs'
@@ -67,6 +68,7 @@ test('should_package_both_unsigned_portable_targets_with_exact_identity_and_allo
   assert.equal(config.artifactName, 'Azure-Diagram-Studio-${version}-win-${arch}-portable.${ext}')
   assert.deepEqual(config.mac.target, ['zip'])
   assert.equal(config.mac.artifactName, 'Azure-Diagram-Studio-${version}-mac-${arch}.${ext}')
+  assert.equal(config.mac.icon, 'public/branding/logo-512.png')
   assert.equal(config.forceCodeSigning, false)
   assert.equal(config.publish, null)
   assert.equal(config.portable.buildUniversalInstaller, false)
@@ -83,4 +85,34 @@ test('should_use_stable_profile_by_default_and_standard_explicit_test_profile_sw
 
 test('should_avoid_native_arm64_archive_filters_when_building_nsis_portables', () => {
   assert.ok(compute7zCompressArgs('7z', { compression: config.compression }).includes('-mx=0'))
+})
+
+function macConfigWith(certificate) {
+  const require = createRequire(import.meta.url)
+  const file = require.resolve('../../electron-builder.config.cjs')
+  const saved = process.env.CSC_LINK
+  try {
+    if (certificate === undefined) delete process.env.CSC_LINK
+    else process.env.CSC_LINK = certificate
+    delete require.cache[file]
+    return require(file).mac
+  } finally {
+    if (saved === undefined) delete process.env.CSC_LINK
+    else process.env.CSC_LINK = saved
+    delete require.cache[file]
+  }
+}
+
+test('should_sign_mac_ad_hoc_without_hardened_runtime_when_no_certificate_is_supplied', () => {
+  for (const certificate of [undefined, '']) {
+    const mac = macConfigWith(certificate)
+    assert.equal(mac.identity, '-')
+    assert.equal(mac.hardenedRuntime, false)
+  }
+})
+
+test('should_sign_mac_with_supplied_developer_id_and_hardened_runtime_for_notarization', () => {
+  const mac = macConfigWith('/secure/developer-id.p12')
+  assert.equal(mac.identity, undefined)
+  assert.equal(mac.hardenedRuntime, true)
 })
