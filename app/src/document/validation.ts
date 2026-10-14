@@ -1,5 +1,6 @@
 import { isColorKey, isIconKey } from '../catalog.ts'
 import { validateCustomIcon } from '../custom-icons/contract.ts'
+import { isHexColor } from '../render/contrast.ts'
 import type { Result, ValidationIssue } from '../contracts.ts'
 import type { Connection, Diagram, Entity, LegendEntry, Point } from '../model.ts'
 
@@ -126,6 +127,7 @@ class Reader {
       color: this.color(input.color, `${path}.color`),
     }
     if (input.subtitle !== undefined) entity.subtitle = this.text(input.subtitle, `${path}.subtitle`, 200)
+    if (input.order !== undefined) entity.order = this.number(input.order, `${path}.order`)
     if (input.icon !== undefined) {
       if (typeof input.icon === 'string' && isIconKey(input.icon)) entity.icon = input.icon
       else this.issue(`${path}.icon`, 'Expected an allowlisted icon registry key, not an asset path')
@@ -153,7 +155,7 @@ class Reader {
       if (points.length < 2) this.issue(`${path}.points`, 'A route requires at least two points')
       connection.points = points.map((point, index) => this.point(point, `${path}.points[${index}]`))
       connection.routeRevision = this.revision(input.routeRevision, `${path}.routeRevision`)
-      if (connection.routeRevision !== revision) this.issue(`${path}.routeRevision`, 'Saved route revision must match the document revision')
+      if (connection.routeRevision > revision) this.issue(`${path}.routeRevision`, 'Saved route revision cannot be newer than the document revision')
     } else if (input.routeRevision !== undefined || input.labelPosition !== undefined) this.issue(`${path}.points`, 'Route revision and label position require route points')
     if (input.labelPosition !== undefined) connection.labelPosition = this.point(input.labelPosition, `${path}.labelPosition`)
     return connection
@@ -182,6 +184,20 @@ export function validateDocument(input: unknown): Result<Diagram> {
     direction: reader.token(source.direction, 'direction', ['RIGHT', 'DOWN']),
     entities: reader.array(source.entities, 'entities', 100).map((entity, index) => reader.entity(entity, `entities[${index}]`)),
     connections: reader.array(source.connections, 'connections', 150).map((connection, index) => reader.connection(connection, `connections[${index}]`, revision)),
+  }
+  if (source.backgroundColor !== undefined) {
+    if (isHexColor(source.backgroundColor)) diagram.backgroundColor = source.backgroundColor
+    else reader.issue('backgroundColor', 'Expected #RGB or #RRGGBB')
+  }
+  if (source.grid !== undefined) {
+    const grid = reader.record(source.grid, 'grid')
+    const spacing = grid.spacing
+    if (typeof spacing !== 'number' || !Number.isFinite(spacing) || !Number.isInteger(spacing) || spacing < 4 || spacing > 128) reader.issue('grid.spacing', 'Expected an integer between 4 and 128')
+    diagram.grid = {
+      visible: reader.boolean(grid.visible, 'grid.visible'), style: reader.token(grid.style, 'grid.style', ['dots', 'lines']),
+      spacing: typeof spacing === 'number' ? spacing : 8, snap: reader.boolean(grid.snap, 'grid.snap'),
+      present: reader.boolean(grid.present, 'grid.present'), export: reader.boolean(grid.export, 'grid.export'),
+    }
   }
   validateGraph(diagram, reader)
   if (!reader.errors.length && new TextEncoder().encode(JSON.stringify(diagram)).byteLength > MAX_BYTES) reader.issue('$', 'Document exceeds the 5 MiB limit')

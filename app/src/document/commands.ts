@@ -2,6 +2,8 @@ import type { ClipboardFragment, DocumentCommand, DomainErrorCode, ValidationIss
 import { absolutePosition, entityTextGeometry, invalidateRoutes, measureEntity, removeEntities } from '../model.ts'
 import type { Connection, Diagram, Entity, Point } from '../model.ts'
 import { inspectJson, isRecord, validateDocument } from './validation.ts'
+import { siblingScopes, stackingBand } from '../order.ts'
+import { snapPoint } from '../grid.ts'
 
 export class DomainError extends Error {
   name: 'DomainError' = 'DomainError'
@@ -76,7 +78,11 @@ function expandAncestors(document: Diagram, seeds: string[]) {
       entity = getEntity(document, entity.parentId)
     }
   }
-  const depth = (entity: Entity) => entity.parentId ? 1 : 0
+  const depth = (entity: Entity) => {
+    let levels = 0
+    while (entity.parentId) { levels++; entity = getEntity(document, entity.parentId) }
+    return levels
+  }
   const boundaries = document.entities.filter(entity => affected.has(entity.id)).sort((left, right) => depth(right) - depth(left))
   for (const boundary of boundaries) {
     growText(boundary)
@@ -144,7 +150,12 @@ function paste(document: Diagram, fragment: ClipboardFragment, idMap: Record<str
     return next
   }
   const remap = new Map([...source.entities, ...source.connections].map(item => [item.id, newId(item.id)]))
-  const entities = source.entities.map(entity => ({ ...entity, id: remap.get(entity.id)!, parentId: entity.parentId ? remap.get(entity.parentId)! : null, ...(entity.parentId ? {} : { x: entity.x + offset.x, y: entity.y + offset.y }) }))
+  const rootEntities = source.entities.filter(entity => !entity.parentId)
+  const origin = rootEntities.length ? { x: Math.min(...rootEntities.map(entity => entity.x)), y: Math.min(...rootEntities.map(entity => entity.y)) } : fragment.origin
+  const target = { x: origin.x + offset.x, y: origin.y + offset.y }
+  const aligned = snapPoint(target, document.grid)
+  const translation = { x: offset.x + aligned.x - target.x, y: offset.y + aligned.y - target.y }
+  const entities = source.entities.map(entity => ({ ...entity, id: remap.get(entity.id)!, parentId: entity.parentId ? remap.get(entity.parentId)! : null, ...(entity.parentId ? {} : { x: entity.x + translation.x, y: entity.y + translation.y }) }))
   document.entities.push(...entities)
   document.connections.push(...source.connections.map(connection => ({ ...connection, id: remap.get(connection.id)!, from: remap.get(connection.from)!, to: remap.get(connection.to)! })))
   return entities.map(entity => entity.id)
@@ -167,6 +178,21 @@ function applyLayout(document: Diagram, command: Extract<DocumentCommand, { type
   return result
 }
 
+/** Move selected runs past one unselected neighbor, or partition at an extreme, retaining both internal orders. */
+function reorderSiblings(ordered: Entity[], selected: Set<string>, position: NonNullable<Extract<DocumentCommand, { type: 'order' }>['position']>): Entity[] {
+  const chosen = ordered.filter(entity => selected.has(entity.id))
+  const others = ordered.filter(entity => !selected.has(entity.id))
+  if (position === 'top') return [...others, ...chosen]
+  if (position === 'bottom') return [...chosen, ...others]
+  const next = [...ordered]
+  const direction = position === 'forward' ? 1 : -1
+  for (let index = direction > 0 ? next.length - 2 : 1; index >= 0 && index < next.length; index -= direction) {
+    const neighbor = index + direction
+    if (selected.has(next[index].id) && !selected.has(next[neighbor].id)) [next[index], next[neighbor]] = [next[neighbor], next[index]]
+  }
+  return next
+}
+
 /** Validate the snapshot, mutate a detached draft, enforce invariants, then publish exactly one revision. */
 export function applyCommand(document: Diagram, command: DocumentCommand): Diagram {
   let draft = checked(document)
@@ -179,6 +205,25 @@ export function applyCommand(document: Diagram, command: DocumentCommand): Diagr
       if (!isRecord(command.entity)) fail('invalid-command', 'entity', 'Expected an entity')
       ensureFresh(draft, command.entity.id)
       draft.entities.push({ ...command.entity })
+      draft = checked(draft, 'invalid-command')
+      growText(getEntity(draft, command.entity.id))
+      grow = [command.entity.id]
+      break
+    }
+    case 'addConnected': {
+      if (typeof command.sourceId !== 'string') fail('invalid-command', 'sourceId', 'Expected an existing source ID')
+      const source = getEntity(draft, command.sourceId)
+      if (source.kind !== 'component' && source.kind !== 'boundary') fail('invalid-connection', 'sourceId', 'Source must be a component or boundary')
+      if (!isRecord(command.entity) || command.entity.kind !== 'component') fail('invalid-command', 'entity', 'Add and connect requires a component')
+      if (!isRecord(command.connection)) fail('invalid-command', 'connection', 'Expected a connection')
+      ensureFresh(draft, command.entity.id)
+      ensureFresh(draft, command.connection.id)
+      if (command.entity.id === command.connection.id) fail('duplicate-id', 'connection.id', 'Entity and connection IDs must be distinct')
+      const parentId = source.kind === 'boundary' ? source.id : source.parentId ?? null
+      if ((command.entity.parentId ?? null) !== parentId) fail('invalid-parent', 'entity.parentId', 'New component must share the source parent, or be inside the source boundary')
+      if (command.connection.from !== source.id || command.connection.to !== command.entity.id) fail('invalid-connection', 'connection', 'Connection must run from the source to the new component')
+      draft.entities.push({ ...command.entity })
+      draft.connections.push({ ...command.connection })
       draft = checked(draft, 'invalid-command')
       growText(getEntity(draft, command.entity.id))
       grow = [command.entity.id]
@@ -269,26 +314,50 @@ export function applyCommand(document: Diagram, command: DocumentCommand): Diagr
       grow = paste(draft, command.fragment, command.idMap, command.offset)
       break
     case 'metadata':
-      patchFields(command.patch, ['title', 'subtitle', 'direction', 'synthetic', 'legendVisible', 'legend'])
+      patchFields(command.patch, ['title', 'subtitle', 'backgroundColor', 'grid', 'direction', 'synthetic', 'legendVisible', 'legend'])
       Object.assign(draft, command.patch)
       break
-    case 'order':
-      idsExist(draft, command.ids)
-      for (const id of command.ids) getEntity(draft, id).layer = command.layer
+    case 'order': {
+      const selected = new Set(roots(draft, command.ids).map(entity => entity.id))
+      if (command.position !== undefined && !['forward', 'backward', 'top', 'bottom'].includes(command.position)) fail('invalid-command', 'position', 'Expected a stacking position')
+      if (command.layer !== undefined && !['background', 'foreground'].includes(command.layer)) fail('invalid-command', 'layer', 'Expected a layer action')
+      const position = command.position ?? (command.layer === 'background' ? 'bottom' : command.layer === 'foreground' ? 'top' : undefined)
+      if (!position) fail('invalid-command', 'position', 'Expected a stacking position or layer action')
+      let changed = false
+      for (const ordered of siblingScopes(draft.entities).values()) {
+        if (!ordered.some(entity => selected.has(entity.id))) continue
+        // Resolve any explicit legacy band change first; numeric moves never promote kind or layer.
+        // Reorder only selected roots' target bands and rank only bands that visibly change.
+        for (const band of [-1, 0, 4] as const) {
+          const siblings = ordered.filter(entity => stackingBand(command.layer && selected.has(entity.id) ? { ...entity, layer: command.layer } : entity) === band)
+          const chosen = siblings.filter(entity => selected.has(entity.id))
+          if (!chosen.length) continue
+          const next = reorderSiblings(siblings, selected, position)
+          const layerChanged = chosen.some(entity => stackingBand(entity) !== band)
+          if (next.every((entity, index) => entity.id === siblings[index].id) && !layerChanged) continue
+          changed = true
+          next.forEach((entity, index) => { entity.order = band + index })
+          if (command.layer) for (const entity of chosen) entity.layer = command.layer
+        }
+      }
+      if (!changed) return document
       break
+    }
     case 'applyLayout':
       draft = applyLayout(draft, command)
       break
     default:
       fail('invalid-command', 'type', 'Unknown command type')
   }
-  // Old routes are checked only for snapshot input; ordinary mutations deliberately invalidate them.
-  if (command.type !== 'applyLayout') draft = invalidateRoutes(draft)
+  // Appearance and stacking edits do not change geometry. Keep valid routes and restamp only those.
+  const preserveRoutes = command.type === 'order' || (command.type === 'metadata' && draft.direction === document.direction)
+  if (command.type !== 'applyLayout' && !preserveRoutes) draft = invalidateRoutes(draft)
   if (grow.length) {
     draft = checked(draft, 'invalid-command')
     expandAncestors(draft, grow)
   }
   draft.revision++
   if (command.type === 'applyLayout') for (const connection of draft.connections) if (connection.points) connection.routeRevision = draft.revision
+  if (preserveRoutes) for (const connection of draft.connections) if (connection.points && connection.routeRevision === document.revision) connection.routeRevision = draft.revision
   return checked(draft, 'invalid-command')
 }

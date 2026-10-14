@@ -1,23 +1,24 @@
 import { embeddedFont, visualAssets } from './assets.ts'
-import { buildScene, renderSvg, pngDimensions } from './scene.ts'
+import { buildExportScene, renderSvg, pngDimensions } from './scene.ts'
 import type { Scene } from './scene.ts'
 import type { Diagram } from './model.ts'
+import type { ExportSceneOptions } from './contracts.ts'
 
-async function renderExport(scene: Scene, transparent: boolean): Promise<string> {
-  return renderSvg(scene, { ...visualAssets, fontData: await embeddedFont() }, transparent)
+async function renderExport(scene: Scene, transparent: boolean, includeGrid?: boolean): Promise<string> {
+  return renderSvg(scene, { ...visualAssets, fontData: await embeddedFont() }, transparent, includeGrid)
 }
 
-export async function exportSvg(diagram: Diagram, transparent = false): Promise<string> {
-  return renderExport(buildScene(diagram), transparent)
+export async function exportSvg(diagram: Diagram, transparent = false, includeGrid?: boolean, options?: ExportSceneOptions): Promise<string> {
+  return renderExport(buildExportScene(diagram, options), transparent, options?.includeGrid ?? includeGrid)
 }
-export async function exportPng(diagram: Diagram, scale: 1 | 2, transparent = false): Promise<Blob> {
-  const scene = buildScene(diagram)
+export async function exportPng(diagram: Diagram, scale: 1 | 2, transparent = false, includeGrid?: boolean, options?: ExportSceneOptions): Promise<Blob> {
+  const scene = buildExportScene(diagram, options)
   const size = pngDimensions(scene, scale)
   let source: string | undefined
   let image: HTMLImageElement | undefined
   let canvas: HTMLCanvasElement | undefined
   try {
-    const svg = await renderExport(scene, transparent)
+    const svg = await renderExport(scene, transparent, options?.includeGrid ?? includeGrid)
     source = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }))
     await document.fonts?.ready
     image = new Image()

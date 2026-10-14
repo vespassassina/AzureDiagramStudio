@@ -4,6 +4,60 @@ import { createDocument, sampleDiagram } from '../model.ts'
 import { qualityFixtures } from '../fixtures.ts'
 import { importSkillSpec, parseDocument, validateDocument } from './index.ts'
 import { inspectJson, MAX_BYTES } from './validation.ts'
+import webApiSource from '../../../examples/azure-web-app.json?raw'
+import eventSource from '../../../examples/event-driven.json?raw'
+import fabricSource from '../../../examples/fabric-onelake.json?raw'
+import enterpriseSource from '../../../examples/enterprise-integration.json?raw'
+
+const grid115 = { visible: true, style: 'dots' as const, spacing: 8, snap: true, present: false, export: false }
+
+test.each([
+  ['web-api', webApiSource], ['event-driven', eventSource],
+  ['fabric', fabricSource], ['enterprise', enterpriseSource],
+] as const)('should_keep_%s_starter_as_exact_valid_native_json_DGM109', (_key, source) => {
+  const parsed = parseDocument(source)
+  assert.ok(parsed.ok)
+  assert.deepEqual(validateDocument(JSON.parse(source)), parsed)
+  assert.deepEqual(parseDocument(JSON.stringify(parsed.value)), parsed)
+  assert.equal(parsed.value.synthetic, true)
+  assert.ok(parsed.value.connections.every(connection => !!connection.points && connection.points.length >= 2 && connection.routeRevision === parsed.value.revision))
+})
+
+test('should_preserve_grid_omission_and_round_trip_all_explicit_settings', () => {
+  const legacy = createDocument('grid')
+  assert.deepEqual(parseDocument(JSON.stringify(legacy)), { ok: true, value: legacy })
+  for (const style of ['dots', 'lines'] as const) for (const spacing of [4, 8, 128]) {
+    const document = { ...legacy, grid: { ...grid115, visible: false, style, spacing, snap: false, present: true, export: true } }
+    assert.deepEqual(parseDocument(JSON.stringify(document)), { ok: true, value: document })
+  }
+})
+
+test.each(['visible', 'style', 'spacing', 'snap', 'present', 'export'])('should_reject_grid_when_required_field_%s_is_missing', field => {
+  const grid: Record<string, unknown> = { ...grid115 }
+  delete grid[field]
+  assert.equal(validateDocument({ ...createDocument('grid'), grid }).ok, false)
+})
+
+test.each([null, [], 'dots', {}, { ...grid115, style: 'off' }, ...[3, 129, 8.5, NaN, Infinity, '8', null].map(spacing => ({ ...grid115, spacing })), ...['visible', 'snap', 'present', 'export'].map(field => ({ ...grid115, [field]: 1 }))])('should_reject_invalid_grid_without_silently_omitting_it_%j', grid => {
+  const result = validateDocument({ ...createDocument('grid'), grid })
+  assert.equal(result.ok, false)
+  if (!result.ok) assert.ok(result.errors.some(error => error.path.startsWith('grid')))
+})
+
+test('should_preserve_background_when_valid_hex_is_reopened_and_omit_it_for_legacy_documents', () => {
+  const legacy = createDocument('background')
+  assert.deepEqual(parseDocument(JSON.stringify(legacy)), { ok: true, value: legacy })
+  for (const backgroundColor of ['#abc', '#ABC', '#123abc', '#FFFFFF']) {
+    const document = { ...legacy, backgroundColor }
+    assert.deepEqual(parseDocument(JSON.stringify(document)), { ok: true, value: document })
+  }
+})
+
+test.each(['white', 'transparent', '#abcd', '#12345678', '#ggg', ' #abc', '#abc\n', '#123456\r\n', 'url(https://evil)', 'var(--color)', '<script>', null])('should_reject_invalid_background_%s_without_discarding_it', backgroundColor => {
+  const result = validateDocument({ ...createDocument('background'), backgroundColor })
+  assert.equal(result.ok, false)
+  if (!result.ok) assert.ok(result.errors.some(error => error.path === 'backgroundColor'))
+})
 
 test('should_batch_utf8_allocations_when_inspecting_the_production_stress_snapshot', () => {
   const document = qualityFixtures().find(candidate => candidate.id === 'stress-v1')!
@@ -218,4 +272,31 @@ test('should_reject_array_method_overrides_without_calling_them_when_validating'
   Object.defineProperty(entities, 'map', { value: () => { called = true; return [] } })
   assert.equal(validateDocument({ ...createDocument('array-hook'), entities }).ok, false)
   assert.equal(called, false)
+})
+
+test('should_round_trip_all_finite_numeric_order_values_without_integer_or_range_restrictions', () => {
+  const document = sampleDiagram()
+  for (const order of [-Number.MAX_VALUE, -1e100, -0.125, 0, 3.25, Number.MAX_VALUE]) {
+    document.entities[0].order = order
+    const parsed = parseDocument(JSON.stringify(document))
+    assert.ok(parsed.ok)
+    assert.equal(parsed.value.entities[0].order, order)
+  }
+  for (const order of [Infinity, NaN, '4']) {
+    Object.assign(document.entities[0], { order })
+    assert.equal(validateDocument(document).ok, false)
+  }
+})
+
+test('should_retain_stale_routes_without_accepting_future_or_invalid_route_revisions', () => {
+  const document = sampleDiagram()
+  document.revision = 3
+  document.connections[0] = { ...document.connections[0], points: [{ x: 0, y: 0 }, { x: 1, y: 1 }], labelPosition: { x: 0.5, y: 0.5 }, routeRevision: 2 }
+  const parsed = parseDocument(JSON.stringify(document))
+  assert.ok(parsed.ok)
+  assert.deepEqual(parsed.value.connections[0], document.connections[0])
+  for (const routeRevision of [4, -1, 0.5, Infinity]) {
+    document.connections[0].routeRevision = routeRevision
+    assert.equal(validateDocument(document).ok, false)
+  }
 })

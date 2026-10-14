@@ -1,21 +1,182 @@
 // @vitest-environment jsdom
 import { StrictMode } from 'react'
-import { act, cleanup, render, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { EditorProps } from '../contracts.ts'
 import { createDocument } from '../model.ts'
 import App from '../App.tsx'
 
-const host = vi.hoisted(() => ({ props: undefined as EditorProps | undefined, leases: [] as ((owns: boolean) => void)[], release: vi.fn(), close: vi.fn(), save: vi.fn(async () => {}), load: vi.fn(async () => null), download: vi.fn(), confirmReplace: vi.fn(() => true) }))
-vi.mock('../editor/Editor.tsx', () => ({ default: (props: EditorProps) => { host.props = props; return <div>{props.document?.title}</div> } }))
+const host = vi.hoisted(() => ({ realEditor: false, props: undefined as EditorProps | undefined, leases: [] as ((owns: boolean) => void)[], release: vi.fn(), close: vi.fn(), save: vi.fn(async () => {}), load: vi.fn(async () => null), download: vi.fn(), confirmReplace: vi.fn(() => true), layout: vi.fn(), exportPng: vi.fn(async () => new Blob(['png'], { type: 'image/png' })), copyImage: vi.fn(async (_png: Promise<Blob>) => {}) }))
+vi.mock('../editor/Editor.tsx', async importOriginal => {
+  const { default: Editor } = await importOriginal<typeof import('../editor/Editor.tsx')>()
+  return { default: (props: EditorProps) => { host.props = props; return host.realEditor ? <Editor {...props} /> : <div>{props.document?.title}</div> } }
+})
+vi.mock('@xyflow/react', async importOriginal => ({
+  ...await importOriginal<typeof import('@xyflow/react')>(),
+  ReactFlowProvider: ({ children }: { children: React.ReactNode }) => children,
+  ReactFlow: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Background: () => null,
+  useReactFlow: () => ({ getViewport: () => ({ x: 17, y: 23, zoom: .75 }), setViewport: vi.fn(async () => true), screenToFlowPosition: (point: { x: number; y: number }) => point, zoomIn: vi.fn(), zoomOut: vi.fn() }),
+}))
 vi.mock('./browser.ts', () => ({ browserDependencies: {
   createStorage: () => ({ load: host.load, save: host.save, close: host.close }),
   watchLock: (callback: (owns: boolean) => void) => { host.leases.push(callback); callback(false); return host.release },
-  download: host.download, confirmReplace: host.confirmReplace, newId: () => 'new-document',
+  download: host.download, confirmReplace: host.confirmReplace, newId: () => 'new-document', layout: host.layout,
+  exportPng: host.exportPng, copyImage: host.copyImage,
 } }))
-afterEach(() => { cleanup(); vi.clearAllMocks(); host.leases.length = 0 })
+afterEach(() => { cleanup(); vi.clearAllMocks(); host.leases.length = 0; host.realEditor = false })
 
 describe('DGM-040 root integration', () => {
+  it.each([false, true])('should_distinguish_local_save_and_keep_json_available_when_storage_rejects_%s_DGM111', async rejects => {
+    vi.useFakeTimers()
+    try {
+      host.realEditor = true
+      if (rejects) host.save.mockRejectedValueOnce(new Error('QuotaExceededError'))
+      const view = render(<App />)
+      await act(async () => { host.leases.at(-1)!(true) })
+      const title = view.getByLabelText('Document title')
+      fireEvent.change(title, { target: { value: 'Current editable work' } })
+      fireEvent.blur(title)
+      const before = host.props!.document
+      expect(view.container.querySelector('.save-label')?.textContent).toBe('Saving locally')
+      await act(async () => { await vi.advanceTimersByTimeAsync(500) })
+      expect(view.container.querySelector('.save-label')?.textContent).toBe(rejects ? 'Local save failed' : 'Saved on this device')
+      expect(view.container.querySelector('.backup-state')?.textContent).toBe('Editable JSON copy needed')
+      expect(host.props!.document).toBe(before)
+      expect(host.props!.canUndo).toBe(true)
+      expect(host.props!.readOnly).toBe(false)
+      if (rejects) expect(view.getByRole('status').textContent).toBe('Browser save failed: QuotaExceededError. Download JSON now; free storage and edit again to retry.')
+      await act(async () => { fireEvent.click(view.getByRole('button', { name: 'Save JSON' })) })
+      expect(host.download).toHaveBeenCalledOnce()
+      expect(host.props!.document).toBe(before)
+      expect(host.props!.canUndo).toBe(true)
+      expect(view.container.querySelector('.backup-state')?.textContent).toBe('No newer JSON changes')
+    } finally { cleanup(); vi.useRealTimers() }
+  })
+  it.each([
+    ['Open JSON', 'Open document file', 'cancel'],
+    ['Open JSON', 'Open document file', 'empty'],
+    ['Import skill JSON', 'Import skill file', 'cancel'],
+    ['Import skill JSON', 'Import skill file', 'empty'],
+  ] as const)('should_leave_document_unchanged_when_%s_picker_is_%s_%s_DGM111', async (action, picker, outcome) => {
+    host.realEditor = true
+    const view = render(<App />)
+    await act(async () => { host.leases.at(-1)!(true) })
+    const title = view.getByLabelText('Document title')
+    fireEvent.change(title, { target: { value: 'Finalized before picker' } })
+    const input = view.getByLabelText(picker) as HTMLInputElement
+    const click = vi.spyOn(input, 'click')
+    fireEvent.click(view.getByRole('button', { name: action }))
+    expect(click).toHaveBeenCalledOnce()
+    expect(host.props!.document.title).toBe('Finalized before picker')
+    const before = host.props!
+    await act(async () => {
+      if (outcome === 'cancel') input.dispatchEvent(new Event('cancel', { bubbles: true }))
+      else fireEvent.change(input, { target: { files: [] } })
+    })
+    expect(host.props!.document).toBe(before.document)
+    expect(host.props!.canUndo).toBe(before.canUndo)
+    expect(host.props!.canRedo).toBe(before.canRedo)
+    expect(host.props!.backupDirty).toBe(before.backupDirty)
+    expect(view.container.querySelector('.backup-state')?.textContent).toBe('Editable JSON copy needed')
+    expect(host.confirmReplace).not.toHaveBeenCalled()
+    expect(host.layout).not.toHaveBeenCalled()
+  })
+  it('should_wire_real_session_copy_callback_without_document_history_or_storage_mutation', async () => {
+    render(<App />)
+    await act(async () => { host.leases.at(-1)!(true) })
+    const before = host.props!.document
+    await act(async () => { host.props!.onCopyImage!({ format: 'png', scale: 1, transparent: false, aspect: '16:9' }) })
+    expect(host.copyImage).toHaveBeenCalledOnce()
+    expect(host.copyImage.mock.calls[0][0]).toBeInstanceOf(Promise)
+    expect(host.props!.message).toMatch(/copied/i)
+    expect(host.props!.document).toBe(before); expect(host.props!.canUndo).toBe(false)
+    expect(host.download).not.toHaveBeenCalled(); expect(host.save).not.toHaveBeenCalled()
+  })
+  it.each(['during', 'after'] as const)('should_reject_shell_file_read_resolving_%s_real_editor_presentation', async timing => {
+    host.realEditor = true
+    const view = render(<App />)
+    await act(async () => { host.leases.at(-1)!(true) })
+    const before = host.props!.document
+    let resolve!: (text: string) => void
+    const pending = new Promise<string>(complete => { resolve = complete })
+    const file = new File(['pending'], 'pending.json', { type: 'application/json' })
+    const text = vi.fn(() => pending)
+    Object.defineProperty(file, 'text', { value: text })
+    fireEvent.change(view.getByLabelText('Open document file'), { target: { files: [file] } })
+    expect(text).toHaveBeenCalledOnce()
+    fireEvent.click(view.getByRole('button', { name: 'Present' }))
+    expect(view.getByRole('button', { name: 'Exit presentation' })).toBeTruthy()
+    if (timing === 'after') fireEvent.click(view.getByRole('button', { name: 'Exit presentation' }))
+    await act(async () => resolve(JSON.stringify(createDocument('late', 'Late replacement'))))
+    expect(host.props!.document).toBe(before)
+    expect(host.confirmReplace).not.toHaveBeenCalled()
+    expect(host.props!.canUndo).toBe(false)
+    if (timing === 'during') {
+      expect(view.getByRole('button', { name: 'Exit presentation' })).toBeTruthy()
+      fireEvent.keyDown(window, { key: 'Escape' })
+    }
+    act(() => host.props!.onCommand({ type: 'metadata', patch: { title: 'Allowed after exit' } }))
+    expect(host.props!.document.title).toBe('Allowed after exit')
+  })
+  it('should_guard_stale_shell_callbacks_and_hidden_pickers_during_real_present_and_preserve_lock_on_exit', async () => {
+    host.realEditor = true
+    const view = render(<App />)
+    await act(async () => { host.leases.at(-1)!(true) })
+    act(() => host.props!.onCommand({ type: 'metadata', patch: { title: 'First' } }))
+    act(() => host.props!.onCommand({ type: 'metadata', patch: { title: 'Second' } }))
+    act(() => host.props!.onUndo())
+    const callbacks = host.props!
+    const open = view.getByLabelText('Open document file') as HTMLInputElement
+    const imported = view.getByLabelText('Import skill file') as HTMLInputElement
+    const openClick = vi.spyOn(open, 'click')
+    const importClick = vi.spyOn(imported, 'click')
+    fireEvent.click(view.getByRole('button', { name: 'Present' }))
+    act(() => {
+      callbacks.onCommand({ type: 'metadata', patch: { title: 'Forbidden' } })
+      callbacks.onNew(); callbacks.onUndo(); callbacks.onRedo(); callbacks.onArrange('DOWN')
+      callbacks.onOpen(); callbacks.onImport()
+      callbacks.onPreviewChange({ ...callbacks.document, title: 'Forbidden preview' })
+    })
+    const file = new File(['hidden'], 'hidden.json')
+    const text = vi.fn(async () => JSON.stringify(createDocument('hidden')))
+    Object.defineProperty(file, 'text', { value: text })
+    await act(async () => {
+      fireEvent.change(open, { target: { files: [file] } })
+      fireEvent.change(imported, { target: { files: [file] } })
+    })
+    expect(host.props!.document).toBe(callbacks.document)
+    expect(host.props!.canUndo).toBe(true)
+    expect(host.props!.canRedo).toBe(true)
+    expect(openClick).not.toHaveBeenCalled()
+    expect(importClick).not.toHaveBeenCalled()
+    expect(text).not.toHaveBeenCalled()
+    expect(host.layout).not.toHaveBeenCalled()
+    expect(host.confirmReplace).not.toHaveBeenCalled()
+    act(() => host.leases.at(-1)!(false))
+    fireEvent.keyDown(window, { key: 'Escape' })
+    act(() => callbacks.onCommand({ type: 'metadata', patch: { title: 'Still locked' } }))
+    expect(host.props!.readOnly).toBe(true)
+    expect(host.props!.document).toBe(callbacks.document)
+  })
+  it('should_exit_real_present_after_ownership_reload_and_allow_edits_only_after_latest_load', async () => {
+    host.realEditor = true
+    const view = render(<App />)
+    await act(async () => { host.leases.at(-1)!(true) })
+    fireEvent.click(view.getByRole('button', { name: 'Present' }))
+    act(() => host.leases.at(-1)!(false))
+    let resolve!: (document: null) => void
+    host.load.mockReturnValueOnce(new Promise<null>(complete => { resolve = complete }))
+    act(() => host.leases.at(-1)!(true))
+    expect(host.props!.readOnly).toBe(true)
+    act(() => host.props!.onNew())
+    expect(host.confirmReplace).not.toHaveBeenCalled()
+    await act(async () => resolve(null))
+    expect(view.queryByRole('button', { name: 'Exit presentation' })).toBeNull()
+    expect(host.props!.readOnly).toBe(false)
+    act(() => host.props!.onCommand({ type: 'metadata', patch: { title: 'Recovered' } }))
+    expect(host.props!.document.title).toBe('Recovered')
+  })
   it('should_render_controlled_editor_and_wait_for_lock_under_strictmode', async () => {
     render(<StrictMode><App /></StrictMode>)
     await waitFor(() => expect(host.leases).toHaveLength(2))

@@ -7,6 +7,7 @@ export type Layer = 'foreground' | 'background'
 export type Status = 'live' | 'planned' | 'not-connected' | 'synthetic'
 export type ConnectionSide = 'auto' | 'top' | 'right' | 'bottom' | 'left'
 export type LegendEntry = { label: string; color: string; dashed?: boolean }
+export type Grid = { visible: boolean; style: 'dots' | 'lines'; spacing: number; snap: boolean; present: boolean; export: boolean }
 export type Entity = {
   id: string
   kind: 'component' | 'boundary' | 'text' | 'rectangle'
@@ -14,6 +15,7 @@ export type Entity = {
   subtitle?: string
   parentId?: string | null
   layer?: Layer
+  order?: number
   x: number
   y: number
   width: number
@@ -41,6 +43,8 @@ export type Diagram = {
   id: string
   title: string
   subtitle: string
+  backgroundColor?: string
+  grid?: Grid
   synthetic: boolean
   legendVisible: boolean
   legend: LegendEntry[]

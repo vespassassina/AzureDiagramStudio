@@ -7,6 +7,7 @@
 **/release/
 **/.desktop-stage/
 **/.vite/
+**/.vitest/
 **/.cache/
 **/test-results/
 /app/src/editor/evidence/

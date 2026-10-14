@@ -21,7 +21,7 @@ const report = { startedAt: new Date().toISOString(), sourceCommit: (await execu
 await mkdir(output, { recursive: true })
 
 async function saved(page) {
-  await page.waitForFunction(() => document.querySelector('.statusbar .save-label')?.textContent === 'Saved')
+  await page.waitForFunction(() => document.querySelector('.statusbar .save-label')?.textContent === 'Saved on this device')
 }
 async function durable(page) {
   await saved(page)
@@ -324,7 +324,7 @@ try {
       await page.getByRole('button', { name: 'Select tool', exact: true }).click()
       const before = await durable(page)
       await page.getByRole('button', { name: 'Auto-arrange', exact: true }).click()
-      await page.waitForFunction(revision => document.querySelector('.statusbar .save-label')?.textContent === 'Saved' && !document.querySelector('button[aria-label="Auto-arrange"]').disabled && !/Auto-arrange failed/.test(document.querySelector('[role="status"]')?.textContent ?? ''), before.revision)
+      await page.waitForFunction(revision => document.querySelector('.statusbar .save-label')?.textContent === 'Saved on this device' && !document.querySelector('button[aria-label="Auto-arrange"]').disabled && !/Auto-arrange failed/.test(document.querySelector('[role="status"]')?.textContent ?? ''), before.revision)
       const arranged = await durable(page)
       assert.equal(arranged.revision, before.revision + 1)
       assert.ok(arranged.connections.every(connection => connection.points?.length >= 2 && connection.routeRevision === arranged.revision))

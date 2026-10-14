@@ -34,7 +34,7 @@ async function open(page, diagram) {
   await page.getByRole('button', { name: 'Open JSON', exact: true }).click()
   await (await pending).setFiles({ name: 'mixed-icons.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(diagram)) })
   await page.waitForFunction(title => document.querySelector('input[aria-label="Document title"]')?.value === title, diagram.title)
-  await page.waitForFunction(() => document.querySelector('.statusbar .save-label')?.textContent === 'Saved')
+  await page.waitForFunction(() => document.querySelector('.statusbar .save-label')?.textContent === 'Saved on this device')
 }
 
 async function upload(page, file, action = 'Import custom icon') {
@@ -260,7 +260,7 @@ try {
     await page.getByRole('button', { name: 'Undo', exact: true }).click()
     assert.deepEqual(await backup(page, `${viewport.width}-undo-arrange`), mixed)
     await page.reload()
-    await page.waitForFunction(() => document.querySelector('.statusbar .save-label')?.textContent === 'Saved')
+    await page.waitForFunction(() => document.querySelector('.statusbar .save-label')?.textContent === 'Saved on this device')
     assert.deepEqual(await backup(page, `${viewport.width}-reloaded`), mixed)
     const invalidMixed = structuredClone(mixed)
     const corruptPng = Buffer.from(entity.customIcon.dataUrl.split(',')[1], 'base64')

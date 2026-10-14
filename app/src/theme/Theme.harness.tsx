@@ -26,7 +26,7 @@ function Harness() {
     document: diagram.current, canUndo: false, canRedo: false, readOnly, saveState: readOnly ? 'read-only' : 'saved', backupDirty: true, message: '', isArranging: false, isExporting: false,
     onCommand: command => { evidence.current.commands.push(command) }, onPreviewChange: preview => { evidence.current.previews.push(preview) },
     onUndo: () => { evidence.current.actions.push('undo') }, onRedo: () => { evidence.current.actions.push('redo') },
-    onNew: () => { evidence.current.actions.push('new') }, onOpen: () => { evidence.current.actions.push('open') }, onImport: () => { evidence.current.actions.push('import') },
+    onNew: () => { evidence.current.actions.push('new') }, onChooseStarter: () => false, onOpen: () => { evidence.current.actions.push('open') }, onImport: () => { evidence.current.actions.push('import') },
     onSaveJson: () => { evidence.current.actions.push('save-json') }, onArrange: () => { evidence.current.actions.push('arrange') }, onExport: options => { evidence.current.exports.push(options) },
   }
   Object.assign(window, { __themeHarness: {

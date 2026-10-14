@@ -29,7 +29,7 @@ function Harness() {
     }}
     onPreviewChange={preview => { evidence.current.previews.push(preview) }}
     onUndo={() => update(historyUndo(current.current))} onRedo={() => update(historyRedo(current.current))}
-    onNew={() => { evidence.current.actions.push('new'); update({ past: [], present: createDocument('browser-new'), future: [] }) }}
+    onNew={() => { evidence.current.actions.push('new'); update({ past: [], present: createDocument('browser-new'), future: [] }) }} onChooseStarter={() => false}
     onOpen={() => { evidence.current.actions.push('open') }} onImport={() => { evidence.current.actions.push('import') }}
     onSaveJson={() => { evidence.current.actions.push('save-json'); setBackupDirty(false) }}
     onArrange={direction => { evidence.current.actions.push(`arrange:${direction}`) }} onExport={options => { evidence.current.exports.push(options) }}

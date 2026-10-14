@@ -106,7 +106,7 @@ function assertDib(bytes: Buffer, size: number, expected: Buffer) {
 
 test('should_show_exact_product_name_when_editor_header_is_rendered', () => {
   const noop = () => {}
-  const props: EditorProps = { document: createDocument('brand-only'), readOnly: false, saveState: 'saved', backupDirty: false, canUndo: false, canRedo: false, isArranging: false, isExporting: false, message: '', onCommand: noop, onPreviewChange: noop, onUndo: noop, onRedo: noop, onArrange: noop, onNew: noop, onOpen: noop, onImport: noop, onSaveJson: noop, onExport: noop }
+  const props: EditorProps = { document: createDocument('brand-only'), readOnly: false, saveState: 'saved', backupDirty: false, canUndo: false, canRedo: false, isArranging: false, isExporting: false, message: '', onCommand: noop, onPreviewChange: noop, onUndo: noop, onRedo: noop, onArrange: noop, onNew: noop, onOpen: noop, onImport: noop, onSaveJson: noop, onExport: noop, onChooseStarter: () => false }
   const container = document.createElement('div')
   container.innerHTML = renderToStaticMarkup(createElement(ReactFlowProvider, null, createElement(EditorSurface, props)))
   const brand = container.querySelector('.wordmark')!
@@ -132,7 +132,7 @@ test('should_preserve_original_self_contained_svg_when_brand_sources_are_read', 
   assert.equal(favicon, logo)
   assert.match(logo, /viewBox="0 0 64 64"/)
   assert.match(logo, /<title[^>]*>Azure Diagram Studio<\/title>/)
-  assert.match(logo, /<desc[^>]*>Original.*three.*tiles/i)
+  assert.match(logo, /<desc[^>]*>Original.*three.*nodes/i)
   assert.equal((logo.match(/data-tile=/g) ?? []).length, 3)
   assert.doesNotMatch(logo, /<(?:image|script|foreignObject)|(?:href|url\()|microsoft|fabric|timestamp|date=/i)
 })

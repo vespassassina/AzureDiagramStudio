@@ -14,6 +14,11 @@ const azureNames: Record<string, { label: string; aliases?: string[] }> = {
   'azure-03513-icon-service-ai-studio': { label: 'Microsoft Foundry', aliases: ['Azure AI Foundry', 'Azure AI Studio'] },
   'azure-10241-icon-service-microsoft-defender-for-cloud': { label: 'Defender for Cloud' },
 }
+const curatedAliases: Record<string, string[]> = {
+  'azure-api': ['APIM'],
+  'azure-entra': ['AAD', 'Azure AD'],
+  'azure-container-apps': ['ACA'],
+}
 const fabricStateAliases: Record<string, string> = {
   external_semantic_model: 'semantic_model', shared_semantic_model: 'semantic_model', no_access_semantic_model: 'semantic_model',
   restricted_report: 'report', mobile_report: 'report', restricted_scorecard: 'scorecard', rdl_report: 'paginated_report',
@@ -52,7 +57,7 @@ function preferredFabric(family: string, candidates: CatalogItem[]): CatalogItem
 
 const currentAzure = azureLibrary.filter(item => !lifecycleDecision(item).excluded).map(item => {
   const naming = azureNames[item.icon]
-  return freezeItem({ ...item, ...(naming ?? {}), aliases: [...(item.aliases ?? []), item.label, ...(naming?.aliases ?? [])] })
+  return freezeItem({ ...item, ...(naming ?? {}), aliases: [...(item.aliases ?? []), item.label, ...(naming?.aliases ?? []), ...(curatedAliases[item.icon] ?? [])] })
 })
 const canonicalFabric = [...fabricByFamily].map(([family, candidates]) => preferredFabric(family, candidates))
 export const searchableLibrary: CatalogItem[] = [...currentAzure, ...canonicalFabric, ...genericLibrary.map(item => freezeItem({ ...item })), ...vendorLibrary, ...microsoftLibrary].sort(compareItems)
@@ -114,7 +119,7 @@ function owningGroup(item: CatalogItem): ServiceGroup {
 const searchIndex = searchableLibrary.map(item => {
   const owner = owningGroup(item)
   const text = [item.label, item.subtitle, item.category, owner.label, ...item.source.categories, ...(item.aliases ?? []), ...(item.keywords ?? [])].join('\n').toLocaleLowerCase('en')
-  return { item, owner, text }
+  return { item, owner, text, label: item.label.toLocaleLowerCase('en'), aliases: (item.aliases ?? []).map(alias => alias.toLocaleLowerCase('en')) }
 })
 const allSearchGroups = [...azureMenus, ...softwareMenus].map(menu => {
   const items = searchIndex.filter(entry => entry.owner.id === menu.id).map(entry => entry.item)
@@ -124,29 +129,61 @@ const allSearchGroups = [...azureMenus, ...softwareMenus].map(menu => {
 Object.freeze(allSearchGroups)
 let lastQuery = ''
 let lastResults = allSearchGroups
+let lastRankedItems = searchableLibrary
+
+/*
+ * Prefer an exact label, then an exact alias.
+ * Find a substring beginning at a token boundary; otherwise retain substring matching.
+ * Return an excluded rank only when the existing searchable fields do not match.
+ */
+function matchRank(entry: (typeof searchIndex)[number], query: string): number {
+  if (entry.label === query) return 0
+  if (entry.aliases.includes(query)) return 1
+  let position = entry.text.indexOf(query)
+  if (position < 0) return 4
+  while (position >= 0) {
+    if (position === 0 || !/[\p{L}\p{N}]/u.test(entry.text[position - 1])) return 2
+    position = entry.text.indexOf(query, position + 1)
+  }
+  return 3
+}
 
 export function menuGroups(catalog: 'azure' | 'software'): ServiceGroup[] {
   return catalog === 'azure' ? azureMenus : softwareMenus
 }
 
-export function searchGroups(query: string): ServiceGroup[] {
+/*
+ * Normalize the query and reuse immutable results for the last nonempty search.
+ * Sort matching current items by match tier, then the existing stable label/icon collator.
+ * Group that ordered stream by first appearance so each group's best item determines its order.
+ */
+export function rankedSearch(query: string): CatalogItem[] {
   const normalized = query.trim().toLocaleLowerCase('en')
-  if (!normalized) return allSearchGroups
-  if (normalized === lastQuery) return lastResults
-  const matches = new Map<string, CatalogItem[]>()
-  for (const entry of searchIndex) {
-    if (!entry.text.includes(normalized)) continue
-    const items = matches.get(entry.owner.id) ?? []
-    items.push(entry.item)
-    matches.set(entry.owner.id, items)
+  if (!normalized) return searchableLibrary
+  if (normalized === lastQuery) return lastRankedItems
+  const matches = searchIndex.map(entry => ({ entry, rank: matchRank(entry, normalized) }))
+    .filter(match => match.rank < 4)
+    .sort((left, right) => left.rank - right.rank || compareItems(left.entry.item, right.entry.item))
+  const groups = new Map<string, { owner: ServiceGroup; items: CatalogItem[] }>()
+  for (const { entry } of matches) {
+    const group = groups.get(entry.owner.id) ?? { owner: entry.owner, items: [] }
+    group.items.push(entry.item)
+    groups.set(entry.owner.id, group)
   }
-  lastQuery = normalized
-  lastResults = [...azureMenus, ...softwareMenus].filter(menu => matches.has(menu.id)).map(menu => {
-    const items = matches.get(menu.id)!
+  lastRankedItems = matches.map(match => match.entry.item)
+  Object.freeze(lastRankedItems)
+  lastResults = [...groups.values()].map(({ owner, items }) => {
     Object.freeze(items)
-    return Object.freeze({ ...menu, items })
+    return Object.freeze({ ...owner, items })
   })
   Object.freeze(lastResults)
+  lastQuery = normalized
+  return lastRankedItems
+}
+
+export function searchGroups(query: string): ServiceGroup[] {
+  if (!query.trim()) return allSearchGroups
+  rankedSearch(query)
   return lastResults
 }
 

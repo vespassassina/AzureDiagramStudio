@@ -109,3 +109,123 @@ PO requested uploaded image icons and common third-party vendors while desktop p
 ## 2026-10-09: Microsoft Apps, Themes and Existing Remote Authorized
 
 PO requested SharePoint/Business Central/Dynamics/Microsoft 365/Copilot/Copilot Studio/Office/Teams icons and light/dark themes, and supplied the newly created `vespassassina/AzureDiagramStudio` Git remote. Authorize [DGM-090](specs/DGM-090.md): separately sourced Microsoft app registry, UI-only persisted theme, integration with custom/vendor artwork, and publication to the existing remote without overwriting history. Earlier desktop verification/release/doc requirements remain active. No final acceptance, force push, logo-redistribution assumptions or unsafe Electron bridge is implied.
+
+## 2026-10-10: Sprint 2 Trust and Present Authorized
+
+Context: the PO reviewed the evidence-based UX review and proposed DGM-100 backlog, then said "approved. execute the sprint".
+
+Decision: execute DGM-101/102/103/104 only. Keep the local-first stack and existing dependencies. Freeze sibling stacking with atomic boundary subtrees, manual React Flow z-order and an explicit connection stratum shared with export. Preserve routes on stacking-only edits. Boundary layout uses deterministic intrinsic sizing, actual header wrapping and existing revision/annotation invariants. Workspace and Present state stay outside portable JSON.
+
+Consequences: implementation delegates own scoped code and TDD; an independent verifier reports results without repairing code. Existing manual novice/Office checks remain open; actual Teams recipient testing needs a person and is not simulated as a pass. Sprints 3/4, platform expansion, packaging/publication, CI changes, dependencies, commits and branches are not authorized here. Stop at Sprint 2 review.
+
+Who: Product Owner authorizes Sprint 2; Orchestrator records its bounded contracts.
+
+## 2026-10-10: Connection Stratum and Group Stacking Clarified
+
+Context: indivisible root subtrees can put connection lines over nested foreground tiles, conflicting with the legacy readable architecture appearance. The Orchestrator asked which rule should prevail; PO was unavailable and explicitly delegated autonomous judgment.
+
+Decision: prioritize default foreground tiles over lines over containers. Maintain ordered sibling/subtree traversal within semantic render bands and parent-before-child visibility. Group ordering retains descendants' order within those bands; it does not move an entire heterogeneous subtree across the connection stratum. Legacy layer commands remain effective. Freeze this clarification in DGM-101 and verify identical editor/export policy.
+
+Consequences: preserve existing diagram appearance rather than changing it on open. Four order actions affect applicable sibling stacking, not kinds/statuses. No version/dependency change. Whole-group cross-band stacking would require a future explicit product decision.
+
+Who: PO delegates routine decision; Orchestrator chooses the recommended readable default.
+
+## 2026-10-10: Sprint 2 Automated Candidate Ready for Review
+
+Outcome: DGM-101 through DGM-104 are implemented and independently reverified. Owners repaired mobile target/reachability, long-header framing and drawer access defects; asset/native branding oracles were reconciled without relaxing integrity/fit assertions. The shell presentation callback closes pending file/layout mutation paths. A light diagram canvas in dark editor chrome preserves semantic-color annotation contrast without changing document/export colors.
+
+Evidence: [Sprint 2 review](verification/sprint-2-review.md), 5,221 source tests, 20 generator checks, 16/16 production-browser scenarios, 132 worker layouts, build/typecheck and original production edit/layout gates pass (49.9ms p95, 483ms max layout). Desktop policy 27/27 is retained historical evidence, not a fresh GUI build.
+
+Decision: present the review and stop. No PO acceptance, manual Teams/Office/novice/platform pass, new packaged release, commit, publication or next sprint is inferred. [Manual](manual.md) and [roadmap](roadmap.md) match the source candidate and state those limits.
+
+Who: Independent Verifier supplies current evidence; Orchestrator prepares review; Product Owner owns closure.
+
+## 2026-10-11: Custom Background and Grid Controls Added to the Plan
+
+Context: PO requested custom background color (not only white), adding a grid and snapping to grid in the work plan. Existing editor dots and snapping are fixed and use different spacing.
+
+Decision: add DGM-114/115 to the next proposed sprint in [DGM-100](specs/DGM-100.md). Plan a portable solid background with white fallback, color picker/hex input, shared editor/Present/export appearance and explicit transparent-output override. Plan independent grid visibility and snapping, dots/lines, common spacing/origin, free placement with snapping off, and optional grid inclusion in Present/exports. Preserve current document geometry when changing settings and verify nested coordinate behavior and contrast.
+
+Consequences: white remains the default, not the only allowed choice. Theme does not overwrite diagram appearance. Exact optional schema/command/scene fields require a task contract freeze before code; no migration/dependency change is authorized. Reassess next-sprint capacity and coordinate output work. This request changes the plan only: no implementation, Sprint 2 acceptance, next-sprint start or release is inferred.
+
+Who: Product Owner requests planning additions; Orchestrator records the proposed implementation contracts.
+
+## 2026-10-11: Sprint 3 Authorized With Background and Grid
+
+Context: after requesting background/grid additions, PO instructed "after this then implement next sprint". Amendment links were validated first.
+
+Decision: execute six Sprint 3 tasks (114,115,106,107,105,108), retaining all requested features through sequential shared-file ownership. Freeze optional diagram background/grid fields with legacy fallbacks; no migration or new dependencies. Add a pure atomic add-and-connect command, scope-aware shared image exports, browser PNG clipboard with download fallback, curated local search and direct label/command editing. Use existing browser APIs without new Electron permissions/bridge or network destinations. Keep glyph bytes, saved colors, local data and Present guards intact.
+
+Consequences: prior manual checks remain explicitly unverified; PO authorizes continued bounded implementation, not their certification. Preserve red/green logs for each task. Independently verify new controls/output/coordinates and retained performance. Stop at Sprint 3 review; no Sprint 4, CI, deployment, packaged release, commit or publication.
+
+Who: Product Owner authorizes next sprint; Orchestrator freezes routine implementation contracts.
+
+## 2026-10-11: Contextual Insertion Ancestor-Growth Clarification
+
+Context: directional insertion above/left of a tightly fitted parent needs extra containment space. Existing expandAncestors already expands a boundary outward and compensates its children's local coordinates.
+
+Decision: preserve that established behavior. Existing components/annotations and unrelated boundaries retain absolute positions; affected ancestor boundaries may change origin and dimensions solely to contain the new sibling. Exact undo restores all bounds/coordinates. DGM-107 is clarified accordingly; no implicit reparenting, clipping, global layout or movement of existing content is allowed.
+
+Who: Orchestrator applies PO-delegated routine judgment, retaining existing geometry behavior.
+
+## 2026-10-11: Sprint 3 Automated Candidate Ready for Review
+
+Outcome: DGM-114/115/106/107/105/108 are implemented. Independent verification passes 5,431 source tests, typecheck/build, 20 generator checks and 51/51 fresh production-browser scenarios. The original 100-entity/150-edge fixture passes unchanged edit/layout gates (51.7ms p95 and 734.2ms maximum layout). Owners repaired test camera readiness and zoom-aware physical targeting; no acceptance assertion was weakened. Earlier failed and standby-interrupted candidates are retained in the [review](verification/sprint-3-review.md).
+
+Decision: align the manual and roadmap with the source candidate, present the review and stop. PO closure and manual Teams/Office/novice/platform checks remain open. This is not a desktop rebuild, release publication, commit or authorization for Sprint 4.
+
+Who: Independent Verifier supplies evidence; Orchestrator records the handoff; Product Owner owns acceptance.
+
+## 2026-10-11: Bounded Sprint 4 Authorized
+
+Context: after Sprint 3 automated verification and draft preparation, PO said "approved go" in response to the recommended next scope. Prior manual checks remain unavailable/unverified; continuation is not a fabricated manual acceptance result.
+
+Decision: freeze DGM-111/109/110/112. Implement save-state copy only; explicitly defer unobservable native save cancellation and retain callback rejection checks. Accept the four-key synchronous boolean starter callback, fresh document identity, current Blank marker and dirty bundled-copy marker, non-mutating chooser cancel and existing replacement confirmation. Alignment uses five actions on same-parent selection roots, document-order anchor, equal edge gaps, exact fractional targets and atomic no-growth rejection through existing move commands. Approve a pure test-facing helper, not a new domain command. Platform work is local desk investigation only, with a candidate support matrix rather than qualification or commitments.
+
+Consequences: shared implementation and terminal verification are sequential; investigation may research disjoint documentation in parallel. No dependencies, migrations, native adapter/security/CI changes, builds/releases, commits or platform expansion. Stop at Sprint 4 review with manual and native evidence gaps explicit.
+
+Who: Product Owner authorizes scope; Orchestrator freezes contracts and dispatch boundaries.
+
+## 2026-10-12: Original App Icon Refinement Requested
+
+Context: PO asked for status and a nicer icon while Sprint 4's save-clarity slice
+was independently verified and starters/alignment remained pending.
+
+Decision: authorize [DGM-116](specs/DGM-116.md), a bounded original-brand refinement
+using the existing teal/white/blue direction and generator. Preserve exact product
+name, asset paths, official service glyphs and editor behavior. Retain three clear
+connected nodes and simplify fine details for small-size legibility. Implementer
+owns assets/tests; verifier checks generation and header fit without repairs.
+
+Consequences: generated source/favicon/ICO assets change, not published binaries.
+No dependency, packaging, release, signing, CI or commit. The approved Sprint 4
+sequence resumes after this requested visual refinement; manual gates remain open.
+
+Who: Product Owner requests icon improvement; Orchestrator freezes the asset scope.
+
+## 2026-10-14: Autonomous Completion of Approved Local Work
+
+Context: after explicitly asking to skip the review and continue, the PO reported
+that agents were running in circles and requested a roadmap they could complete
+without stopping for every minor decision or task. Historical approval stops,
+stale statuses and lost execution output repeatedly displaced the real next step.
+
+Decision: the [current roadmap](roadmap.md#current-execution-policy) is the live
+execution policy for this repository. Execute its bounded queue continuously,
+including automatic verifier-to-owner repair handoffs and orchestrator-authored
+missing task paperwork. Reviews become asynchronous checkpoints, not repeated
+permission prompts. Use available agents with separate responsibilities; retain
+honest independence claims. Record this routing in repository instructions, not
+by changing the PO's user-global preferences.
+
+Consequences: reconcile DGM-110 and DGM-116 evidence, finish local Sprint 4
+integration/docs, prepare the DGM-113 readiness contract, and deliver one
+consolidated handoff. Missing hardware/manual evidence blocks its own cell, not
+all local work. This does not accept an unverified feature or authorize fresh
+packaging, support promises, dependencies, contracts/schema changes, security/CI,
+cost, signing, publication or Git writes. These still need bounded approval.
+Historical reports and decisions remain unchanged; no test pass is inferred
+from this planning update.
+
+Who: Product Owner delegates routine continuation; Orchestrator records the
+repository-specific policy and bounded execution queue.

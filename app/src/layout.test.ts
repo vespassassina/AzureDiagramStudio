@@ -6,6 +6,193 @@ import type { ELK, ElkNode } from 'elkjs'
 import { createDocument, entityTextGeometry, measureEntity } from './model.ts'
 import { buildScene, renderSvg } from './scene.ts'
 import { qualityFixtures } from './fixtures.ts'
+import type { Diagram } from './model.ts'
+
+function isolatedBoundary(longHeader = false): Diagram {
+  return {
+    ...createDocument('isolated-boundary', ''),
+    entities: [
+      { id: 'parent', kind: 'boundary', label: longHeader ? 'W'.repeat(120) : 'Azure subscription', subtitle: longHeader ? 'W'.repeat(200) : 'Production boundary', x: 0, y: 0, width: 180, height: 80, color: 'azure' },
+      { id: 'child', kind: 'component', label: 'Service', parentId: 'parent', x: 24, y: 80, width: 220, height: 88, color: 'teal' },
+    ],
+  }
+}
+
+function arrangementFixtures(): Diagram[] {
+  const commerce = sampleDiagram()
+  const longCommerce = sampleDiagram()
+  longCommerce.entities = longCommerce.entities.map(entity => entity.kind === 'boundary' ? { ...entity, label: 'W'.repeat(120), subtitle: 'W'.repeat(200) } : entity)
+  return [commerce, longCommerce, isolatedBoundary(), isolatedBoundary(true)]
+}
+
+function withBoundarySize(diagram: Diagram, width: number, height: number): Diagram {
+  return { ...diagram, entities: diagram.entities.map(entity => entity.kind === 'boundary' ? { ...entity, width, height } : entity) }
+}
+
+function assertStableGeometry(actual: Diagram, expected: Diagram) {
+  assert.deepEqual(actual.entities.map(entity => entity.id), expected.entities.map(entity => entity.id))
+  for (const entity of actual.entities) {
+    const previous = expected.entities.find(candidate => candidate.id === entity.id)!
+    for (const key of ['x', 'y', 'width', 'height'] as const) {
+      assert.ok(Math.abs(entity[key] - previous[key]) <= 1, `${actual.id} ${entity.id} ${key}: ${entity[key]} vs ${previous[key]}`)
+    }
+  }
+  for (const connection of actual.connections) {
+    const previous = expected.connections.find(candidate => candidate.id === connection.id)!
+    assert.equal(connection.points!.length, previous.points!.length)
+    for (const [index, point] of connection.points!.entries()) for (const key of ['x', 'y'] as const) {
+      assert.ok(Math.abs(point[key] - previous.points![index][key]) <= 1, `${connection.id} route ${index} ${key} changed`)
+    }
+    assert.equal(Boolean(connection.labelPosition), Boolean(previous.labelPosition))
+    if (connection.labelPosition) for (const key of ['x', 'y'] as const) {
+      assert.ok(Math.abs(connection.labelPosition[key] - previous.labelPosition![key]) <= 1, `${connection.id} label ${key} changed`)
+    }
+  }
+}
+
+for (const longHeader of [false, true]) {
+  test(`should_leave_18_to_32_units_after_rendered_header_when_isolated_${longHeader ? 'long' : 'short'}_boundary_is_arranged`, async () => {
+    for (const direction of ['RIGHT', 'DOWN'] as const) for (const oldSize of [180, 3000]) {
+      const original = withBoundarySize(isolatedBoundary(longHeader), oldSize, oldSize)
+      const result = await computeLayout(original, direction, 1)
+      const parent = result.diagram.entities.find(entity => entity.id === 'parent')!
+      const child = result.diagram.entities.find(entity => entity.id === 'child')!
+      const gap = child.y - entityTextGeometry(parent).textBottom
+      assert.ok(gap >= 18 && gap <= 32, `${direction} old size ${oldSize}: header gap ${gap}`)
+      assert.ok(child.x >= 0 && child.x + child.width <= parent.width)
+      assert.ok(child.y + child.height <= parent.height)
+      assert.equal(child.width, 220)
+      assert.equal(child.height, 88)
+    }
+  })
+}
+
+test('should_ignore_obsolete_boundary_dimensions_when_compact_and_3000px_copies_are_arranged', async () => {
+  for (const original of arrangementFixtures()) for (const direction of ['RIGHT', 'DOWN'] as const) {
+    const compact = await computeLayout(withBoundarySize(original, 180, 80), direction, 1)
+    const oversized = await computeLayout(withBoundarySize(original, 3000, 3000), direction, 1)
+    assertStableGeometry(oversized.diagram, compact.diagram)
+  }
+})
+
+for (const direction of ['RIGHT', 'DOWN'] as const) {
+  test(`should_remain_stable_within_one_unit_when_${direction.toLowerCase()}_arrangement_is_repeated_ten_times`, async () => {
+    for (const original of arrangementFixtures()) {
+      const baseline = (await computeLayout(original, direction, 1)).diagram
+      let current = baseline
+      for (let repetition = 0; repetition < 10; repetition++) {
+        current = (await computeLayout(current, direction, repetition + 2)).diagram
+        assertStableGeometry(current, baseline)
+      }
+    }
+  }, 30000)
+}
+
+test('should_restore_right_geometry_within_one_unit_when_direction_switches_right_down_right', async () => {
+  for (const original of arrangementFixtures()) {
+    const right = (await computeLayout(original, 'RIGHT', 1)).diagram
+    const down = (await computeLayout(right, 'DOWN', 2)).diagram
+    const restored = (await computeLayout(down, 'RIGHT', 3)).diagram
+    assertStableGeometry(restored, right)
+  }
+})
+
+test('should_shrink_unnecessary_bounds_when_the_only_child_is_removed', async () => {
+  for (const direction of ['RIGHT', 'DOWN'] as const) {
+    const arranged = (await computeLayout(isolatedBoundary(), direction, 1)).diagram
+    const empty = { ...arranged, entities: arranged.entities.filter(entity => entity.id !== 'child') }
+    const result = (await computeLayout(empty, direction, 2)).diagram
+    const previous = arranged.entities[0]
+    const parent = result.entities[0]
+    assert.ok(parent.width < previous.width, `${direction} empty boundary did not shrink in width`)
+    assert.ok(parent.height < previous.height, `${direction} empty boundary did not shrink in height`)
+    assert.ok(entityTextGeometry(parent).textBottom < parent.height)
+    assertStableGeometry((await computeLayout(withBoundarySize(empty, 3000, 3000), direction, 3)).diagram, result)
+  }
+})
+
+test('should_preserve_manual_component_sizes_and_semantics_when_boundaries_are_resized', async () => {
+  const original = sampleDiagram()
+  original.entities = original.entities.map((entity, index) => ({ ...entity, order: index, ...(entity.kind === 'component' ? { width: 420, height: 176 } : {}) }))
+  const snapshot = structuredClone(original)
+  for (const direction of ['RIGHT', 'DOWN'] as const) {
+    const result = (await computeLayout(original, direction, 8)).diagram
+    for (const entity of result.entities) {
+      const previous = original.entities.find(candidate => candidate.id === entity.id)!
+      const { x: _x, y: _y, width: _width, height: _height, ...content } = entity
+      const { x: _oldX, y: _oldY, width: _oldWidth, height: _oldHeight, ...previousContent } = previous
+      assert.deepEqual(content, previousContent)
+      if (entity.kind === 'component') {
+        assert.equal(entity.width, previous.width)
+        assert.equal(entity.height, previous.height)
+      }
+    }
+    assert.deepEqual(result.connections.map(({ points: _points, labelPosition: _label, routeRevision: _revision, ...connection }) => connection), original.connections)
+  }
+  assert.deepEqual(original, snapshot)
+})
+
+test('should_preserve_absolute_annotation_geometry_and_content_when_intrinsic_boundaries_replace_oversized_parents', async () => {
+  const original = withBoundarySize(sampleDiagram(), 3000, 3000)
+  original.entities = original.entities.map(entity => entity.id === 'note' ? { ...entity, parentId: 'application', x: -40, y: -20, order: 9 } : entity)
+  original.entities.push({ id: 'rectangle', kind: 'rectangle', label: 'Annotation', subtitle: 'Absolute canvas', parentId: 'data', x: 170, y: 390, width: 240, height: 110, color: 'gray', layer: 'background', order: 10 })
+  const snapshot = structuredClone(original)
+  for (const direction of ['RIGHT', 'DOWN'] as const) {
+    const result = (await computeLayout(original, direction, 5)).diagram
+    for (const annotation of original.entities.filter(entity => entity.kind === 'text' || entity.kind === 'rectangle')) {
+      const computed = result.entities.find(entity => entity.id === annotation.id)!
+      assert.deepEqual(absolutePosition(result, annotation.id), absolutePosition(original, annotation.id))
+      assert.deepEqual({ ...computed, x: annotation.x, y: annotation.y }, annotation)
+    }
+  }
+  assert.deepEqual(original, snapshot)
+})
+
+test('should_reuse_injected_engine_with_fresh_graphs_when_returned_width_changes_header_wrapping', async () => {
+  const original = isolatedBoundary(true)
+  const snapshot = structuredClone(original)
+  const inputs: ElkNode[] = []
+  const terminateWorker = vi.fn()
+  const layout = vi.fn(async (root: ElkNode) => {
+    inputs.push(root)
+    const parent = root.children![0]
+    assert.equal(parent.width, 368)
+    const child = parent.children![0]
+    assert.equal(child.width, 220)
+    assert.equal(child.height, 88)
+    const padding = Number(parent.layoutOptions!['elk.padding']!.match(/top=(\d+)/)![1])
+    parent.width = 268
+    parent.height = padding + child.height! + 24
+    child.x = 24
+    child.y = padding
+    return root
+  })
+  const result = await computeLayout(original, 'DOWN', 12, { layout, terminateWorker } as unknown as ELK)
+  assert.equal(layout.mock.calls.length, 2)
+  assert.notEqual(inputs[0], inputs[1])
+  assert.notEqual(inputs[0].children![0], inputs[1].children![0])
+  assert.equal(terminateWorker.mock.calls.length, 0)
+  const parent = result.diagram.entities[0]
+  assert.equal(result.diagram.entities[1].y - entityTextGeometry(parent).textBottom, 18)
+  assert.equal(result.revision, 12)
+  assert.deepEqual(original, snapshot)
+})
+
+test('should_stop_after_three_engine_passes_when_header_width_oscillates', async () => {
+  const original = isolatedBoundary(true)
+  const snapshot = structuredClone(original)
+  let calls = 0
+  const terminateWorker = vi.fn()
+  const engine = { layout: async (root: ElkNode) => {
+    calls++
+    root.children![0].width = calls % 2 ? 268 : 368
+    return root
+  }, terminateWorker } as unknown as ELK
+  await assert.rejects(computeLayout(original, 'DOWN', 1, engine), /did not converge within three passes/)
+  assert.equal(calls, 3)
+  assert.equal(terminateWorker.mock.calls.length, 0)
+  assert.deepEqual(original, snapshot)
+})
 
 test('should_use_elk_label_geometry_container_origin_and_request_stamps_when_engine_is_provided', async () => {
   const original = sampleDiagram()
@@ -77,11 +264,19 @@ test('should_reserve_measured_headers_and_contain_children_when_long_compounds_a
       assert.ok(entity.y > entityTextGeometry(parent).textBottom)
       assert.ok(entity.x + entity.width <= parent.width && entity.y + entity.height <= parent.height)
     }
+    for (const connection of result.diagram.connections) for (const endpoint of [{ id: connection.from, point: connection.points![0] }, { id: connection.to, point: connection.points!.at(-1)! }]) {
+      const entity = result.diagram.entities.find(candidate => candidate.id === endpoint.id)!
+      const origin = absolutePosition(result.diagram, endpoint.id)
+      assert.ok(endpoint.point.x >= origin.x - 1 && endpoint.point.x <= origin.x + entity.width + 1 && endpoint.point.y >= origin.y - 1 && endpoint.point.y <= origin.y + entity.height + 1)
+      assert.ok(Math.abs(endpoint.point.x - origin.x) < 1 || Math.abs(endpoint.point.x - origin.x - entity.width) < 1 || Math.abs(endpoint.point.y - origin.y) < 1 || Math.abs(endpoint.point.y - origin.y - entity.height) < 1, `${direction} long header ${connection.id} detached`)
+    }
   }
 })
 
 test('should_use_official_worker_factory_and_release_owned_worker_when_browser_transport_succeeds_or_fails', async () => {
   let failed = false
+  let failOnCall = 1
+  let layoutCalls = 0
   const workers: { url: string; terminate: ReturnType<typeof vi.fn> }[] = []
   vi.stubGlobal('Worker', class {
     terminate = vi.fn()
@@ -90,15 +285,27 @@ test('should_use_official_worker_factory_and_release_owned_worker_when_browser_t
   })
   vi.doMock('elkjs/lib/elk-api.js', () => ({ default: class {
     worker: { terminate(): void }
-    constructor(options: { workerFactory(): { terminate(): void } }) { this.worker = options.workerFactory() }
-    async layout(root: ElkNode) { if (failed) throw new Error('worker failure'); return root }
+    constructor(options: { workerFactory(): { terminate(): void } }) { this.worker = options.workerFactory(); layoutCalls = 0 }
+    async layout(root: ElkNode) {
+      layoutCalls++
+      if (failed && layoutCalls === failOnCall) throw new Error('worker failure')
+      if (root.children?.length) root.children[0].width = 268
+      return root
+    }
     terminateWorker() { this.worker.terminate() }
   } }))
   try {
     await computeLayout(createDocument('worker', ''), 'RIGHT', 0)
     failed = true
     await assert.rejects(computeLayout(createDocument('worker', ''), 'DOWN', 0), /worker failure/)
-    assert.equal(workers.length, 2)
+    failed = false
+    await computeLayout(isolatedBoundary(true), 'DOWN', 0)
+    assert.equal(layoutCalls, 2)
+    failed = true
+    failOnCall = 2
+    await assert.rejects(computeLayout(isolatedBoundary(true), 'DOWN', 0), /worker failure/)
+    assert.equal(layoutCalls, 2)
+    assert.equal(workers.length, 4)
     for (const worker of workers) { assert.ok(worker.url.includes('elk-worker.min.js')); assert.equal(worker.terminate.mock.calls.length, 1) }
     const terminateWorker = vi.fn()
     await computeLayout(createDocument('provided', ''), 'RIGHT', 0, { layout: async (root: ElkNode) => root, terminateWorker } as unknown as ELK)

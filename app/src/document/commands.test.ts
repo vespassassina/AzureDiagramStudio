@@ -7,6 +7,10 @@ import type { DocumentCommand } from '../contracts.ts'
 import { applyCommand, captureSelection } from './index.ts'
 import { validateDocument } from './validation.ts'
 import * as documentValidation from './validation.ts'
+import { buildScene, renderSvg } from '../scene.ts'
+import { effectiveOrder, painterOrder, siblingScopes } from '../order.ts'
+import { parseDocument } from './index.ts'
+import { effectiveGrid } from '../grid.ts'
 
 function entity(id: string, kind: Entity['kind'] = 'component', parentId: string | null = null): Entity {
   return { id, kind, parentId, layer: 'foreground', label: id, x: 32, y: 64, width: kind === 'boundary' ? 400 : 220, height: kind === 'boundary' ? 300 : 88, color: 'teal', ...(kind === 'component' ? { icon: 'service' } : {}) }
@@ -25,6 +29,210 @@ function rejects(document: Diagram, command: DocumentCommand, code?: string) {
   })
   assert.equal(JSON.stringify(document), before)
 }
+
+function connected(sourceId = 'child', parentId: string | null = 'inner') {
+  return { type: 'addConnected', sourceId, entity: { ...entity('added', 'component', parentId), x: -300, y: -160 }, connection: { id: 'added-link', from: sourceId, to: 'added', label: 'New call', style: 'dashed', arrow: 'both', sourceSide: 'left', targetSide: 'right' } } as unknown as DocumentCommand
+}
+
+test.each(['child', 'inner', 'peer'])('should_add_connected_atomically_with_expected_parent_and_one_undo_when_source_is_%s', sourceId => {
+  const document = nested()
+  document.entities[0].width = 500; document.entities[0].height = 450
+  const parentId = sourceId === 'peer' ? null : 'inner'
+  const command = connected(sourceId, parentId)
+  const before = JSON.stringify(document)
+  const result = applyCommand(document, command)
+  assert.equal(result.revision, 1)
+  assert.equal(result.entities.length, document.entities.length + 1)
+  assert.equal(result.connections.length, document.connections.length + 1)
+  assert.deepEqual(result.connections.at(-1), (command as unknown as { connection: unknown }).connection)
+  for (const original of document.entities) {
+    const after = result.entities.find(item => item.id === original.id)!
+    if (original.kind !== 'boundary') {
+      assert.deepEqual(absolutePosition(result, original.id), absolutePosition(document, original.id))
+      assert.deepEqual({ ...after, x: original.x, y: original.y }, original)
+    } else {
+      if (sourceId === 'peer') assert.deepEqual(after, original)
+      assert.ok(after.width >= original.width && after.height >= original.height)
+      for (const child of result.entities.filter(item => item.parentId === original.id)) {
+        assert.ok(child.x >= 24 && child.y >= 0)
+        assert.ok(child.x + child.width + 24 <= after.width && child.y + child.height + 24 <= after.height)
+      }
+    }
+  }
+  assert.equal(JSON.stringify(document), before)
+  const history = historyCommit({ past: [], present: document, future: [] }, result)
+  assert.equal(history.past.length, 1)
+  assert.deepEqual(historyUndo(history).present, document)
+  assert.deepEqual(historyRedo(historyUndo(history)).present, result)
+})
+
+test('should_grow_all_ancestors_without_moving_any_existing_object_when_connected_sibling_exceeds_bounds', () => {
+  const document = nested()
+  const command = connected() as unknown as { entity: Entity }
+  command.entity.x = 850; command.entity.y = 750
+  const result = applyCommand(document, command as unknown as DocumentCommand)
+  for (const original of document.entities) assert.deepEqual(absolutePosition(result, original.id), absolutePosition(document, original.id))
+  const inner = result.entities.find(item => item.id === 'inner')!
+  const outer = result.entities.find(item => item.id === 'outer')!
+  assert.ok(inner.width >= 1094 && inner.height >= 862)
+  assert.ok(outer.width >= inner.x + inner.width + 24 && outer.height >= inner.y + inner.height + 24)
+})
+
+test.each([
+  ['missing source', { sourceId: 'missing' }, 'unknown-id'],
+  ['bad source type', { sourceId: 42 }, 'invalid-command'],
+  ['duplicate entity', { entity: entity('peer', 'component', 'inner') }, 'duplicate-id'],
+  ['duplicate connection', { connection: { id: 'link', from: 'child', to: 'added', label: '', style: 'solid', arrow: 'forward' } }, 'duplicate-id'],
+  ['cross duplicate', { connection: { id: 'added', from: 'child', to: 'added', label: '', style: 'solid', arrow: 'forward' } }, 'duplicate-id'],
+  ['non component', { entity: entity('added', 'boundary', 'inner') }, 'invalid-command'],
+  ['wrong parent', { entity: entity('added', 'component', 'outer') }, 'invalid-parent'],
+  ['cyclic parent', { entity: entity('added', 'component', 'added') }, 'invalid-parent'],
+  ['source mismatch', { connection: { id: 'added-link', from: 'peer', to: 'added', label: '', style: 'solid', arrow: 'forward' } }, 'invalid-connection'],
+  ['target mismatch', { connection: { id: 'added-link', from: 'child', to: 'peer', label: '', style: 'solid', arrow: 'forward' } }, 'invalid-connection'],
+  ['invalid direction', { connection: { id: 'added-link', from: 'child', to: 'added', label: '', style: 'solid', arrow: 'backward' } }, 'invalid-command'],
+  ['invalid style', { connection: { id: 'added-link', from: 'child', to: 'added', label: '', style: 'dotted', arrow: 'forward' } }, 'invalid-command'],
+  ['invalid geometry', { entity: { ...entity('added', 'component', 'inner'), x: Infinity } }, 'invalid-command'],
+  ['null entity', { entity: null }, 'invalid-command'],
+  ['null connection', { connection: null }, 'invalid-command'],
+] as const)('should_reject_addConnected_without_partial_mutation_when_%s', (_name, patch, code) => {
+  rejects(nested(), { ...connected(), ...patch } as unknown as DocumentCommand, code)
+})
+
+test.each(['text', 'rectangle'] as const)('should_reject_addConnected_from_nonconnectable_%s_atomically', kind => {
+  const document = nested()
+  document.entities.push(entity('annotation', kind))
+  rejects(document, connected('annotation', null), 'invalid-connection')
+})
+
+test.each(['entities', 'connections'] as const)('should_reject_addConnected_at_the_%s_limit_without_abandoned_objects', collection => {
+  const document = nested()
+  if (collection === 'entities') document.entities.push(...Array.from({ length: 96 }, (_, index) => entity(`limit-${index}`)))
+  else document.connections = Array.from({ length: 150 }, (_, index) => ({ ...document.connections[0], id: `limit-${index}` }))
+  assert.ok(validateDocument(document).ok)
+  rejects(document, connected(), 'limit-exceeded')
+})
+
+test('should_reject_circular_runtime_addConnected_contract_without_executing_or_mutating_it', () => {
+  const command = connected() as unknown as Record<string, unknown>
+  command.extra = command
+  rejects(nested(), command as unknown as DocumentCommand, 'invalid-command')
+})
+
+test('should_preserve_routes_positions_history_and_reload_when_background_settings_change', () => {
+  const document = nested()
+  document.connections[0] = { ...document.connections[0], points: [{ x: 900, y: 108 }, { x: 700, y: 208 }], labelPosition: { x: 800, y: 158 }, routeRevision: 0 }
+  const source = JSON.stringify(document)
+  const next = applyCommand(document, { type: 'metadata', patch: { backgroundColor: '#123abc' } })
+  assert.equal(next.backgroundColor, '#123abc')
+  assert.deepEqual(next.entities, document.entities)
+  assert.deepEqual(next.connections, document.connections.map(connection => ({ ...connection, routeRevision: next.revision })))
+  assert.deepEqual(buildScene(next).connections[0].points, document.connections[0].points)
+  assert.deepEqual(parseDocument(JSON.stringify(next)), { ok: true, value: next })
+  const history = historyCommit({ past: [], present: document, future: [] }, next)
+  assert.equal(history.past.length, 1)
+  assert.deepEqual(historyUndo(history).present, document)
+  assert.deepEqual(historyRedo(historyUndo(history)).present, next)
+  const reset = applyCommand(next, { type: 'metadata', patch: { backgroundColor: undefined } })
+  assert.equal(Object.hasOwn(reset, 'backgroundColor'), false)
+  assert.deepEqual(reset.entities, document.entities)
+  assert.deepEqual(reset.connections[0].points, document.connections[0].points)
+  assert.equal(JSON.stringify(document), source)
+  rejects(next, { type: 'metadata', patch: { backgroundColor: 'url(https://evil)' } }, 'invalid-command')
+})
+
+test('should_change_grid_metadata_reversibly_without_geometry_or_route_loss', () => {
+  const document = nested()
+  document.connections[0] = { ...document.connections[0], points: [{ x: 900, y: 108 }, { x: 700, y: 208 }], labelPosition: { x: 800, y: 158 }, routeRevision: 0 }
+  const grid = { ...effectiveGrid(), visible: false, snap: false, spacing: 16, present: true, export: true }
+  const next = applyCommand(document, { type: 'metadata', patch: { grid } })
+  assert.deepEqual(next.grid, grid)
+  assert.deepEqual(next.entities, document.entities)
+  assert.deepEqual(next.connections, document.connections.map(connection => ({ ...connection, routeRevision: 1 })))
+  assert.deepEqual(historyUndo(historyCommit({ past: [], present: document, future: [] }, next)).present, document)
+  assert.deepEqual(parseDocument(JSON.stringify(next)), { ok: true, value: next })
+  assert.equal(Object.hasOwn(applyCommand(next, { type: 'metadata', patch: { grid: undefined } }), 'grid'), false)
+  rejects(document, { type: 'metadata', patch: { grid: { ...grid, spacing: 3 } } }, 'invalid-command')
+})
+
+test.each([true, false])('should_align_paste_root_origin_once_and_retain_all_relative_offsets_when_snap_is_%s', snap => {
+  const document = { ...nested(), grid: { ...effectiveGrid(), spacing: 16, snap } }
+  document.entities[0].x = 35.5
+  document.entities[0].y = 67.25
+  document.entities[1].x = 33.5
+  document.entities[2].y = 65.25
+  document.entities[3].y = 71
+  const fragment = captureSelection(document, ['outer', 'peer'])
+  const next = applyCommand(document, { type: 'paste', fragment, idMap: { outer: 'new-outer', inner: 'new-inner', child: 'new-child', peer: 'new-peer', link: 'new-link' }, offset: { x: 32, y: 32 } })
+  const root = next.entities.find(entity => entity.id === 'new-outer')!
+  const correction = snap ? { x: -3.5, y: -3.25 } : { x: 0, y: 0 }
+  assert.equal(root.x, document.entities[0].x + 32 + correction.x)
+  assert.equal(root.y, document.entities[0].y + 32 + correction.y)
+  for (const id of ['inner', 'child']) {
+    const before = document.entities.find(entity => entity.id === id)!
+    const after = next.entities.find(entity => entity.id === `new-${id}`)!
+    assert.deepEqual({ x: after.x, y: after.y }, { x: before.x, y: before.y })
+  }
+  const peer = next.entities.find(entity => entity.id === 'new-peer')!
+  assert.equal(peer.x - root.x, document.entities[3].x - document.entities[0].x)
+  assert.equal(peer.y - root.y, document.entities[3].y - document.entities[0].y)
+})
+
+test('should_resize_once_without_moving_descendants_or_clipping_them', () => {
+  const document = nested()
+  const before = absolutePosition(document, 'child')
+  const next = applyCommand(document, { type: 'resize', id: 'outer', width: 500, height: 400 })
+  assert.deepEqual(absolutePosition(next, 'child'), before)
+  assert.deepEqual({ x: next.entities[0].x, y: next.entities[0].y }, { x: document.entities[0].x, y: document.entities[0].y })
+  assert.deepEqual(historyUndo(historyCommit({ past: [], present: document, future: [] }, next)).present, document)
+  rejects(document, { type: 'resize', id: 'outer', width: 300, height: 200 }, 'invalid-command')
+})
+
+test('should_keep_explicit_layout_geometry_unquantized_when_grid_snap_is_enabled', () => {
+  const document = { ...nested(), grid: { ...effectiveGrid(), spacing: 128 } }
+  const layout = structuredClone(document)
+  layout.entities.find(entity => entity.id === 'peer')!.x = 903.75
+  const next = applyCommand(document, { type: 'applyLayout', expectedRevision: 0, result: { revision: 0, diagram: layout } })
+  assert.equal(next.entities.find(entity => entity.id === 'peer')!.x, 903.75)
+  assert.deepEqual(next.grid, document.grid)
+  assert.deepEqual(historyUndo(historyCommit({ past: [], present: document, future: [] }, next)).present, document)
+})
+
+test('should_restamp_only_valid_routes_when_appearance_changes_but_invalidate_on_direction_change', () => {
+  const document = nested()
+  document.revision = 2
+  document.connections[0] = { ...document.connections[0], points: [{ x: 1, y: 2 }, { x: 3, y: 4 }], routeRevision: 1 }
+  const next = applyCommand(document, { type: 'metadata', patch: { backgroundColor: '#abc' } })
+  assert.equal(next.connections[0].routeRevision, 1)
+  const direction = applyCommand(next, { type: 'metadata', patch: { backgroundColor: '#def', direction: 'DOWN' } })
+  assert.equal(direction.connections[0].points, undefined)
+})
+
+test('should_retain_background_when_layout_is_applied_or_content_is_pasted', () => {
+  const document = { ...nested(), backgroundColor: '#0f0' }
+  const layout = structuredClone(document)
+  layout.entities.find(entity => entity.id === 'peer')!.x += 80
+  const next = applyCommand(document, { type: 'applyLayout', expectedRevision: 0, result: { revision: 0, diagram: layout } })
+  assert.equal(next.backgroundColor, document.backgroundColor)
+  const fragment = captureSelection(document, ['peer'])
+  const pasted = applyCommand(next, { type: 'paste', fragment, idMap: { peer: 'pasted' }, offset: { x: 32, y: 64 } })
+  assert.equal(pasted.backgroundColor, document.backgroundColor)
+  const stripped: Diagram = structuredClone(layout)
+  delete stripped.backgroundColor
+  rejects(document, { type: 'applyLayout', expectedRevision: 0, result: { revision: 0, diagram: stripped } }, 'invalid-command')
+})
+
+test('should_preserve_F1_document_routes_and_paint_when_already_bottom_rectangle_is_sent_to_bottom', () => {
+  const document = { ...createDocument('F1'), entities: [entity('front'), { ...entity('back', 'rectangle'), layer: 'background' as const }, entity('boundary', 'boundary')] }
+  document.connections = [{ id: 'route', from: 'front', to: 'boundary', label: 'Saved route', style: 'solid', arrow: 'none', points: [{ x: 252, y: 108 }, { x: 400, y: 108 }], labelPosition: { x: 326, y: 108 }, routeRevision: 0 }]
+  const before = structuredClone(document)
+  const svg = renderSvg(buildScene(document))
+  const result = applyCommand(document, { type: 'order', ids: ['back'], position: 'bottom' })
+  assert.equal(renderSvg(buildScene(result)), svg)
+  assert.deepEqual(result, before)
+  assert.equal(result, document)
+  const history = { past: [], present: document, future: [] }
+  assert.equal(historyCommit(history, result), history)
+})
 
 test('should_validate_input_and_final_publication_only_when_no_ancestry_growth_is_needed', () => {
   const document = nested()
@@ -452,4 +660,135 @@ test('should_reject_callable_command_payloads_without_execution_when_mutating', 
   Object.defineProperty(positions, 'map', { value: () => { called = true; return [] } })
   rejects(nested(), { type: 'move', positions })
   assert.equal(called, false)
+})
+
+const orderCases = [
+  { position: 'forward', ids: ['b', 'c'], expected: ['a', 'd', 'b', 'c', 'e'] },
+  { position: 'backward', ids: ['b', 'c'], expected: ['b', 'c', 'a', 'd', 'e'] },
+  { position: 'top', ids: ['b', 'c'], expected: ['a', 'd', 'e', 'b', 'c'] },
+  { position: 'bottom', ids: ['b', 'c'], expected: ['b', 'c', 'a', 'd', 'e'] },
+  { position: 'forward', ids: ['b', 'd'], expected: ['a', 'c', 'b', 'e', 'd'] },
+  { position: 'backward', ids: ['b', 'd'], expected: ['b', 'a', 'd', 'c', 'e'] },
+  { position: 'top', ids: ['b', 'd'], expected: ['a', 'c', 'e', 'b', 'd'] },
+  { position: 'bottom', ids: ['b', 'd'], expected: ['b', 'd', 'a', 'c', 'e'] },
+] as const
+
+test.each(orderCases)('should_reorder_each_sibling_scope_stably_when_$position_is_applied_to_$ids', ({ position, ids, expected }) => {
+  const document = { ...createDocument('scopes'), entities: [entity('left', 'boundary'), entity('right', 'boundary'), ...['left', 'right'].flatMap(parent => ['a', 'b', 'c', 'd', 'e'].map(id => entity(`${parent}-${id}`, 'component', parent))), entity('untouched')] }
+  const before = structuredClone(document)
+  const result = applyCommand(document, { type: 'order', ids: [...ids].reverse().flatMap(id => [`left-${id}`, `right-${id}`]), position })
+  for (const parent of ['left', 'right']) assert.deepEqual(siblingScopes(result.entities).get(parent)!.map(item => item.id), expected.map(id => `${parent}-${id}`))
+  for (const id of ['left', 'right', 'untouched']) assert.deepEqual(result.entities.find(item => item.id === id), document.entities.find(item => item.id === id))
+  assert.equal(result.revision, 1)
+  assert.deepEqual(document, before)
+})
+
+test.each(orderCases)('should_reorder_applicable_bands_without_promoting_kinds_when_$position_moves_$ids', ({ position, ids, expected }) => {
+  const groups = ['background', 'boundary', 'foreground'] as const
+  const document: Diagram = { ...createDocument('bands'), entities: ['a', 'b', 'c', 'd', 'e'].flatMap(id => groups.map(band => ({ ...entity(`${band}-${id}`, band === 'boundary' ? 'boundary' : id === 'a' ? 'text' : 'rectangle'), ...(band === 'background' ? { layer: 'background' as const } : {}), order: id.charCodeAt(0) * 1e20 }))) }
+  for (const id of ['a', 'b', 'c', 'd', 'e']) document.entities.push(entity(`child-${id}`, 'component', `boundary-${id}`), entity(`inner-${id}`, 'boundary', `boundary-${id}`), { ...entity(`back-${id}`, 'rectangle', `boundary-${id}`), layer: 'background' })
+  const before = structuredClone(document)
+  const result = applyCommand(document, { type: 'order', ids: groups.flatMap(band => ids.map(id => `${band}-${id}`)), position })
+  for (const band of groups) {
+    const prefix = `${band}-`
+    assert.deepEqual(siblingScopes(result.entities).get(null)!.filter(item => item.id.startsWith(prefix)).map(item => item.id), expected.map(id => `${prefix}${id}`))
+  }
+  const paint = painterOrder(result.entities)
+  assert.deepEqual(paint.foreground.filter(item => item.parentId).map(item => item.id), expected.map(id => `child-${id}`))
+  assert.deepEqual(paint.boundaries.filter(item => item.id.startsWith('inner-')).map(item => item.id), expected.map(id => `inner-${id}`))
+  for (const item of result.entities) {
+    const original = document.entities.find(candidate => candidate.id === item.id)!
+    assert.equal(item.kind, original.kind)
+    assert.equal(item.layer, original.layer)
+    if (item.parentId) assert.deepEqual(item, original)
+  }
+  assert.equal(result.revision, 1)
+  assert.deepEqual(document, before)
+})
+
+test.each(['forward', 'backward', 'top', 'bottom'] as const)('should_preserve_exact_document_when_%s_has_only_other_band_or_parent_neighbors', position => {
+  const document = nested()
+  document.entities.push(entity('root-background', 'rectangle'))
+  document.entities.at(-1)!.layer = 'background'
+  for (const ids of [['outer'], ['peer'], ['child'], ['inner']]) {
+    const result = applyCommand(document, { type: 'order', ids, position })
+    assert.equal(result, document)
+    assert.equal(historyCommit({ past: [], present: document, future: [] }, result).present, document)
+  }
+})
+
+test.each(['background', 'foreground'] as const)('should_keep_legacy_%s_effective_after_numeric_moves_in_each_kind_and_parent_scope', layer => {
+  const document = { ...createDocument('legacy-bands'), entities: [entity('left', 'boundary'), entity('right', 'boundary'), entity('one'), entity('two'), entity('child-one', 'component', 'left'), entity('child-two', 'text', 'left')] }
+  const numeric = applyCommand(document, { type: 'order', ids: ['left', 'one', 'child-one'], position: 'top' })
+  const result = applyCommand(numeric, { type: 'order', ids: ['right', 'two', 'child-two'], layer })
+  for (const id of ['right', 'two', 'child-two']) assert.equal(result.entities.find(item => item.id === id)!.layer, layer)
+  assert.deepEqual(siblingScopes(result.entities).get(null)!.map(item => item.id), layer === 'background' ? ['right', 'two', 'left', 'one'] : ['left', 'right', 'one', 'two'])
+  assert.deepEqual(siblingScopes(result.entities).get('left')!.map(item => item.id), layer === 'background' ? ['child-two', 'child-one'] : ['child-one', 'child-two'])
+  const paint = painterOrder(result.entities)
+  for (const item of result.entities) {
+    if (item.kind === 'boundary' || item.layer === 'background') assert.ok(paint.nodeZIndices.get(item.id)! < paint.connectionZIndex)
+    else assert.ok(paint.nodeZIndices.get(item.id)! > paint.connectionZIndex)
+    if (item.parentId) assert.ok(paint.nodeZIndices.get(item.parentId)! < paint.nodeZIndices.get(item.id)!)
+  }
+  assert.equal(applyCommand(result, { type: 'order', ids: ['right', 'two', 'child-two'], layer }), result)
+})
+
+test.each(['forward', 'backward', 'top', 'bottom'] as const)('should_ignore_selected_descendants_and_retain_subtree_metadata_when_%s_moves_a_boundary', position => {
+  const document = nested()
+  document.entities[0].order = 4
+  document.entities.push({ ...entity('root-peer', 'boundary'), order: 5 })
+  document.entities.push(entity('another', 'boundary', 'outer'))
+  const result = applyCommand(document, { type: 'order', ids: ['outer', 'child', 'inner'], position })
+  for (const id of ['inner', 'child', 'another']) assert.deepEqual(result.entities.find(item => item.id === id), document.entities.find(item => item.id === id))
+  assert.equal(result.revision, position === 'backward' || position === 'bottom' ? 0 : 1)
+})
+
+test.each(['forward', 'backward', 'top', 'bottom'] as const)('should_return_exact_document_and_history_when_%s_has_no_unselected_sibling', position => {
+  const document = nested()
+  const result = applyCommand(document, { type: 'order', ids: ['outer', 'peer'], position })
+  assert.equal(result, document)
+  assert.equal(applyCommand(document, { type: 'order', ids: [], position }), document)
+  const history = { past: [], present: document, future: [] }
+  assert.equal(historyCommit(history, result), history)
+})
+
+test('should_preserve_geometry_valid_and_stale_routes_and_exact_undo_when_stacking_changes', () => {
+  const document = nested()
+  document.entities.push(entity('root-peer', 'boundary'))
+  document.revision = 3
+  document.connections[0] = { ...document.connections[0], points: [{ x: 252, y: 172 }, { x: 900, y: 108 }], labelPosition: { x: 600, y: 172 }, routeRevision: 3 }
+  document.connections.push({ ...document.connections[0], id: 'stale', routeRevision: 2 })
+  const before = structuredClone(document)
+  const result = applyCommand(document, { type: 'order', ids: ['outer'], position: 'top' })
+  assert.equal(result.revision, 4)
+  assert.deepEqual(result.entities.map(({ order: _order, ...item }) => item), document.entities)
+  assert.deepEqual(result.connections[0], { ...document.connections[0], routeRevision: 4 })
+  assert.deepEqual(result.connections[1], document.connections[1])
+  assert.deepEqual(buildScene(result).connections, buildScene({ ...document, connections: document.connections.map(connection => ({ ...connection, routeRevision: connection.id === 'stale' ? 2 : 3 })) }).connections.map(connection => ({ ...connection, routeRevision: connection.id === 'stale' ? 2 : 4 })))
+  assert.deepEqual(historyUndo(historyCommit({ past: [], present: document, future: [] }, result)).present, before)
+  assert.deepEqual(document, before)
+})
+
+test('should_honor_legacy_extremes_and_connection_stratum_after_numeric_order_and_paste', () => {
+  const document = { ...createDocument('legacy'), entities: [entity('a'), entity('b'), entity('c')] }
+  const bottom = applyCommand(document, { type: 'order', ids: ['b'], position: 'bottom' })
+  const top = applyCommand(bottom, { type: 'order', ids: ['b'], layer: 'foreground' })
+  assert.deepEqual(siblingScopes(top.entities).get(null)!.map(item => item.id), ['a', 'c', 'b'])
+  const background = applyCommand(top, { type: 'order', ids: ['a'], layer: 'background' })
+  assert.ok(effectiveOrder(background.entities[0]) < 2)
+  assert.equal(background.entities[0].layer, 'background')
+  assert.equal(applyCommand(background, { type: 'order', ids: ['a'], layer: 'background' }), background)
+  const opened = parseDocument(JSON.stringify(background))
+  assert.ok(opened.ok)
+  assert.deepEqual(opened.value, background)
+  const pasted = applyCommand(createDocument('paste'), { type: 'paste', fragment: captureSelection(opened.value, ['a', 'b', 'c']), idMap: { a: 'a-copy', b: 'b-copy', c: 'c-copy' }, offset: { x: 24, y: 24 } })
+  assert.deepEqual(siblingScopes(pasted.entities).get(null)!.map(item => item.id), ['a-copy', 'c-copy', 'b-copy'])
+})
+
+test('should_reject_malformed_ordering_and_revision_overflow_atomically', () => {
+  for (const command of [{ type: 'order', ids: ['missing'], position: 'top' }, { type: 'order', ids: ['child', 'child'], position: 'top' }, { type: 'order', ids: ['child'], position: 'sideways' }, { type: 'order', ids: ['child'] }]) rejects(nested(), command as DocumentCommand)
+  const document = nested()
+  document.entities.push(entity('root-peer', 'boundary'))
+  document.revision = Number.MAX_SAFE_INTEGER
+  rejects(document, { type: 'order', ids: ['outer'], position: 'top' }, 'invalid-command')
 })

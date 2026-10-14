@@ -30,12 +30,13 @@ const policy = vi.hoisted(() => {
   const longtail = [item('azure-test', 'Azure Test Control plane'), item('fabric-kql', 'KQL Database', 'fabric')]
   const selectionLibrary = [...groups.flatMap(group => group.items), ...longtail]
   const archived = [item('retired-bonsai', 'Bonsai'), item('fabric-onelake-old', 'OneLake variant', 'fabric')]
-  const searchGroups = vi.fn((query: string) => groups.map(group => ({ ...group, items: [...group.items, ...(group.id === 'compute' ? [longtail[0]] : group.id === 'fabric' ? [longtail[1]] : [])].filter(entry => `${entry.label} ${group.label}`.toLowerCase().includes(query.trim().toLowerCase())).sort((before, after) => before.label.localeCompare(after.label)) })).filter(group => group.items.length))
-  return { groups, selectionLibrary, archived, searchGroups, menuGroups: vi.fn((catalog: string) => groups.filter(group => group.catalog === catalog)), searchableLibrary: selectionLibrary, isSelectableIcon: (key: string) => selectionLibrary.some(entry => entry.icon === key), legacyItem: (key: string) => archived.find(entry => entry.icon === key) }
+  const searchGroups = vi.fn((query: string) => query === 'ranked' ? [{ ...groups[0], items: [compute[0], longtail[0]] }, groups[5]] : groups.map(group => ({ ...group, items: [...group.items, ...(group.id === 'compute' ? [longtail[0]] : group.id === 'fabric' ? [longtail[1]] : [])].filter(entry => `${entry.label} ${group.label}`.toLowerCase().includes(query.trim().toLowerCase())).sort((before, after) => before.label.localeCompare(after.label)) })).filter(group => group.items.length))
+  const rankedSearch = vi.fn((query: string) => query === 'ranked' ? [compute[0], groups[5].items[0], longtail[0]] : selectionLibrary.filter(entry => entry.label.toLowerCase().includes(query.trim().toLowerCase())).sort((before, after) => before.label.localeCompare(after.label)))
+  return { groups, selectionLibrary, archived, searchGroups, rankedSearch, menuGroups: vi.fn((catalog: string) => groups.filter(group => group.catalog === catalog)), searchableLibrary: selectionLibrary, isSelectableIcon: (key: string) => selectionLibrary.some(entry => entry.icon === key), legacyItem: (key: string) => archived.find(entry => entry.icon === key) }
 })
 vi.mock('../catalog/presentation.ts', () => policy)
-import { CatalogAccordion, CatalogOptions } from './CatalogAccordion.tsx'
-import { libraryItems, makeEntity, readDrop } from './interactions.ts'
+import { CatalogAccordion, CatalogOptions, ComponentPicker } from './CatalogAccordion.tsx'
+import { DROP_TYPE, libraryItems, makeEntity, readDrop } from './interactions.ts'
 const { selectionLibrary, searchGroups } = policy
 
 afterEach(() => { cleanup(); vi.clearAllMocks() })
@@ -45,6 +46,171 @@ function setup(writable = true) {
   return { ...view, onChoose }
 }
 function search(query: string) { fireEvent.change(screen.getByLabelText('Search components'), { target: { value: query } }) }
+
+it('should_choose_the_keyboard_search_result_when_arrow_and_enter_are_pressed', () => {
+  const { onChoose } = setup()
+  search('App Service')
+  const input = screen.getByLabelText('Search components')
+  input.focus()
+  fireEvent.keyDown(input, { key: 'ArrowDown' })
+  fireEvent.keyDown(document.activeElement!, { key: 'Enter' })
+  expect(onChoose).toHaveBeenCalledExactlyOnceWith(policy.groups[0].items[0])
+})
+
+it('should_follow_displayed_group_order_wrap_both_arrows_and_restore_search_focus_on_escape', () => {
+  const { onChoose } = setup()
+  search('ranked')
+  const input = screen.getByLabelText('Search components')
+  const rows = screen.getAllByRole('button', { name: /^Insert / })
+  expect(rows.map(row => row.getAttribute('data-icon'))).toEqual(['azure-app', 'azure-test', 'azure-entra'])
+  input.focus()
+  fireEvent.keyDown(input, { key: 'ArrowUp' })
+  expect(document.activeElement).toBe(rows[2])
+  fireEvent.keyDown(document.activeElement!, { key: 'ArrowDown' })
+  expect(document.activeElement).toBe(rows[0])
+  fireEvent.keyDown(document.activeElement!, { key: 'ArrowDown' })
+  expect(document.activeElement).toBe(rows[1])
+  fireEvent.keyDown(document.activeElement!, { key: 'Escape' })
+  expect(document.activeElement).toBe(input)
+  expect((input as HTMLInputElement).value).toBe('')
+  expect(onChoose).not.toHaveBeenCalled()
+})
+
+it('should_allow_session_favorites_in_readonly_without_nested_or_duplicate_insert_buttons', () => {
+  const { onChoose, rerender } = setup(false)
+  const favorite = screen.getByRole('button', { name: 'Add App Service to favorites' })
+  expect(favorite.querySelector('.lucide-star')).toBeTruthy()
+  expect(favorite.closest('.library-item')).toBeNull()
+  fireEvent.mouseEnter(favorite)
+  expect(screen.getByRole('tooltip').textContent).toBe('Add App Service to favorites')
+  fireEvent.mouseLeave(favorite)
+  fireEvent.click(favorite)
+  expect(screen.getByRole('region', { name: 'Favorite components' })).toBeTruthy()
+  expect(screen.getAllByRole('button', { name: 'Insert App Service' })).toHaveLength(1)
+  expect(document.querySelector('button button')).toBeNull()
+  expect(screen.getByRole('button', { name: 'Remove App Service from favorites' }).getAttribute('aria-pressed')).toBe('true')
+  rerender(<CatalogAccordion writable={false} selectedIcon={null} onChoose={onChoose} />)
+  fireEvent.click(screen.getByRole('button', { name: 'Insert App Service' }))
+  expect(onChoose).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole('button', { name: 'Clear favorite components' }))
+  expect(screen.queryByRole('region', { name: 'Favorite components' })).toBeNull()
+  expect(screen.getAllByRole('button', { name: 'Insert App Service' })).toHaveLength(1)
+})
+
+it('should_limit_favorites_to_twelve_without_losing_choices_and_allow_removal_at_capacity', () => {
+  const { onChoose } = setup()
+  const chosen = selectionLibrary.slice(0, 13)
+  for (const item of chosen.slice(0, 12)) {
+    search(item.label)
+    fireEvent.click(screen.getByRole('button', { name: `Add ${item.label} to favorites` }))
+  }
+  search(chosen[12].label)
+  expect((screen.getByRole('button', { name: `Add ${chosen[12].label} to favorites` }) as HTMLButtonElement).disabled).toBe(true)
+  expect(screen.getByRole('button', { name: `Insert ${chosen[12].label}` })).toBeTruthy()
+  search('')
+  expect(within(screen.getByRole('region', { name: 'Favorite components' })).getAllByRole('button', { name: /^Insert / })).toHaveLength(12)
+  fireEvent.click(screen.getByRole('button', { name: `Remove ${chosen[0].label} from favorites` }))
+  search(chosen[12].label)
+  expect((screen.getByRole('button', { name: `Add ${chosen[12].label} to favorites` }) as HTMLButtonElement).disabled).toBe(false)
+  expect(onChoose).not.toHaveBeenCalled()
+})
+
+it('should_bound_deduplicate_and_clear_recent_rows_without_copying_them_into_search', () => {
+  const icons = selectionLibrary.slice(0, 11).map(item => item.icon)
+  const clear = vi.fn()
+  render(<CatalogAccordion writable selectedIcon={null} recentIcons={[icons[0], icons[0], 'retired-bonsai', ...icons.slice(1)]} onClearRecents={clear} onChoose={vi.fn()} />)
+  const recent = screen.getByRole('region', { name: 'Recent components' })
+  expect(recent.querySelector('.lucide-clock')).toBeTruthy()
+  expect(recent.querySelector('.lucide-clock')?.parentElement?.getAttribute('title')).toBe('Recent components')
+  expect(within(recent).getAllByRole('button', { name: /^Insert / }).map(row => row.getAttribute('data-icon'))).toEqual(icons.slice(0, 8))
+  expect(screen.getAllByRole('button', { name: 'Insert App Service' })).toHaveLength(1)
+  fireEvent.click(screen.getByRole('button', { name: 'Add App Service to favorites' }))
+  expect(within(screen.getByRole('region', { name: 'Recent components' })).queryByRole('button', { name: 'Insert App Service' })).toBeNull()
+  search('App Service')
+  expect(screen.queryByRole('region', { name: 'Recent components' })).toBeNull()
+  expect(screen.queryByRole('region', { name: 'Favorite components' })).toBeNull()
+  expect(screen.getAllByRole('button', { name: 'Insert App Service' })).toHaveLength(1)
+  search('')
+  fireEvent.click(screen.getByRole('button', { name: 'Clear recent components' }))
+  expect(clear).toHaveBeenCalledExactlyOnceWith()
+})
+
+it('should_keep_caller_owned_favorites_controlled_and_forward_only_to_latest_callbacks', () => {
+  const original = vi.fn(), latest = vi.fn(), clear = vi.fn()
+  const view = render(<CatalogAccordion writable selectedIcon={null} favoriteIcons={['azure-app']} onToggleFavorite={original} onClearFavorites={clear} onChoose={vi.fn()} />)
+  fireEvent.click(screen.getByRole('button', { name: 'Remove App Service from favorites' }))
+  expect(original).toHaveBeenCalledExactlyOnceWith('azure-app')
+  expect(screen.getByRole('region', { name: 'Favorite components' })).toBeTruthy()
+  view.rerender(<CatalogAccordion writable selectedIcon={null} favoriteIcons={['azure-app']} onToggleFavorite={latest} onClearFavorites={clear} onChoose={vi.fn()} />)
+  fireEvent.click(screen.getByRole('button', { name: 'Remove App Service from favorites' }))
+  expect(latest).toHaveBeenCalledExactlyOnceWith('azure-app')
+  fireEvent.click(screen.getByRole('button', { name: 'Clear favorite components' }))
+  expect(clear).toHaveBeenCalledExactlyOnceWith()
+  view.rerender(<CatalogAccordion writable selectedIcon={null} favoriteIcons={[]} onToggleFavorite={latest} onClearFavorites={clear} onChoose={vi.fn()} />)
+  expect(screen.queryByRole('region', { name: 'Favorite components' })).toBeNull()
+  expect(screen.getAllByRole('button', { name: 'Insert App Service' })).toHaveLength(1)
+})
+
+it('should_keep_favorite_rows_draggable_and_never_treat_the_star_enter_as_a_choice', () => {
+  const { onChoose } = setup()
+  fireEvent.click(screen.getByRole('button', { name: 'Add App Service to favorites' }))
+  const row = within(screen.getByRole('region', { name: 'Favorite components' })).getByRole('button', { name: 'Insert App Service' })
+  const transfer = { setData: vi.fn(), effectAllowed: '' }
+  fireEvent.dragStart(row, { dataTransfer: transfer })
+  expect(transfer.setData).toHaveBeenCalledExactlyOnceWith(DROP_TYPE, JSON.stringify({ icon: 'azure-app' }))
+  expect(transfer.effectAllowed).toBe('copy')
+  search('App Service')
+  fireEvent.keyDown(screen.getByRole('button', { name: 'Remove App Service from favorites' }), { key: 'Enter' })
+  expect(onChoose).not.toHaveBeenCalled()
+})
+
+it('should_export_a_flat_ranked_picker_with_all_matching_choices_and_keyboard_selection', () => {
+  const onChoose = vi.fn(), onCancel = vi.fn()
+  render(<ComponentPicker onChoose={onChoose} onCancel={onCancel} />)
+  const dialog = screen.getByRole('dialog', { name: 'Choose component' })
+  const input = within(dialog).getByLabelText('Search components')
+  expect(document.activeElement).toBe(input)
+  expect(within(dialog).getAllByRole('button', { name: /^Insert / })).toHaveLength(selectionLibrary.length)
+  fireEvent.change(input, { target: { value: 'ranked' } })
+  expect(within(dialog).getAllByRole('button', { name: /^Insert / }).map(row => row.getAttribute('data-icon'))).toEqual(['azure-app', 'azure-entra', 'azure-test'])
+  fireEvent.keyDown(input, { key: 'ArrowDown' })
+  fireEvent.keyDown(document.activeElement!, { key: 'ArrowDown' })
+  fireEvent.keyDown(document.activeElement!, { key: 'Enter' })
+  expect(onChoose).toHaveBeenCalledExactlyOnceWith(policy.groups[5].items[0])
+  expect(onCancel).not.toHaveBeenCalled()
+})
+
+it.each(['Escape', 'button'])('should_cancel_picker_and_restore_opener_focus_when_using_%s', method => {
+  const opener = document.createElement('button')
+  document.body.append(opener); opener.focus()
+  const onChoose = vi.fn(), onCancel = vi.fn()
+  const view = render(<ComponentPicker onChoose={onChoose} onCancel={onCancel} />)
+  if (method === 'Escape') fireEvent.keyDown(screen.getByLabelText('Search components'), { key: 'Escape' })
+  else fireEvent.click(screen.getByRole('button', { name: 'Cancel component picker' }))
+  expect(onCancel).toHaveBeenCalledExactlyOnceWith()
+  expect(onChoose).not.toHaveBeenCalled()
+  view.unmount()
+  expect(document.activeElement).toBe(opener)
+  opener.remove()
+})
+
+it('should_trap_picker_focus_and_ignore_composing_enter_and_readonly_selection', () => {
+  const onChoose = vi.fn()
+  const view = render(<ComponentPicker onChoose={onChoose} onCancel={vi.fn()} />)
+  const input = screen.getByLabelText('Search components')
+  const cancel = screen.getByRole('button', { name: 'Cancel component picker' })
+  cancel.focus()
+  fireEvent.keyDown(cancel, { key: 'Tab', shiftKey: true })
+  expect(document.activeElement).toBe(screen.getAllByRole('button', { name: /^Insert / }).at(-1))
+  fireEvent.keyDown(document.activeElement!, { key: 'Tab' })
+  expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Cancel component picker' }))
+  fireEvent.keyDown(input, { key: 'Enter', isComposing: true })
+  expect(onChoose).not.toHaveBeenCalled()
+  view.rerender(<ComponentPicker writable={false} onChoose={onChoose} onCancel={vi.fn()} />)
+  fireEvent.keyDown(input, { key: 'Enter' })
+  expect(onChoose).not.toHaveBeenCalled()
+  expect((screen.getByRole('button', { name: 'Insert App Service' }) as HTMLButtonElement).disabled).toBe(true)
+})
 
 it('should_mount_only_compute_with_policy_pins_and_alphabetical_tail_when_first_opened', () => {
   setup()

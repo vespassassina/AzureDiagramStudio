@@ -24,7 +24,7 @@ export default function App() {
     }
   }, [session])
   function choose(input: HTMLInputElement | null) {
-    if (snapshot.readOnly || !input) return
+    if (!session.canMutate() || !input) return
     input.value = ''; input.click()
   }
   function selected(event: ChangeEvent<HTMLInputElement>, kind: 'open' | 'import') {
@@ -34,9 +34,9 @@ export default function App() {
   }
   return <>
     <Editor {...snapshot} onCommand={session.command} onUndo={session.undo} onRedo={session.redo}
-      onNew={session.newDocument} onOpen={() => choose(openInput.current)} onImport={() => choose(importInput.current)}
+      onNew={session.newDocument} onChooseStarter={session.openStarter} onOpen={() => choose(openInput.current)} onImport={() => choose(importInput.current)}
       onSaveJson={() => void session.saveJson()} onArrange={direction => void session.arrange(direction)}
-      onExport={options => void session.exportImage(options)} onPreviewChange={session.preview} />
+      onExport={options => void session.exportImage(options)} onCopyImage={options => void session.copyImage(options)} onPreviewChange={session.preview} onPresentationChange={session.presentation} />
     <input ref={openInput} type="file" accept=".json,application/json" aria-label="Open document file" hidden onChange={event => selected(event, 'open')} />
     <input ref={importInput} type="file" accept=".json,application/json" aria-label="Import skill file" hidden onChange={event => selected(event, 'import')} />
   </>

@@ -41,6 +41,10 @@ export function workerLayout(document: Diagram, direction: Direction): LayoutJob
 
 export const browserDependencies: SessionDependencies = {
   createStorage, watchLock: watchSessionLock, layout: workerLayout, download, exportSvg, exportPng,
+  copyImage: png => {
+    if (!globalThis.ClipboardItem || !navigator.clipboard?.write) throw new Error('Image clipboard is unavailable')
+    return navigator.clipboard.write([new ClipboardItem({ 'image/png': png })])
+  },
   newId: () => `document-${crypto.randomUUID()}`,
   confirmReplace: () => window.confirm('Replace this diagram? Changes since your last JSON download are not backed up. Browser autosave is not a file backup.'),
 }

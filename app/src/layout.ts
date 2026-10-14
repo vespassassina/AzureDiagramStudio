@@ -34,10 +34,18 @@ export async function computeLayout(diagram: Diagram, direction: Diagram['direct
     id: connection.id, sources: [endpoint(connection.from, connection.sourceSide)], targets: [endpoint(connection.to, connection.targetSide)],
     labels: connection.label ? [{ id: `${connection.id}-label`, text: connection.label, ...connectionLabelSize(connection.label) }] : [],
   }))
+  const headers = new Map<string, number>()
   const buildNode = (entity: Entity): ElkNode => {
     const children = structured.filter(candidate => candidate.parentId === entity.id)
-    const size = measureEntity(entity)
-    const header = Math.max(58, entityTextGeometry(entity).textBottom + 18)
+    const text = entity.kind === 'boundary' ? entityTextGeometry({ ...entity, width: 368 }) : undefined
+    const intrinsic = text ? {
+      ...entity,
+      width: Math.max(180, ...text.labelLines.map(line => line.length * 8 + 48), ...text.subtitleLines.map(line => line.length * 7 + 48)),
+      height: 0,
+    } : entity
+    const size = measureEntity(intrinsic)
+    const header = headers.get(entity.id) ?? Math.max(58, entityTextGeometry({ ...intrinsic, ...size }).textBottom + 18)
+    if (entity.kind === 'boundary') headers.set(entity.id, header)
     return {
       id: entity.id,
       ...size,
@@ -55,7 +63,7 @@ export async function computeLayout(diagram: Diagram, direction: Diagram['direct
   }
   let rootId = 'root'
   while (usedIds.has(rootId)) rootId += '-root'
-  const root: ElkNode = {
+  const buildRoot = (): ElkNode => ({
     id: rootId,
     layoutOptions: {
       'elk.algorithm': 'layered', 'elk.direction': direction,
@@ -65,11 +73,28 @@ export async function computeLayout(diagram: Diagram, direction: Diagram['direct
       'elk.padding': '[top=24,left=24,bottom=24,right=24]',
     },
     children: structured.filter(entity => !entity.parentId).map(buildNode),
-    edges,
+    edges: structuredClone(edges),
+  })
+  const boundaries = new Map(structured.filter(entity => entity.kind === 'boundary').map(entity => [entity.id, entity]))
+  const reconcileHeaders = (node: ElkNode): boolean => {
+    let changed = false
+    const boundary = boundaries.get(node.id)
+    if (boundary && node.width !== undefined) {
+      const header = Math.max(58, entityTextGeometry({ ...boundary, width: node.width }).textBottom + 18)
+      if (header !== headers.get(node.id)) { headers.set(node.id, header); changed = true }
+    }
+    for (const child of node.children ?? []) if (reconcileHeaders(child)) changed = true
+    return changed
   }
   const engine = providedEngine ?? await createEngine()
   let result: ElkNode
-  try { result = await engine.layout(root) }
+  try {
+    result = await engine.layout(buildRoot())
+    for (let pass = 1; reconcileHeaders(result); pass++) {
+      if (pass >= 3) throw new Error('ELK boundary header padding did not converge within three passes')
+      result = await engine.layout(buildRoot())
+    }
+  }
   finally { if (!providedEngine && typeof Worker !== 'undefined') engine.terminateWorker() }
   const geometry = new Map<string, { x: number; y: number; width: number; height: number }>()
   const routes = new Map<string, Point[]>()

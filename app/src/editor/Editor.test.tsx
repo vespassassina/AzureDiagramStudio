@@ -1,45 +1,1682 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, cleanup, createEvent, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { readFileSync } from 'node:fs'
 import type { EditorProps } from '../contracts.ts'
 import { createDocument, sampleDiagram } from '../model.ts'
 import { allLibraryItems, genericLibrary } from '../catalog.ts'
 import { isSelectableIcon, menuGroups, searchGroups, selectionLibrary } from '../catalog/presentation.ts'
 import { iconFixture } from '../custom-icons/test-fixtures.ts'
 import { importCustomIcon } from '../custom-icons/import.ts'
+import { applyCommand } from '../document/index.ts'
+import { starterDocument } from '../app/session.ts'
 
 vi.mock('../custom-icons/import.ts', () => ({ importCustomIcon: vi.fn() }))
+vi.mock('../order.ts', async importOriginal => {
+  const ordering = await importOriginal<typeof import('../order.ts')>()
+  return { ...ordering, painterOrder: vi.fn(ordering.painterOrder) }
+})
 
-const flow = vi.hoisted(() => ({ props: {} as Record<string, any> }))
+const flow = vi.hoisted(() => ({ props: {} as Record<string, any>, api: { fitView: vi.fn(), getViewport: vi.fn(() => ({ x: 17, y: 23, zoom: .75 })), setViewport: vi.fn(async (_viewport: { x: number; y: number; zoom: number }, _options?: { duration: number }) => true), screenToFlowPosition: (point: any) => point, zoomIn: vi.fn(), zoomOut: vi.fn() } }))
 vi.mock('../scene.ts', async importOriginal => {
   const scene = await importOriginal<typeof import('../scene.ts')>()
   return { ...scene, buildScene: vi.fn(scene.buildScene), entityMarkup: vi.fn(scene.entityMarkup), connectionMarkup: vi.fn(scene.connectionMarkup) }
 })
-vi.mock('@xyflow/react', () => ({
+vi.mock('@xyflow/react', async importOriginal => ({
+  ...await importOriginal<typeof import('@xyflow/react')>(),
   ReactFlowProvider: ({ children }: any) => children,
-  ReactFlow: (props: any) => { flow.props = props; const Tile = props.nodeTypes.architecture; const Link = props.edgeTypes.architecture; return <div data-testid="flow"><button onClick={() => props.onPaneClick({ clientX: 83, clientY: 99 })}>Canvas point</button>{props.nodes.map((node: any) => <div key={node.id} data-testid={`tile-${node.id}`}><button onClick={(event) => { props.onNodesChange([{ type: 'select', id: node.id, selected: true }]); props.onNodeClick(event, node) }}>{node.id}</button><Tile {...node} /></div>)}<svg>{props.edges.map((edge: any) => <g key={edge.id} data-testid={`link-${edge.id}`}><Link {...edge} /></g>)}</svg>{props.edges.map((edge: any) => <button key={edge.id} onClick={(event) => props.onEdgeClick(event, edge)}>{edge.id}</button>)}{props.children}</div> },
-  Background: () => null, BackgroundVariant: { Dots: 'dots' },
+  ReactFlow: (props: any) => { flow.props = props; const Tile = props.nodeTypes.architecture; const Link = props.edgeTypes.architecture; return <div data-testid="flow"><button onClick={() => props.onPaneClick({ clientX: 83, clientY: 99 })}>Canvas point</button>{props.nodes.map((node: any) => <div key={node.id} data-testid={`tile-${node.id}`}><button onDoubleClick={event => props.onNodeDoubleClick?.(event, node)} onClick={(event) => { props.onNodesChange([{ type: 'select', id: node.id, selected: true }]); props.onNodeClick(event, node) }}>{node.id}</button><Tile {...node} /></div>)}<svg>{props.edges.map((edge: any) => <g key={edge.id} data-testid={`link-${edge.id}`}><Link {...edge} /></g>)}</svg>{props.edges.map((edge: any) => <button key={edge.id} onDoubleClick={event => props.onEdgeDoubleClick?.(event, edge)} onClick={(event) => props.onEdgeClick(event, edge)}>{edge.id}</button>)}{props.children}</div> },
+  Background: (props: any) => <span data-testid="grid-background" data-gap={props.gap} data-variant={props.variant} data-offset={props.offset} />, BackgroundVariant: { Dots: 'dots', Lines: 'lines' },
   Handle: (props: any) => <span aria-label={props['aria-label']} data-connectable={props.isConnectable} />,
   NodeResizer: (props: any) => <span data-testid="resizer" data-visible={props.isVisible} data-min-width={props.minWidth} data-min-height={props.minHeight} onMouseDown={props.onResizeStart} />,
+  NodeToolbar: ({ children }: any) => children,
   Position: { Top: 'top', Right: 'right', Bottom: 'bottom', Left: 'left' }, ConnectionMode: { Loose: 'loose' },
-  useReactFlow: () => ({ fitView: vi.fn(), screenToFlowPosition: (point: any) => point, zoomIn: vi.fn(), zoomOut: vi.fn() }),
+  useReactFlow: () => flow.api,
 }))
 import Editor from './Editor.tsx'
 import { buildScene, connectionMarkup, entityMarkup } from '../scene.ts'
+import { painterOrder } from '../order.ts'
 
 function setup(overrides: Partial<EditorProps> = {}) {
-  const props: EditorProps = { document: createDocument('blank'), canUndo: true, canRedo: true, readOnly: false, saveState: 'saved', backupDirty: true, message: '', isArranging: false, isExporting: false, onCommand: vi.fn(), onUndo: vi.fn(), onRedo: vi.fn(), onNew: vi.fn(), onOpen: vi.fn(), onImport: vi.fn(), onSaveJson: vi.fn(), onArrange: vi.fn(), onExport: vi.fn(), onPreviewChange: vi.fn(), ...overrides }
+  const props: EditorProps = { document: createDocument('blank'), canUndo: true, canRedo: true, readOnly: false, saveState: 'saved', backupDirty: true, message: '', isArranging: false, isExporting: false, onCommand: vi.fn(), onUndo: vi.fn(), onRedo: vi.fn(), onNew: vi.fn(), onChooseStarter: vi.fn(() => false), onOpen: vi.fn(), onImport: vi.fn(), onSaveJson: vi.fn(), onArrange: vi.fn(), onExport: vi.fn(), onPreviewChange: vi.fn(), ...overrides }
   const view = render(<Editor {...props} />)
   return { props, ...view }
+}
+function alignmentDiagram() {
+  return {
+    ...createDocument('alignment'),
+    entities: [
+      { id: 'a', kind: 'component' as const, label: 'a', subtitle: '', icon: 'service', color: 'teal', parentId: null, x: 80, y: 120, width: 240, height: 88 },
+      { id: 'b', kind: 'component' as const, label: 'b', subtitle: '', icon: 'service', color: 'teal', parentId: null, x: 440, y: 240, width: 320, height: 104 },
+      { id: 'c', kind: 'component' as const, label: 'c', subtitle: '', icon: 'service', color: 'teal', parentId: null, x: 960, y: 360, width: 280, height: 96 },
+    ],
+  }
 }
 function normalizedSvg(markup: string) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
   svg.innerHTML = markup
   return svg.innerHTML
 }
-afterEach(() => { cleanup(); vi.clearAllMocks() })
+afterEach(() => { cleanup(); vi.clearAllMocks(); window.innerWidth = 1024 })
 
 describe('controlled editor', () => {
+  it('should_dispatch_one_existing_move_when_selected_roots_are_aligned_DGM110', () => {
+    const { props } = setup({ document: alignmentDiagram() })
+    fireEvent.click(screen.getByTestId('tile-a').querySelector('button')!)
+    fireEvent.click(screen.getByTestId('tile-b').querySelector('button')!, { shiftKey: true })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Align top' }))
+
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ type: 'move' }))
+  })
+  it('should_share_alignment_move_dispatch_with_commands_menu_DGM110', () => {
+    const { props } = setup({ document: alignmentDiagram() })
+    fireEvent.click(screen.getByTestId('tile-a').querySelector('button')!)
+    fireEvent.click(screen.getByTestId('tile-b').querySelector('button')!, { shiftKey: true })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Commands' }))
+    fireEvent.click(screen.getByRole('option', { name: 'Align top' }))
+
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ type: 'move' }))
+  })
+  it('should_wait_for_a_pending_draft_before_alignment_uses_the_current_snapshot_DGM110', () => {
+    const { props } = setup({ document: alignmentDiagram() })
+    fireEvent.click(screen.getByTestId('tile-a').querySelector('button')!)
+    fireEvent.click(screen.getByTestId('tile-b').querySelector('button')!, { shiftKey: true })
+    fireEvent.change(screen.getByLabelText('Document title'), { target: { value: 'Pending title' } })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Align top' }))
+
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'metadata', patch: { title: 'Pending title' } })
+  })
+  it.each([
+    ['read-only', { readOnly: true }],
+    ['edge selection', {}],
+  ] as const)('should_disable_and_recheck_alignment_when_%s_is_ineligible_DGM110', (condition, overrides) => {
+    const diagram = alignmentDiagram()
+    diagram.connections = [{ id: 'ab', from: 'a', to: 'b', label: '', style: 'solid', arrow: 'forward' }]
+    const { props } = setup({ document: diagram, ...overrides })
+    fireEvent.click(screen.getByTestId('tile-a').querySelector('button')!)
+    fireEvent.click(screen.getByTestId('tile-b').querySelector('button')!, { shiftKey: true })
+    if (condition === 'edge selection') fireEvent.click(screen.getByText('ab'))
+
+    if (condition === 'edge selection') {
+      fireEvent.click(screen.getByRole('button', { name: 'Commands' }))
+      expect(screen.getByRole('option', { name: 'Align top' }).getAttribute('aria-disabled')).toBe('true')
+      fireEvent.click(screen.getByRole('option', { name: 'Align top' }))
+    } else {
+      const action = screen.getByRole('button', { name: 'Align top' })
+      expect(action).toHaveProperty('disabled', true)
+      fireEvent.click(action)
+    }
+    expect(props.onCommand).not.toHaveBeenCalled()
+  })
+  it('should_cancel_alignment_when_composing_or_when_current_document_makes_selection_stale_DGM110', () => {
+    const { props, rerender } = setup({ document: alignmentDiagram() })
+    fireEvent.click(screen.getByTestId('tile-a').querySelector('button')!)
+    fireEvent.click(screen.getByTestId('tile-b').querySelector('button')!, { shiftKey: true })
+    fireEvent.doubleClick(screen.getByTestId('tile-a').querySelector('button')!)
+    const input = screen.getByRole('textbox', { name: /^Inline / })
+    fireEvent.compositionStart(input)
+    fireEvent.click(screen.getByRole('button', { name: 'Commands' }))
+    expect(screen.queryByRole('dialog', { name: 'Commands' })).toBeNull()
+    expect(props.onCommand).not.toHaveBeenCalled()
+
+    fireEvent.compositionEnd(input)
+    fireEvent.keyDown(input, { key: 'Escape' })
+    rerender(<Editor {...props} document={{ ...alignmentDiagram(), revision: 1, entities: alignmentDiagram().entities.filter(entity => entity.id !== 'b') }} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Commands' }))
+    expect(screen.getByRole('option', { name: 'Align top' }).getAttribute('aria-disabled')).toBe('true')
+    fireEvent.click(screen.getByRole('option', { name: 'Align top' }))
+    expect(props.onCommand).not.toHaveBeenCalled()
+  })
+  it('should_disable_alignment_in_commands_for_mixed_unknown_or_duplicate_selection_DGM110', () => {
+    const mixed = {
+      ...alignmentDiagram(),
+      entities: [...alignmentDiagram().entities, { id: 'nested', kind: 'component' as const, label: 'nested', subtitle: '', icon: 'service', color: 'teal', parentId: 'boundary', x: 32, y: 96, width: 220, height: 88 }, { id: 'boundary', kind: 'boundary' as const, label: 'boundary', color: 'teal', parentId: null, x: 20, y: 20, width: 400, height: 300 }],
+    }
+    const { props } = setup({ document: mixed })
+    fireEvent.click(screen.getByTestId('tile-a').querySelector('button')!)
+    fireEvent.click(screen.getByTestId('tile-nested').querySelector('button')!, { shiftKey: true })
+    fireEvent.click(screen.getByRole('button', { name: 'Commands' }))
+    expect(screen.getByRole('option', { name: 'Align top' }).getAttribute('aria-disabled')).toBe('true')
+    fireEvent.click(screen.getByRole('option', { name: 'Align top' }))
+    expect(props.onCommand).not.toHaveBeenCalled()
+  })
+  it.each(['inspector', 'inline', 'keyboard'] as const)('should_leave_document_and_draft_unchanged_when_chooser_is_canceled_DGM109_%s', mode => {
+    const { props } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('app'))
+    if (mode === 'inline') fireEvent.doubleClick(screen.getByText('app'))
+    const field = mode === 'inline' ? screen.getByRole('textbox', { name: /^Inline / }) : screen.getByLabelText('Label')
+    field.focus()
+    fireEvent.change(field, { target: { value: 'Uncommitted starter draft' } })
+    const previews = vi.mocked(props.onPreviewChange).mock.calls.length
+    const origin = screen.getByRole('button', { name: 'New diagram' })
+    fireEvent.pointerDown(origin); fireEvent.mouseDown(origin)
+    fireEvent.blur(field, { relatedTarget: origin }); fireEvent.click(origin)
+    const dialog = screen.getByRole('dialog', { name: 'New diagram' })
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(props.onNew).not.toHaveBeenCalled()
+    fireEvent.keyDown(dialog, { key: 'ArrowRight' })
+    fireEvent.keyDown(dialog, { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(document.activeElement).toBe(origin)
+    expect((field as HTMLInputElement).value).toBe('Uncommitted starter draft')
+    expect(props.onPreviewChange).toHaveBeenCalledTimes(previews)
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(flow.props.nodes.find((node: any) => node.id === 'app').selected).toBe(true)
+    expect(flow.api.setViewport).not.toHaveBeenCalled()
+  })
+  it('should_block_invalid_inline_and_finalize_valid_draft_only_when_choice_is_explicit_DGM109', () => {
+    const onChooseStarter = vi.fn(() => false)
+    const { props } = setup({ document: sampleDiagram(), onChooseStarter })
+    fireEvent.doubleClick(screen.getByText('app'))
+    const input = screen.getByRole('textbox', { name: /^Inline / })
+    fireEvent.change(input, { target: { value: 'x'.repeat(121) } })
+    fireEvent.click(screen.getByRole('button', { name: 'New diagram' }))
+    fireEvent.click(screen.getByRole('button', { name: /Web\/API/ }))
+    expect(onChooseStarter).not.toHaveBeenCalled()
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(screen.getByRole('alert').textContent).toMatch(/120|Limit/)
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+    fireEvent.change(input, { target: { value: 'Valid finalized edit' } })
+    fireEvent.click(screen.getByRole('button', { name: 'New diagram' }))
+    fireEvent.click(screen.getByRole('button', { name: /Web\/API/ }))
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'updateEntity', id: 'app', patch: { label: 'Valid finalized edit' } })
+    expect(onChooseStarter).toHaveBeenCalledExactlyOnceWith('web-api')
+    expect(flow.props.nodes.find((node: any) => node.id === 'app').selected).toBe(true)
+    expect(screen.getByRole('dialog')).toBeTruthy()
+  })
+  it('should_clear_only_accepted_starter_selection_when_object_ids_repeat_DGM109', () => {
+    const original = starterDocument('web-api'), replacement = { ...starterDocument('web-api'), id: 'fresh-copy' }
+    const onChooseStarter = vi.fn(() => false)
+    const { props, rerender } = setup({ document: original, onChooseStarter })
+    const id = original.entities.find(entity => entity.kind === 'component')!.id
+    fireEvent.click(screen.getByText(id))
+    fireEvent.click(screen.getByRole('button', { name: 'New diagram' }))
+    const choice = screen.getByRole('button', { name: /Web\/API/ })
+    fireEvent.click(choice)
+    expect(flow.props.nodes.find((node: any) => node.id === id).selected).toBe(true)
+    onChooseStarter.mockReturnValue(true)
+    fireEvent.click(choice); fireEvent.click(choice)
+    rerender(<Editor {...props} document={replacement} />)
+    expect(onChooseStarter).toHaveBeenCalledTimes(2)
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(flow.props.nodes.every((node: any) => !node.selected)).toBe(true)
+    expect(screen.queryByLabelText('Selection actions')).toBeNull()
+    expect(flow.api.setViewport).not.toHaveBeenCalled()
+  })
+  it('should_observe_blank_identity_and_reject_stored_choice_when_document_or_guard_changes_DGM109', () => {
+    const onChooseStarter = vi.fn(() => true)
+    const { props, rerender } = setup({ document: sampleDiagram(), onChooseStarter })
+    fireEvent.click(screen.getByRole('button', { name: 'New diagram' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Blank' }))
+    expect(props.onNew).toHaveBeenCalledOnce()
+    expect(screen.getByRole('dialog')).toBeTruthy()
+    const stale = screen.getByRole('button', { name: /Web\/API/ })
+    rerender(<Editor {...props} document={createDocument('accepted-blank')} />)
+    expect(screen.queryByRole('dialog')).toBeNull()
+    fireEvent.click(stale)
+    expect(onChooseStarter).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'New diagram' }))
+    rerender(<Editor {...props} document={createDocument('accepted-blank')} readOnly />)
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+  it('should_start_blank_once_while_waiting_for_its_new_document_identity_DGM109', () => {
+    const { props } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByRole('button', { name: 'New diagram' }))
+    const blank = screen.getByRole('button', { name: 'Blank' })
+    fireEvent.click(blank)
+    fireEvent.click(blank)
+    expect(props.onNew).toHaveBeenCalledOnce()
+  })
+  it('should_open_same_nonmutating_chooser_when_New_is_selected_in_commands_DGM109', () => {
+    const { props } = setup()
+    fireEvent.change(screen.getByLabelText('Document title'), { target: { value: 'Pending command draft' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Commands' }))
+    fireEvent.click(screen.getByRole('option', { name: 'New diagram' }))
+    expect(screen.getByRole('dialog', { name: 'New diagram' })).toBeTruthy()
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(props.onNew).not.toHaveBeenCalled()
+  })
+  it('should_keep_save_states_readable_when_viewport_or_zoom_is_constrained_DGM111', () => {
+    const style = document.createElement('style')
+    style.textContent = readFileSync('src/editor/editor.css', 'utf8')
+    document.head.append(style)
+    try {
+      const rules = [...style.sheet!.cssRules].filter(rule => rule.type === 1) as CSSStyleRule[]
+      const ruleFor = (selector: string) => rules.filter(rule => rule.selectorText === selector).at(-1)!
+      expect(ruleFor(".statusbar [role='status']").style.getPropertyValue('white-space')).toBe('normal')
+      expect(ruleFor(".statusbar [role='status']").style.getPropertyValue('overflow-wrap')).toBe('anywhere')
+      expect(ruleFor('.statusbar > span:first-child').style.getPropertyValue('flex-wrap')).toBe('wrap')
+      expect(ruleFor('.statusbar > span:first-child').style.getPropertyValue('flex-shrink')).toBe('1')
+    } finally { style.remove() }
+  })
+  it('should_distinguish_local_save_from_json_copy_when_autosave_completes_DGM111', () => {
+    const { props, rerender, container } = setup({ saveState: 'saving' })
+    const snapshot = structuredClone(props.document)
+    rerender(<Editor {...props} saveState="saved" />)
+    expect(container.querySelector('.save-label')?.textContent).toBe('Saved on this device')
+    expect(container.querySelector('.session-state')?.textContent).toBe('Saved on this device')
+    expect(container.querySelector('.inspector-footer')?.textContent).toBe('Saved on this device')
+    expect(container.querySelector('.backup-state')?.textContent).toBe('Editable JSON copy needed')
+    expect(props.document).toEqual(snapshot)
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(props.onSaveJson).not.toHaveBeenCalled()
+  })
+  it.each([
+    ['loading', 'Loading local work'],
+    ['saving', 'Saving locally'],
+    ['error', 'Local save failed'],
+    ['read-only', 'Read-only'],
+  ] as const)('should_show_%s_copy_and_keep_json_available_when_state_is_published_DGM111', (saveState, label) => {
+    const { props, container } = setup({ saveState, readOnly: saveState === 'read-only', message: 'Storage unavailable. Save JSON.' })
+    expect(container.querySelector('.save-label')?.textContent).toBe(label)
+    expect(container.querySelector('.session-state')?.textContent).toBe(label)
+    expect(container.querySelector('.inspector-footer')?.textContent).toBe(label)
+    expect(container.querySelector('.backup-state')?.textContent).toBe('Editable JSON copy needed')
+    expect(screen.getByRole('status').textContent).toBe('Storage unavailable. Save JSON.')
+    fireEvent.click(screen.getByRole('button', { name: 'Save JSON' }))
+    expect(props.onSaveJson).toHaveBeenCalledExactlyOnceWith()
+    expect(props.onCommand).not.toHaveBeenCalled()
+  })
+  it('should_describe_marker_without_file_write_claim_when_json_callback_resolves_DGM111', () => {
+    const { props, rerender, container } = setup()
+    fireEvent.click(screen.getByRole('button', { name: 'Save JSON' }))
+    expect(props.onSaveJson).toHaveBeenCalledExactlyOnceWith()
+    rerender(<Editor {...props} backupDirty={false} />)
+    expect(container.querySelector('.backup-state')?.textContent).toBe('No newer JSON changes')
+    expect(container.querySelector('.save-label')?.textContent).toBe('Saved on this device')
+    expect(props.onCommand).not.toHaveBeenCalled()
+  })
+  it('should_suppress_F2_default_in_readonly_and_Present_while_editor_owns_focus_DGM108', () => {
+    const { props, rerender } = setup({ document: sampleDiagram(), readOnly: true })
+    const canvas = screen.getByLabelText('Architecture canvas'); canvas.focus()
+    const readonlyKey = createEvent.keyDown(canvas, { key: 'F2', cancelable: true }); fireEvent(canvas, readonlyKey)
+    expect(readonlyKey.defaultPrevented).toBe(true)
+    rerender(<Editor {...props} readOnly={false} />)
+    fireEvent.click(screen.getByLabelText('Present'))
+    const exit = screen.getByLabelText('Exit presentation')
+    const presentKey = createEvent.keyDown(exit, { key: 'F2', cancelable: true }); fireEvent(exit, presentKey)
+    expect(presentKey.defaultPrevented).toBe(true)
+    expect(screen.queryByRole('textbox', { name: /^Inline / })).toBeNull()
+    expect(props.onCommand).not.toHaveBeenCalled()
+  })
+  it('should_not_commit_composing_inline_by_Present_or_commands_and_finish_final_blurred_composition_DGM108', async () => {
+    const { props } = setup({ document: sampleDiagram() })
+    fireEvent.doubleClick(screen.getByText('app'))
+    const input = screen.getByRole('textbox', { name: /^Inline / })
+    fireEvent.compositionStart(input)
+    fireEvent.change(input, { target: { value: 'Intermediate' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Present' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Commands' }))
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(screen.queryByRole('dialog')).toBeNull()
+    fireEvent.blur(input)
+    fireEvent.compositionEnd(input)
+    fireEvent.change(input, { target: { value: 'Final composed text' } })
+    await act(async () => { await Promise.resolve() })
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'updateEntity', id: 'app', patch: { label: 'Final composed text' } })
+  })
+  it('should_disable_command_copy_for_empty_selection_preset_and_match_enabled_copy_options_DGM108', () => {
+    const onCopyImage = vi.fn()
+    const { props } = setup({ document: sampleDiagram(), onCopyImage })
+    fireEvent.click(screen.getByText('app'))
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'Selection' }))
+    fireEvent.click(screen.getByRole('radio', { name: '16:9' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'Transparent background' }))
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+    fireEvent.click(screen.getByText('Canvas point'))
+    fireEvent.click(screen.getByRole('button', { name: 'Commands' }))
+    expect(screen.getByRole('option', { name: 'Copy image' }).getAttribute('aria-disabled')).toBe('true')
+    fireEvent.click(screen.getByRole('option', { name: 'Copy image' }))
+    expect(onCopyImage).not.toHaveBeenCalled()
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+    fireEvent.click(screen.getByText('app'))
+    fireEvent.click(screen.getByRole('button', { name: 'Commands' }))
+    fireEvent.click(screen.getByRole('option', { name: 'Copy image' }))
+    expect(onCopyImage).toHaveBeenCalledExactlyOnceWith({ format: 'png', scale: 1, transparent: true, aspect: '16:9', selectionIds: ['app'] })
+    expect(screen.queryByRole('dialog')).toBeNull(); expect(props.onCommand).not.toHaveBeenCalled()
+  })
+  it('should_keep_intentional_inline_and_background_focus_after_command_cleanup_DGM108', () => {
+    setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('app'))
+    fireEvent.click(screen.getByRole('button', { name: 'Commands' }))
+    fireEvent.click(screen.getByRole('option', { name: 'Edit label (F2)' }))
+    expect(document.activeElement).toBe(screen.getByRole('textbox', { name: /^Inline / }))
+    fireEvent.keyDown(document.activeElement!, { key: 'Escape' })
+    fireEvent.click(screen.getByRole('button', { name: 'Commands' }))
+    fireEvent.click(screen.getByRole('option', { name: 'Diagram background' }))
+    expect(document.activeElement).toBe(screen.getByLabelText('Diagram background color'))
+  })
+  it.each(['app', 'note', 'c1'])('should_open_and_commit_one_inline_label_when_doubleclicking_%s_DGM108', id => {
+    const diagram = sampleDiagram(), edge = diagram.connections[0]
+    const target = id === 'c1' ? edge.id : id
+    const { props } = setup({ document: diagram })
+    fireEvent.doubleClick(screen.getByText(target))
+    const input = screen.getByRole('textbox', { name: /^Inline / })
+    expect(document.activeElement).toBe(input)
+    fireEvent.change(input, { target: { value: 'Renamed' } })
+    expect(props.onCommand).not.toHaveBeenCalled()
+    fireEvent.keyDown(input, { key: 'Enter', ctrlKey: id === 'note' })
+    fireEvent.blur(input)
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: id === 'c1' ? 'updateConnection' : 'updateEntity', id: target, patch: { label: 'Renamed' } })
+    expect(screen.queryByRole('textbox', { name: /^Inline / })).toBeNull()
+  })
+  it('should_keep_inline_geometry_and_scene_stable_until_commit_and_use_viewport_coordinates_DGM108', () => {
+    const { props } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('app'))
+    const canvas = screen.getByLabelText('Architecture canvas'); canvas.focus()
+    fireEvent.keyDown(canvas, { key: 'F2' })
+    const input = screen.getByRole('textbox', { name: /^Inline / })
+    const node = flow.props.nodes.find((node: any) => node.id === 'app')
+    const before = JSON.stringify(node)
+    fireEvent.change(input, { target: { value: 'A longer label '.repeat(7) } })
+    expect(JSON.stringify(flow.props.nodes.find((node: any) => node.id === 'app'))).toBe(before)
+    const overlay = input.closest<HTMLElement>('.inline-label')!
+    const initialLeft = parseFloat(overlay.style.left)
+    act(() => flow.props.onMove(null, { x: 117, y: 23, zoom: .75 }))
+    expect(parseFloat(overlay.style.left) - initialLeft).toBeCloseTo(100)
+    fireEvent.keyDown(input, { key: 'Escape' })
+    expect(props.onCommand).not.toHaveBeenCalled()
+  })
+  it('should_preserve_newlines_IME_and_block_delete_connect_shortcuts_in_inline_note_DGM108', () => {
+    const { props } = setup({ document: sampleDiagram() })
+    fireEvent.doubleClick(screen.getByText('note'))
+    const input = screen.getByRole('textbox', { name: /^Inline / })
+    expect(input.tagName).toBe('TEXTAREA')
+    fireEvent.change(input, { target: { value: 'Line one\nLine two' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    fireEvent.compositionStart(input)
+    fireEvent.keyDown(input, { key: 'Enter', ctrlKey: true, isComposing: true })
+    fireEvent.keyDown(input, { key: 'Delete' }); fireEvent.keyDown(input, { key: 'F2' })
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(flow.props.isValidConnection({ source: 'app', target: 'sql' })).toBe(false)
+    fireEvent.compositionEnd(input)
+    fireEvent.keyDown(input, { key: 'Enter', metaKey: true })
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'updateEntity', id: 'note', patch: { label: 'Line one\nLine two' } })
+  })
+  it('should_keep_invalid_inline_editable_then_commit_valid_blur_once_DGM108', () => {
+    const { props } = setup({ document: sampleDiagram() })
+    fireEvent.doubleClick(screen.getByText('app'))
+    const input = screen.getByRole('textbox', { name: /^Inline / })
+    fireEvent.change(input, { target: { value: 'x'.repeat(121) } })
+    fireEvent.blur(input)
+    expect(input.getAttribute('aria-invalid')).toBe('true')
+    expect(screen.getByRole('alert').textContent).toMatch(/120|Limit/)
+    expect(props.onCommand).not.toHaveBeenCalled()
+    fireEvent.change(input, { target: { value: '<script>literal</script>' } })
+    fireEvent.blur(input)
+    expect(props.onCommand).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('textbox', { name: /^Inline / })).toBeNull()
+  })
+  it.each(['document', 'revision', 'same-object revision', 'readonly'])('should_cancel_stale_inline_without_commit_when_%s_changes_DGM108', change => {
+    const { props, rerender } = setup({ document: sampleDiagram() })
+    fireEvent.doubleClick(screen.getByText('app'))
+    const input = screen.getByRole('textbox', { name: /^Inline / })
+    fireEvent.change(input, { target: { value: 'Discard' } })
+    if (change === 'same-object revision') { props.document.revision++; rerender(<Editor {...props} />) }
+    else rerender(<Editor {...props} document={change === 'document' ? { ...props.document, id: 'other' } : change === 'revision' ? { ...props.document, revision: 1 } : props.document} readOnly={change === 'readonly'} />)
+    fireEvent.blur(input)
+    expect(screen.queryByRole('textbox', { name: /^Inline / })).toBeNull()
+    expect(props.onCommand).not.toHaveBeenCalled()
+  })
+  it('should_wait_for_inline_commit_ack_before_Present_and_restore_exact_initial_label_by_undo_DGM108', () => {
+    const original = sampleDiagram()
+    const { props, rerender } = setup({ document: original })
+    fireEvent.doubleClick(screen.getByText('app'))
+    fireEvent.change(screen.getByRole('textbox', { name: /^Inline / }), { target: { value: 'Accepted once' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Present' }))
+    expect(props.onCommand).toHaveBeenCalledTimes(1)
+    expect(screen.queryByLabelText('Exit presentation')).toBeNull()
+    const accepted = applyCommand(original, vi.mocked(props.onCommand).mock.calls[0][0])
+    rerender(<Editor {...props} document={accepted} />)
+    expect(screen.queryByLabelText('Exit presentation')).not.toBeNull()
+    expect(screen.queryByRole('textbox', { name: /^Inline / })).toBeNull()
+    fireEvent.keyDown(window, { key: 'F2' })
+    expect(screen.queryByRole('textbox', { name: /^Inline / })).toBeNull()
+    fireEvent.click(screen.getByLabelText('Exit presentation'))
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
+    expect(props.onUndo).toHaveBeenCalledTimes(1)
+    rerender(<Editor {...props} document={original} />)
+    expect(screen.getByLabelText('Component label').getAttribute('value')).toBe('App Service')
+  })
+  it('should_scope_F2_and_command_shortcut_to_editor_focus_and_not_text_inputs_DGM108', () => {
+    const { props } = setup({ document: sampleDiagram(), readOnly: true })
+    fireEvent.doubleClick(screen.getByText('app'))
+    fireEvent.keyDown(screen.getByLabelText('Architecture canvas'), { key: 'F2' })
+    expect(screen.queryByRole('textbox', { name: /^Inline / })).toBeNull()
+    const outside = document.createElement('button'); document.body.append(outside); outside.focus()
+    const externalKey = createEvent.keyDown(outside, { key: 'k', ctrlKey: true, cancelable: true }); fireEvent(outside, externalKey)
+    expect(externalKey.defaultPrevented).toBe(false)
+    const title = screen.getByLabelText('Document title'); title.focus()
+    const textKey = createEvent.keyDown(title, { key: 'k', metaKey: true, cancelable: true }); fireEvent(title, textKey)
+    expect(textKey.defaultPrevented).toBe(false)
+    expect(screen.queryByRole('dialog', { name: 'Commands' })).toBeNull()
+    expect(props.onCommand).not.toHaveBeenCalled(); outside.remove()
+  })
+  it('should_filter_navigate_execute_exact_toolbar_callback_once_and_restore_cancel_focus_DGM108', () => {
+    const { props } = setup({ document: sampleDiagram() })
+    const canvas = screen.getByLabelText('Architecture canvas'); canvas.focus()
+    fireEvent.keyDown(canvas, { key: 'k', ctrlKey: true })
+    const dialog = screen.getByRole('dialog', { name: 'Commands' })
+    const search = within(dialog).getByRole('combobox', { name: 'Filter commands' })
+    expect(document.activeElement).toBe(search)
+    fireEvent.change(search, { target: { value: 'Undo' } }); fireEvent.keyDown(search, { key: 'ArrowDown' }); fireEvent.keyDown(search, { key: 'Enter' })
+    expect(props.onUndo).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('dialog')).toBeNull()
+    const trigger = screen.getByRole('button', { name: 'Commands' }); trigger.focus(); fireEvent.click(trigger)
+    fireEvent.keyDown(screen.getByRole('dialog', { name: 'Commands' }), { key: 'Escape' })
+    expect(document.activeElement).toBe(trigger)
+    expect(props.onCommand).not.toHaveBeenCalled()
+  })
+  it('should_list_toolbar_actions_disable_unavailable_and_preserve_selection_and_tool_DGM108', () => {
+    const { props } = setup({ document: sampleDiagram(), canUndo: false, onCopyImage: vi.fn() })
+    fireEvent.click(screen.getByText('app'))
+    fireEvent.click(screen.getByRole('button', { name: 'Commands' }))
+    const dialog = screen.getByRole('dialog', { name: 'Commands' })
+    for (const label of ['Select tool', 'Pan tool', 'Add component', 'Connect components', 'Add boundary', 'Add text', 'Add rectangle', 'Present', 'Fit diagram', 'Fit selection', 'Undo', 'Redo', 'Duplicate selection', 'Delete selection', 'Group selection', 'Ungroup selection', 'Copy image', 'Export', 'Diagram background', 'Grid settings', 'Document properties', 'Edit label (F2)']) expect(within(dialog).getByRole('option', { name: label })).toBeTruthy()
+    expect(within(dialog).getByRole('option', { name: 'Undo' }).getAttribute('aria-disabled')).toBe('true')
+    expect(within(dialog).getByRole('option', { name: 'Paste selection' }).getAttribute('aria-disabled')).toBe('true')
+    fireEvent.click(within(dialog).getByRole('option', { name: 'Undo' }))
+    expect(props.onUndo).not.toHaveBeenCalled()
+    fireEvent.click(within(dialog).getByRole('option', { name: 'Pan tool' }))
+    expect(screen.getByLabelText('Pan tool').getAttribute('aria-pressed')).toBe('true')
+    expect(flow.props.nodes.find((node: any) => node.id === 'app').selected).toBe(true)
+  })
+  it('should_focus_requested_document_property_and_close_commands_before_export_DGM108', () => {
+    setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('app'))
+    fireEvent.click(screen.getByRole('button', { name: 'Commands' }))
+    fireEvent.click(screen.getByRole('option', { name: 'Grid settings' }))
+    expect(document.activeElement).toBe(screen.getByLabelText('Show grid'))
+    fireEvent.click(screen.getByRole('button', { name: 'Commands' }))
+    fireEvent.click(screen.getByRole('option', { name: 'Export' }))
+    expect(screen.queryByRole('dialog', { name: 'Commands' })).toBeNull()
+    expect(screen.getAllByRole('dialog')).toHaveLength(1)
+  })
+  it('should_disable_menu_mutations_in_readonly_and_prevent_commands_bypassing_Present_DGM108', () => {
+    const { props } = setup({ document: sampleDiagram(), readOnly: true })
+    const canvas = screen.getByLabelText('Architecture canvas'); canvas.focus()
+    fireEvent.keyDown(canvas, { key: 'k', metaKey: true })
+    const dialog = screen.getByRole('dialog', { name: 'Commands' })
+    for (const label of ['Undo', 'Redo', 'Add component', 'Duplicate selection', 'Delete selection', 'Group selection', 'Edit label (F2)']) expect(within(dialog).getByRole('option', { name: label }).getAttribute('aria-disabled')).toBe('true')
+    fireEvent.click(within(dialog).getByRole('option', { name: 'Present' }))
+    fireEvent.keyDown(screen.getByLabelText('Exit presentation'), { key: 'k', ctrlKey: true })
+    expect(screen.queryByRole('dialog', { name: 'Commands' })).toBeNull()
+    expect(props.onCommand).not.toHaveBeenCalled()
+  })
+  it('should_preview_real_scoped_slide_and_offer_accessible_options_without_document_mutation', () => {
+    const { props } = setup({ document: sampleDiagram(), onCopyImage: vi.fn() })
+    fireEvent.click(screen.getByText('app'))
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }))
+    const dialog = screen.getByRole('dialog', { name: 'Export diagram' })
+    fireEvent.click(within(dialog).getByRole('radio', { name: 'Selection' }))
+    fireEvent.click(within(dialog).getByRole('radio', { name: '16:9' }))
+    fireEvent.click(within(dialog).getByRole('radio', { name: 'White' }))
+    fireEvent.click(within(dialog).getByRole('checkbox', { name: 'Include grid' }))
+    const preview = within(dialog).getByRole('img', { name: 'Export preview' })
+    expect(preview.innerHTML).toContain('App Service'); expect(preview.innerHTML).not.toContain('SQL Database')
+    expect(preview.innerHTML).not.toContain('@font-face')
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Copy image' }))
+    expect(props.onCopyImage).toHaveBeenCalledExactlyOnceWith({ format: 'png', scale: 1, transparent: false, selectionIds: ['app'], aspect: '16:9', background: 'white', includeGrid: true })
+    expect(props.onCommand).not.toHaveBeenCalled(); expect(props.onPreviewChange).not.toHaveBeenCalled()
+  })
+  it('should_disable_empty_selection_and_loading_actions_and_return_modal_focus_on_cancel', () => {
+    const { props, rerender } = setup()
+    const trigger = screen.getByRole('button', { name: 'Export' })
+    trigger.focus(); fireEvent.click(trigger)
+    const dialog = screen.getByRole('dialog', { name: 'Export diagram' })
+    expect((within(dialog).getByRole('radio', { name: 'Selection' }) as HTMLInputElement).disabled).toBe(true)
+    rerender(<Editor {...props} isExporting />)
+    expect((within(dialog).getByRole('button', { name: 'Export SVG' }) as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.keyDown(dialog, { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).toBeNull(); expect(document.activeElement).toBe(trigger)
+    expect(props.onExport).not.toHaveBeenCalled()
+  })
+  it('should_keep_session_only_export_presets_and_ack_void_callbacks_without_duplicate_or_edit_commands', () => {
+    const { props } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByLabelText('Export'))
+    fireEvent.click(screen.getByRole('radio', { name: '16:9' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Export PNG 2x' }))
+    expect(props.onExport).toHaveBeenCalledExactlyOnceWith({ format: 'png', scale: 2, transparent: false, aspect: '16:9' })
+    expect(screen.queryByRole('dialog')).toBeNull()
+    fireEvent.click(screen.getByLabelText('Export'))
+    expect((screen.getByRole('radio', { name: '16:9' }) as HTMLInputElement).checked).toBe(true)
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+    expect(props.onCommand).not.toHaveBeenCalled(); expect(props.onPreviewChange).not.toHaveBeenCalled()
+  })
+  it('should_show_callback_errors_and_block_initial_loading_without_claiming_image_copy', () => {
+    const { props, rerender } = setup({ onCopyImage: vi.fn(() => { throw new Error('Capture rejected') }) })
+    fireEvent.click(screen.getByLabelText('Export'))
+    fireEvent.click(screen.getByRole('button', { name: 'Copy image' }))
+    expect(screen.getByRole('alert').textContent).toContain('Capture rejected')
+    expect(screen.getByRole('alert').textContent).not.toMatch(/copied/i)
+    rerender(<Editor {...props} saveState="loading" />)
+    expect((screen.getByRole('button', { name: 'Copy image' }) as HTMLButtonElement).disabled).toBe(true)
+  })
+  it.each(['left', 'right', 'top', 'bottom'])('should_addConnected_once_from_selected_source_when_%s_picker_is_chosen', side => {
+    const diagram = sampleDiagram()
+    const { props, rerender } = setup({ document: diagram })
+    fireEvent.click(screen.getByText('app'))
+    fireEvent.click(screen.getByRole('button', { name: `Add connected component ${side}` }))
+    const picker = screen.getByRole('dialog', { name: /App Service/ })
+    expect(props.onCommand).not.toHaveBeenCalled()
+    fireEvent.change(within(picker).getByLabelText('Search components'), { target: { value: 'APIM' } })
+    fireEvent.click(within(picker).getByRole('button', { name: 'Insert API Management' }))
+    const command = vi.mocked(props.onCommand).mock.calls.at(-1)![0]
+    expect(command).toMatchObject({ type: 'addConnected', sourceId: 'app', entity: { parentId: diagram.entities.find(entity => entity.id === 'app')!.parentId, icon: 'azure-api' }, connection: { from: 'app', to: expect.any(String), sourceSide: side, targetSide: { left: 'right', right: 'left', top: 'bottom', bottom: 'top' }[side] } })
+    expect(props.onCommand).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.queryByRole('region', { name: 'Recent components' })).toBeNull()
+    const accepted = applyCommand(diagram, command)
+    rerender(<Editor {...props} document={accepted} />)
+    fireEvent.click(screen.getByLabelText('Open component library'))
+    expect(within(screen.getByRole('region', { name: 'Recent components' })).getByRole('button', { name: 'Insert API Management' })).toBeTruthy()
+    expect(props.onArrange).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByLabelText('Undo'))
+    expect(props.onUndo).toHaveBeenCalledTimes(1)
+  })
+
+  it('should_choose_addConnected_by_Enter_and_cancel_without_mutation_or_recent', () => {
+    const { props } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('app'))
+    fireEvent.click(screen.getByLabelText('Add connected component right'))
+    fireEvent.keyDown(within(screen.getByRole('dialog')).getByLabelText('Search components'), { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(props.onCommand).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByLabelText('Add connected component right'))
+    const search = within(screen.getByRole('dialog')).getByLabelText('Search components')
+    fireEvent.change(search, { target: { value: 'APIM' } })
+    fireEvent.keyDown(search, { key: 'Enter' })
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ type: 'addConnected', sourceId: 'app', entity: expect.objectContaining({ icon: 'azure-api' }) }))
+  })
+
+  it.each(['selection', 'document', 'revision', 'same-object revision', 'readonly', 'present'])('should_invalidate_connected_picker_when_%s_changes', change => {
+    const { props, rerender } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('app'))
+    fireEvent.click(screen.getByLabelText('Add connected component right'))
+    if (change === 'selection') fireEvent.click(screen.getByText('users'))
+    else if (change === 'present') fireEvent.click(screen.getByLabelText('Present'))
+    else if (change === 'same-object revision') { props.document.revision++; rerender(<Editor {...props} />) }
+    else rerender(<Editor {...props} document={change === 'document' ? { ...props.document, id: 'replacement' } : change === 'revision' ? { ...props.document, revision: 1 } : props.document} readOnly={change === 'readonly'} />)
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(screen.queryByRole('region', { name: 'Recent components' })).toBeNull()
+  })
+
+  it('should_keep_source_selection_and_show_error_without_emitting_or_recording_when_addConnected_exceeds_limit', () => {
+    const diagram = sampleDiagram()
+    diagram.connections = Array.from({ length: 150 }, (_, index) => ({ ...diagram.connections[0], id: `limit-${index}` }))
+    const { props } = setup({ document: diagram })
+    const before = JSON.stringify(diagram)
+    fireEvent.click(screen.getByText('app'))
+    fireEvent.click(screen.getByLabelText('Add connected component right'))
+    const picker = screen.getByRole('dialog')
+    fireEvent.change(within(picker).getByLabelText('Search components'), { target: { value: 'APIM' } })
+    fireEvent.keyDown(within(picker).getByLabelText('Search components'), { key: 'Enter' })
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(screen.getByRole('status').textContent).toContain('Limit exceeded')
+    expect(screen.queryByRole('region', { name: 'Recent components' })).toBeNull()
+    expect(flow.props.nodes.find((node: any) => node.id === 'app').selected).toBe(true)
+    expect(JSON.stringify(diagram)).toBe(before)
+  })
+
+  it('should_retain_source_and_reuse_unaccepted_ids_without_recents_when_addConnected_callback_throws', () => {
+    const { props, rerender } = setup({ document: sampleDiagram(), onCommand: vi.fn(() => { throw new Error('Rejected connected insertion') }) })
+    const before = JSON.stringify(props.document)
+    fireEvent.click(screen.getByText('app'))
+    fireEvent.click(screen.getByLabelText('Add connected component right'))
+    fireEvent.change(within(screen.getByRole('dialog')).getByLabelText('Search components'), { target: { value: 'APIM' } })
+    fireEvent.keyDown(within(screen.getByRole('dialog')).getByLabelText('Search components'), { key: 'Enter' })
+    const rejected = vi.mocked(props.onCommand).mock.calls[0][0]
+    if (rejected.type !== 'addConnected') throw new Error('Expected connected insertion')
+    expect(screen.getByRole('status').textContent).toContain('Rejected connected insertion')
+    expect(flow.props.nodes.find((node: any) => node.id === 'app').selected).toBe(true)
+    expect(screen.queryByRole('region', { name: 'Recent components' })).toBeNull()
+    expect(JSON.stringify(props.document)).toBe(before)
+    vi.mocked(props.onCommand).mockImplementation(() => {})
+    fireEvent.click(screen.getByLabelText('Add connected component right'))
+    fireEvent.change(within(screen.getByRole('dialog')).getByLabelText('Search components'), { target: { value: 'APIM' } })
+    fireEvent.keyDown(within(screen.getByRole('dialog')).getByLabelText('Search components'), { key: 'Enter' })
+    const accepted = vi.mocked(props.onCommand).mock.calls[1][0]
+    if (accepted.type !== 'addConnected') throw new Error('Expected connected insertion')
+    expect(accepted.entity.id.endsWith('-1')).toBe(true)
+    expect(accepted.connection.id.endsWith('-2')).toBe(true)
+    expect(screen.queryByRole('region', { name: 'Recent components' })).toBeNull()
+    rerender(<Editor {...props} document={applyCommand(props.document, accepted)} />)
+    fireEvent.click(screen.getByLabelText('Open component library'))
+    expect(within(screen.getByRole('region', { name: 'Recent components' })).getByRole('button', { name: 'Insert API Management' })).toBeTruthy()
+  })
+
+  it.each(['note', 'region'])('should_not_offer_connected_arrows_for_annotation_%s', sourceId => {
+    const diagram = sampleDiagram()
+    diagram.entities.push({ ...diagram.entities.find(entity => entity.id === 'note')!, id: 'region', kind: 'rectangle' })
+    setup({ document: diagram })
+    fireEvent.click(screen.getByText(sourceId))
+    expect(screen.queryByLabelText('Add connected component right')).toBeNull()
+  })
+
+  it('should_disable_connected_arrows_in_readonly_and_hide_them_in_present', () => {
+    const { props, rerender } = setup({ document: sampleDiagram(), readOnly: true })
+    fireEvent.click(screen.getByText('app'))
+    expect((screen.getByLabelText('Add connected component right') as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.click(screen.getByLabelText('Add connected component right'))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    rerender(<Editor {...props} readOnly={false} />)
+    fireEvent.click(screen.getByLabelText('Present'))
+    expect(screen.queryByLabelText('Add connected component right')).toBeNull()
+    expect(props.onCommand).not.toHaveBeenCalled()
+  })
+
+  it('should_prepare_library_placement_even_with_selected_edge_and_split_only_by_explicit_Inspector_action', () => {
+    const diagram = sampleDiagram()
+    diagram.connections[0] = { ...diagram.connections[0], label: 'Keep this label', style: 'dashed', arrow: 'both', sourceSide: 'left', targetSide: 'top' }
+    const { props } = setup({ document: diagram })
+    fireEvent.click(screen.getByText(diagram.connections[0].id))
+    fireEvent.click(screen.getByRole('button', { name: 'Insert App Service' }))
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(screen.getByLabelText('Add component').getAttribute('aria-pressed')).toBe('true')
+    fireEvent.click(screen.getByRole('button', { name: 'Insert on connection' }))
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ type: 'insertOnConnection', connectionId: diagram.connections[0].id }))
+    const command = vi.mocked(props.onCommand).mock.calls[0][0]
+    if (command.type !== 'insertOnConnection') throw new Error('Expected explicit insertion')
+    const split = applyCommand(diagram, command)
+    expect(split.connections.some(connection => connection.id === diagram.connections[0].id)).toBe(false)
+    expect(split.connections.find(connection => connection.id === command.upstreamId)).toEqual({ ...diagram.connections[0], id: command.upstreamId, to: command.entity.id })
+    expect(split.connections.find(connection => connection.id === command.downstreamId)).toEqual({ ...diagram.connections[0], id: command.downstreamId, from: command.entity.id, label: '' })
+    expect(new Set([command.entity.id, command.upstreamId, command.downstreamId]).size).toBe(3)
+  })
+
+  it.each([['APIM', 'azure-api'], ['AAD', 'azure-entra'], ['Entra ID', 'azure-entra'], ['ACA', 'azure-container-apps'], ['AKS', 'azure-aks']])('should_prepare_the_intended_alias_choice_without_mutation_when_keyboard_searching_%s', (query, icon) => {
+    const { props } = setup()
+    const input = screen.getByLabelText('Search components')
+    fireEvent.change(input, { target: { value: query } })
+    input.focus()
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(screen.getByLabelText('Add component').getAttribute('aria-pressed')).toBe('true')
+    expect(document.querySelector('.library-item.picked')?.getAttribute('data-icon')).toBe(icon)
+    fireEvent.keyDown(screen.getByLabelText('Architecture canvas'), { key: 'Escape' })
+    expect(screen.getByLabelText('Select tool').getAttribute('aria-pressed')).toBe('true')
+    expect(screen.queryByRole('region', { name: 'Recent components' })).toBeNull()
+    expect(props.onCommand).not.toHaveBeenCalled()
+  })
+
+  it('should_track_successful_drop_insertions_only_after_new_id_revision_acknowledgment', () => {
+    const { props, rerender } = setup()
+    const canvas = screen.getByLabelText('Architecture canvas')
+    const drop = createEvent.drop(canvas, { dataTransfer: { getData: () => JSON.stringify({ icon: 'azure-api' }) } })
+    Object.defineProperties(drop, { clientX: { value: 83 }, clientY: { value: 99 } })
+    fireEvent(canvas, drop)
+    const command = vi.mocked(props.onCommand).mock.calls.at(-1)![0]
+    expect(command.type).toBe('addEntity')
+    expect(screen.queryByRole('region', { name: 'Recent components' })).toBeNull()
+    const accepted = applyCommand(props.document, command)
+    rerender(<Editor {...props} document={accepted} />)
+    expect(within(screen.getByRole('region', { name: 'Recent components' })).getByRole('button', { name: 'Insert API Management' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Clear recent components' }))
+    expect(screen.queryByRole('region', { name: 'Recent components' })).toBeNull()
+    expect(props.onCommand).toHaveBeenCalledTimes(1)
+    rerender(<Editor {...props} document={{ ...accepted }} />)
+    expect(screen.queryByRole('region', { name: 'Recent components' })).toBeNull()
+  })
+
+  it.each(['unchanged revision', 'different id', 'different document', 'missing entity'])('should_not_record_rejected_insertion_when_caller_returns_%s', rejection => {
+    const { props, rerender } = setup()
+    fireEvent.click(screen.getByRole('button', { name: 'Insert App Service' }))
+    fireEvent.click(screen.getByText('Canvas point'))
+    const command = vi.mocked(props.onCommand).mock.calls.at(-1)![0]
+    if (command.type !== 'addEntity') throw new Error('Expected addEntity')
+    const accepted = applyCommand(props.document, command)
+    const next = rejection === 'unchanged revision' ? { ...accepted, revision: props.document.revision }
+      : rejection === 'different id' ? { ...accepted, entities: [{ ...command.entity, id: 'not-the-inserted-id' }] }
+        : rejection === 'different document' ? { ...accepted, id: 'other-document' }
+          : { ...accepted, entities: [] }
+    rerender(<Editor {...props} document={next} />)
+    expect(screen.queryByRole('region', { name: 'Recent components' })).toBeNull()
+  })
+
+  it('should_keep_the_eight_latest_unique_successes_without_retaining_session_choices_in_json', () => {
+    const { props, rerender } = setup()
+    let current = props.document
+    const choices = selectionLibrary.slice(0, 9)
+    for (const item of [...choices, choices[0]]) {
+      const drop = createEvent.drop(screen.getByLabelText('Architecture canvas'), { dataTransfer: { getData: () => JSON.stringify({ icon: item.icon }) } })
+      Object.defineProperties(drop, { clientX: { value: 83 }, clientY: { value: 99 } })
+      fireEvent(screen.getByLabelText('Architecture canvas'), drop)
+      current = applyCommand(current, vi.mocked(props.onCommand).mock.calls.at(-1)![0])
+      rerender(<Editor {...props} document={current} />)
+    }
+    expect(within(screen.getByRole('region', { name: 'Recent components' })).getAllByRole('button', { name: /^Insert / }).map(row => row.getAttribute('data-icon'))).toEqual([choices[0], ...choices.slice(2).reverse()].map(item => item.icon))
+    expect(Object.keys(current).sort()).toEqual(Object.keys(props.document).sort())
+    expect(JSON.stringify(current)).not.toMatch(/recentIcons|favoriteIcons/)
+    fireEvent.click(screen.getByLabelText('Undo'))
+    rerender(<Editor {...props} document={props.document} />)
+    expect(within(screen.getByRole('region', { name: 'Recent components' })).getAllByRole('button', { name: /^Insert / })).toHaveLength(8)
+  })
+
+  it('should_preserve_clearable_session_favorites_across_rerender_present_and_document_switch_without_storage', () => {
+    const storage = vi.spyOn(Storage.prototype, 'setItem')
+    const { props, rerender, unmount } = setup()
+    const original = JSON.stringify(props.document)
+    fireEvent.click(screen.getByRole('button', { name: 'Add App Service to favorites' }))
+    rerender(<Editor {...props} />)
+    fireEvent.click(screen.getByLabelText('Present'))
+    fireEvent.click(screen.getByLabelText('Exit presentation'))
+    expect(screen.getByRole('button', { name: 'Remove App Service from favorites' })).toBeTruthy()
+    rerender(<Editor {...props} document={createDocument('another')} readOnly />)
+    expect(screen.getByRole('button', { name: 'Remove App Service from favorites' })).toBeTruthy()
+    expect(JSON.stringify(props.document)).toBe(original)
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(storage).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Clear favorite components' }))
+    expect(screen.queryByRole('region', { name: 'Favorite components' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Add App Service to favorites' }))
+    unmount()
+    setup()
+    expect(screen.queryByRole('region', { name: 'Favorite components' })).toBeNull()
+    storage.mockRestore()
+  })
+
+  it('should_record_acknowledged_edge_insertion_and_keep_recents_through_present_without_geometry_changes', () => {
+    const diagram = sampleDiagram()
+    const { props, rerender } = setup({ document: diagram })
+    fireEvent.click(screen.getByText(diagram.connections[0].id))
+    fireEvent.click(screen.getByRole('button', { name: 'Insert App Service' }))
+    expect(props.onCommand).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Insert on connection' }))
+    const command = vi.mocked(props.onCommand).mock.calls.at(-1)![0]
+    expect(command.type).toBe('insertOnConnection')
+    expect(screen.queryByRole('region', { name: 'Recent components' })).toBeNull()
+    const accepted = applyCommand(diagram, command)
+    rerender(<Editor {...props} document={accepted} />)
+    expect(within(screen.getByRole('region', { name: 'Recent components' })).getByRole('button', { name: 'Insert App Service' })).toBeTruthy()
+    const original = JSON.stringify(accepted)
+    fireEvent.click(screen.getByLabelText('Present'))
+    fireEvent.click(screen.getByLabelText('Exit presentation'))
+    expect(within(screen.getByRole('region', { name: 'Recent components' })).getByRole('button', { name: 'Insert App Service' })).toBeTruthy()
+    expect(JSON.stringify(accepted)).toBe(original)
+    expect(props.onCommand).toHaveBeenCalledTimes(1)
+  })
+
+  it('should_record_a_recent_only_when_the_caller_acknowledges_the_new_entity', () => {
+    const { props, rerender } = setup()
+    fireEvent.click(screen.getByRole('button', { name: 'Insert App Service' }))
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(screen.queryByRole('region', { name: 'Recent components' })).toBeNull()
+    fireEvent.click(screen.getByText('Canvas point'))
+    const command = vi.mocked(props.onCommand).mock.calls.at(-1)![0]
+    expect(command.type).toBe('addEntity')
+    rerender(<Editor {...props} />)
+    expect(screen.queryByRole('region', { name: 'Recent components' })).toBeNull()
+    const accepted = applyCommand(props.document, command)
+    rerender(<Editor {...props} document={accepted} />)
+    expect(within(screen.getByRole('region', { name: 'Recent components' })).getByRole('button', { name: 'Insert App Service' })).toBeTruthy()
+  })
+
+  it.each([true, false])('should_control_grid_visibility_and_snapping_independently_when_visible_is_%s', visible => {
+    const grid = { visible, style: 'lines' as const, spacing: 16, snap: false, present: true, export: false }
+    const { props, rerender } = setup({ document: { ...createDocument('grid-controls'), grid } })
+    fireEvent.click(screen.getByLabelText('Document properties'))
+    expect(flow.props.snapToGrid).toBe(false)
+    expect(flow.props.snapGrid).toEqual([16, 16])
+    expect(screen.queryByTestId('grid-background') !== null).toBe(visible)
+    fireEvent.click(screen.getByLabelText('Snap to grid'))
+    expect(props.onCommand).toHaveBeenLastCalledWith({ type: 'metadata', patch: { grid: { ...grid, snap: true } } })
+    rerender(<Editor {...props} document={{ ...props.document, grid: { ...grid, snap: true } }} />)
+    expect(flow.props.snapToGrid).toBe(true)
+    fireEvent.click(screen.getByLabelText('Show grid'))
+    expect(props.onCommand).toHaveBeenLastCalledWith({ type: 'metadata', patch: { grid: { ...grid, snap: true, visible: !visible } } })
+  })
+  it('should_default_visual_gap_to_eight_and_commit_only_valid_spacing_without_moving_nodes', () => {
+    const { props } = setup()
+    fireEvent.click(screen.getByLabelText('Document properties'))
+    expect(screen.getByTestId('grid-background').getAttribute('data-gap')).toBe('8')
+    expect(screen.getByTestId('grid-background').getAttribute('data-offset')).toBe('-3.5')
+    const spacing = screen.getByLabelText('Grid spacing')
+    fireEvent.change(spacing, { target: { value: '3' } })
+    fireEvent.blur(spacing)
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(spacing.getAttribute('aria-invalid')).toBe('true')
+    fireEvent.change(spacing, { target: { value: '16' } })
+    fireEvent.blur(spacing)
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'metadata', patch: { grid: { visible: true, style: 'dots', spacing: 16, snap: true, present: false, export: false } } })
+    expect(props.onArrange).not.toHaveBeenCalled()
+  })
+  it('should_guard_all_grid_controls_and_callbacks_in_present_and_readonly', () => {
+    const { props, rerender } = setup({ readOnly: true })
+    for (const label of ['Show grid', 'Snap to grid', 'Show grid in Present', 'Include grid in exports', 'Grid spacing', 'Dots grid', 'Lines grid']) {
+      const control = screen.getByLabelText(label)
+      expect((control as HTMLInputElement).disabled).toBe(true)
+      fireEvent.click(control)
+    }
+    expect(props.onCommand).not.toHaveBeenCalled()
+    rerender(<Editor {...props} readOnly={false} />)
+    fireEvent.click(screen.getByLabelText('Present'))
+    expect(screen.queryByTestId('grid-background')).toBeNull()
+    expect(flow.props.snapToGrid).toBe(false)
+    fireEvent.click(screen.getByLabelText('Show grid'))
+    expect(props.onCommand).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByLabelText('Exit presentation'))
+    expect(screen.getByTestId('grid-background')).toBeDefined()
+    expect(flow.props.snapToGrid).toBe(true)
+  })
+  it('should_show_present_grid_even_when_editor_grid_is_hidden_and_keep_style_and_gap', () => {
+    const { props } = setup({ document: { ...createDocument('present-grid'), grid: { visible: false, style: 'lines', spacing: 32, snap: true, present: true, export: false } } })
+    expect(screen.queryByTestId('grid-background')).toBeNull()
+    fireEvent.click(screen.getByLabelText('Present'))
+    expect(screen.getByTestId('grid-background').getAttribute('data-variant')).toBe('lines')
+    expect(screen.getByTestId('grid-background').getAttribute('data-gap')).toBe('32')
+    expect(flow.props.snapToGrid).toBe(false)
+    expect(props.onCommand).not.toHaveBeenCalled()
+  })
+  it('should_keep_off_grid_click_and_drop_geometry_when_snapping_is_disabled', () => {
+    const { props } = setup({ document: { ...createDocument('off-grid'), grid: { visible: true, style: 'dots', spacing: 16, snap: false, present: false, export: false } } })
+    fireEvent.click(screen.getByLabelText('Add text'))
+    fireEvent.click(screen.getByText('Canvas point'))
+    expect(props.onCommand).toHaveBeenLastCalledWith(expect.objectContaining({ type: 'addEntity', entity: expect.objectContaining({ x: 83, y: 99 }) }))
+    const drop = createEvent.drop(screen.getByLabelText('Architecture canvas'), { dataTransfer: { getData: () => JSON.stringify({ icon: 'service' }) } })
+    Object.defineProperties(drop, { clientX: { value: 83 }, clientY: { value: 99 } })
+    fireEvent(screen.getByLabelText('Architecture canvas'), drop)
+    expect(props.onCommand).toHaveBeenLastCalledWith(expect.objectContaining({ type: 'addEntity', entity: expect.objectContaining({ x: 83, y: 99 }) }))
+  })
+  it('should_preview_background_hex_commit_once_reset_and_keep_invalid_drafts_safe', () => {
+    const { props, rerender } = setup()
+    fireEvent.click(screen.getByLabelText('Document properties'))
+    const hex = screen.getByLabelText('Background hex color')
+    fireEvent.change(hex, { target: { value: '#123' } })
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(props.onPreviewChange).toHaveBeenLastCalledWith(expect.objectContaining({ backgroundColor: '#123' }))
+    fireEvent.change(hex, { target: { value: '#123456' } })
+    fireEvent.blur(hex)
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'metadata', patch: { backgroundColor: '#123456' } })
+    const committed = applyCommand(props.document, { type: 'metadata', patch: { backgroundColor: '#123456' } })
+    rerender(<Editor {...props} document={committed} />)
+    expect((screen.getByLabelText('Diagram background color') as HTMLInputElement).value).toBe('#123456')
+    fireEvent.change(hex, { target: { value: '#ggg' } })
+    expect(hex.getAttribute('aria-invalid')).toBe('true')
+    expect(screen.getByRole('alert').textContent).toContain('#RGB')
+    fireEvent.blur(hex)
+    expect(props.onCommand).toHaveBeenCalledTimes(1)
+    expect(screen.getByLabelText('Architecture canvas').style.backgroundColor).toBe('rgb(18, 52, 86)')
+    fireEvent.click(screen.getByLabelText('Reset diagram background'))
+    expect(props.onCommand).toHaveBeenLastCalledWith({ type: 'metadata', patch: { backgroundColor: undefined } })
+    expect(props.onArrange).not.toHaveBeenCalled()
+  })
+  it.each(['light', 'dark'])('should_refresh_background_paint_and_present_without_theme_override_in_%s_theme', theme => {
+    const previousTheme = document.documentElement.getAttribute('data-theme')
+    document.documentElement.setAttribute('data-theme', theme)
+    try {
+      const { props, rerender } = setup({ document: sampleDiagram() })
+      const before = screen.getByTestId('tile-note').querySelector('svg')!.innerHTML
+      const next = { ...props.document, backgroundColor: '#101010' }
+      rerender(<Editor {...props} document={next} />)
+      expect(screen.getByTestId('tile-note').querySelector('svg')!.innerHTML).not.toBe(before)
+      expect(screen.getByLabelText('Architecture canvas').style.backgroundColor).toBe('rgb(16, 16, 16)')
+      fireEvent.click(screen.getByLabelText('Present'))
+      expect(screen.getByLabelText('Architecture canvas').style.backgroundColor).toBe('rgb(16, 16, 16)')
+      expect((screen.getByLabelText('Diagram background color') as HTMLInputElement).disabled).toBe(true)
+      expect(props.onCommand).not.toHaveBeenCalled()
+    } finally {
+      if (previousTheme === null) document.documentElement.removeAttribute('data-theme')
+      else document.documentElement.setAttribute('data-theme', previousTheme)
+    }
+  })
+  it('should_preview_native_background_picker_and_block_readonly_edits', () => {
+    const { props, rerender } = setup()
+    const picker = screen.getByLabelText('Diagram background color')
+    expect(picker.getAttribute('type')).toBe('color')
+    fireEvent.change(picker, { target: { value: '#aabbcc' } })
+    fireEvent.change(picker, { target: { value: '#112233' } })
+    expect(props.onCommand).not.toHaveBeenCalled()
+    fireEvent.blur(picker)
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'metadata', patch: { backgroundColor: '#112233' } })
+    rerender(<Editor {...props} readOnly />)
+    expect((picker as HTMLInputElement).disabled).toBe(true)
+    fireEvent.change(picker, { target: { value: '#abcdef' } })
+    expect(props.onCommand).toHaveBeenCalledTimes(1)
+    expect((screen.getByLabelText('Reset diagram background') as HTMLButtonElement).disabled).toBe(true)
+  })
+  it('should_reserve_mobile_navigation_below_drawers_without_raising_selection_actions_when_s2_v05_panels_open', () => {
+    const style = document.createElement('style')
+    style.textContent = readFileSync('src/editor/editor.css', 'utf8')
+    document.head.append(style)
+    try {
+      const mobile = [...style.sheet!.cssRules].filter(rule => rule.type === 4 && (rule as CSSMediaRule).conditionText === '(max-width: 640px)').at(-1) as CSSMediaRule
+      const rules = [...mobile.cssRules].filter(rule => rule.type === 1) as CSSStyleRule[]
+      const ruleFor = (selector: string) => rules.filter(rule => rule.selectorText.split(',').map(value => value.trim()).includes(selector)).at(-1)!
+      const band = ruleFor('.workspace')?.style.getPropertyValue('--mobile-navigation-band')
+      expect(band).toBe('132px')
+      for (const selector of ['.library', '.inspector']) expect(ruleFor(selector).style.getPropertyValue('bottom')).toBe('var(--mobile-navigation-band)')
+      expect(ruleFor('.app-shell:not(.presenting) .canvas-bottom-chrome').style.getPropertyValue('z-index')).toBe('auto')
+      const navigation = ruleFor('.app-shell:not(.presenting) .canvas-navigation').style
+      expect(navigation.getPropertyValue('position')).toBe('relative')
+      expect(navigation.getPropertyValue('z-index')).toBe('12')
+      expect(navigation.getPropertyValue('display')).toBe('grid')
+      expect(navigation.getPropertyValue('grid-template-rows')).toBe('50px 52px')
+      expect(ruleFor('.canvas-navigation .zoom-controls').style.getPropertyValue('grid-template-columns')).toBe('44px minmax(28px, 1fr) repeat(3, 44px)')
+      expect(ruleFor('.canvas-navigation .zoom-controls .separator').style.getPropertyValue('display')).toBe('none')
+    } finally { style.remove() }
+  })
+  it.each(['light', 'dark'])('should_preserve_selection_camera_and_history_when_mobile_pan_drawers_swap_and_close_in_%s_theme', theme => {
+    window.innerWidth = 390
+    const previousTheme = document.documentElement.getAttribute('data-theme')
+    document.documentElement.setAttribute('data-theme', theme)
+    try {
+      const diagram = sampleDiagram()
+      const original = JSON.stringify(diagram)
+      const { props } = setup({ document: diagram })
+      fireEvent.click(screen.getByText('platform'))
+      fireEvent.click(screen.getByLabelText('Open properties'))
+      fireEvent.click(screen.getByLabelText('Close properties'))
+      fireEvent.click(screen.getByLabelText('Pan tool'))
+      const camera = flow.api.getViewport()
+      const assertUnchanged = () => {
+        expect(flow.props.nodes.filter((node: any) => node.selected).map((node: any) => node.id)).toEqual(['platform'])
+        expect(screen.getByLabelText('Pan tool').getAttribute('aria-pressed')).toBe('true')
+        expect(flow.api.getViewport()).toEqual(camera)
+        expect(flow.api.setViewport).not.toHaveBeenCalled()
+        expect(flow.api.fitView).not.toHaveBeenCalled()
+        expect(props.onCommand).not.toHaveBeenCalled()
+        expect(props.onPreviewChange).not.toHaveBeenCalled()
+        expect(props.onUndo).not.toHaveBeenCalled()
+        expect(props.onRedo).not.toHaveBeenCalled()
+        expect(JSON.stringify(diagram)).toBe(original)
+      }
+      for (const closeWithToggle of [true, false]) {
+        fireEvent.click(screen.getByLabelText('Open component library'))
+        expect(screen.getByLabelText('Component library').classList.contains('open')).toBe(true)
+        expect(screen.getByLabelText('Properties').classList.contains('open')).toBe(false)
+        fireEvent.click(screen.getByLabelText('Open properties'))
+        expect(screen.getByLabelText('Component library').classList.contains('open')).toBe(false)
+        expect(screen.getByLabelText('Properties').classList.contains('open')).toBe(true)
+        expect((screen.getByLabelText('Component label') as HTMLInputElement).value).toBe(diagram.entities.find(entity => entity.id === 'platform')!.label)
+        assertUnchanged()
+        fireEvent.click(screen.getByLabelText(closeWithToggle ? 'Open properties' : 'Close properties'))
+        expect(screen.getByLabelText('Properties').classList.contains('open')).toBe(false)
+        fireEvent.click(screen.getByLabelText('Open properties'))
+        fireEvent.click(screen.getByLabelText('Open component library'))
+        expect(screen.getByLabelText('Component library').classList.contains('open')).toBe(true)
+        expect(screen.getByLabelText('Properties').classList.contains('open')).toBe(false)
+        fireEvent.click(screen.getByLabelText(closeWithToggle ? 'Open component library' : 'Close component library'))
+        expect(screen.getByLabelText('Component library').classList.contains('open')).toBe(false)
+        assertUnchanged()
+      }
+    } finally {
+      if (previousTheme === null) document.documentElement.removeAttribute('data-theme')
+      else document.documentElement.setAttribute('data-theme', previousTheme)
+    }
+  })
+  it.each(['touch', 'rail', 'canvas'])('should_repair_sprint2_%s_styles_without_changing_document_artwork', surface => {
+    const style = document.createElement('style')
+    style.textContent = readFileSync('src/editor/editor.css', 'utf8')
+    document.head.append(style)
+    try {
+      const rules = [...style.sheet!.cssRules]
+      const ruleFor = (selector: string) => rules.filter(rule => rule.type === 1 && (rule as CSSStyleRule).selectorText === selector).at(-1) as CSSStyleRule
+      if (surface === 'touch') {
+        const media = rules.find(rule => rule.type === 4 && (rule as CSSMediaRule).conditionText.includes('pointer: coarse') && (rule as CSSMediaRule).conditionText.includes('max-width: 640px')) as CSSMediaRule
+        const target = [...media.cssRules].find(rule => rule.type === 1 && (rule as CSSStyleRule).selectorText.split(',').map(selector => selector.trim()).includes('.topbar .present-button')) as CSSStyleRule
+        expect(target).toBeDefined()
+        expect(target.style.getPropertyValue('min-width')).toBe('44px')
+        expect(target.style.getPropertyValue('min-height')).toBe('44px')
+      } else if (surface === 'rail') {
+        expect(Number.parseFloat(ruleFor('.tool-rail').style.getPropertyValue('min-height'))).toBe(0)
+        expect(ruleFor('.tool-rail').style.getPropertyValue('overflow-y')).toBe('auto')
+        expect(ruleFor('.tool-rail .icon-button').style.getPropertyValue('flex-shrink')).toBe('0')
+        expect(ruleFor('.topbar').style.getPropertyValue('flex-shrink')).toBe('0')
+      } else {
+        expect(ruleFor(":root[data-theme='dark']").style.getPropertyValue('--canvas-surface')).toBe('#fbfdfd')
+        expect(ruleFor('.canvas-surface').style.getPropertyValue('--ink')).toBe('#263c3e')
+        expect(ruleFor('.canvas-surface').style.getPropertyValue('--muted')).toBe('#586e69')
+        expect(ruleFor('.canvas-surface').style.getPropertyValue('--surface')).toBe('#ffffff')
+        expect(ruleFor('.canvas-surface').style.getPropertyValue('--icon-ink')).toBe('#526e67')
+        expect(ruleFor('.canvas-surface').style.getPropertyValue('--accent')).toBe('#117865')
+      }
+    } finally { style.remove() }
+  })
+  it('should_repair_sprint2_present_fit_after_heading_resize_and_fonts_without_reframing_pan_or_exit', async () => {
+    window.innerWidth = 720
+    let resize: (() => void) | undefined
+    const observe = vi.fn()
+    const disconnect = vi.fn()
+    vi.stubGlobal('ResizeObserver', class {
+      constructor(callback: () => void) { resize = callback }
+      observe = observe
+      disconnect = disconnect
+    })
+    let ready!: () => void
+    const fonts = Object.getOwnPropertyDescriptor(document, 'fonts')
+    Object.defineProperty(document, 'fonts', { configurable: true, value: { ready: new Promise<void>(resolve => { ready = resolve }) } })
+    const rect = (x: number, y: number, width: number, height: number) => ({ x, y, left: x, top: y, right: x + width, bottom: y + height, width, height, toJSON: () => ({}) })
+    try {
+      const diagram = { ...sampleDiagram(), title: 'Long title '.repeat(10), subtitle: 'Long subtitle '.repeat(14) }
+      const original = JSON.stringify(diagram)
+      const { props, container } = setup({ document: diagram })
+      const canvas = screen.getByLabelText('Architecture canvas')
+      vi.spyOn(canvas, 'getBoundingClientRect').mockReturnValue(rect(0, 0, 720, 450))
+      let headingHeight = 110
+      vi.spyOn(canvas.querySelector('.canvas-heading')!, 'getBoundingClientRect').mockImplementation(() => rect(24, 24, 476, headingHeight))
+      vi.spyOn(canvas.querySelector('.canvas-legend')!, 'getBoundingClientRect').mockReturnValue(rect(16, 354, 600, 36))
+      vi.spyOn(canvas.querySelector('.zoom-controls')!, 'getBoundingClientRect').mockReturnValue(rect(444, 398, 260, 36))
+      fireEvent.click(screen.getByRole('button', { name: 'Present' }))
+      expect(observe).toHaveBeenCalledWith(canvas)
+      expect(observe).toHaveBeenCalledWith(canvas.querySelector('.canvas-heading'))
+      expect(observe).toHaveBeenCalledWith(canvas.querySelector('.presentation-controls'))
+      expect(observe).toHaveBeenCalledWith(canvas.querySelector('.canvas-bottom-chrome'))
+      const checkFit = () => {
+        const viewport = flow.api.setViewport.mock.calls.at(-1)![0]
+        expect(viewport.zoom).toBeGreaterThanOrEqual(flow.props.minZoom)
+        for (const entity of buildScene(diagram).entities) {
+          expect(viewport.y + entity.absolute.y * viewport.zoom).toBeGreaterThanOrEqual(24 + headingHeight + 24 - 1e-6)
+          expect(viewport.y + (entity.absolute.y + entity.height) * viewport.zoom).toBeLessThanOrEqual(330 + 1e-6)
+        }
+      }
+      checkFit()
+      headingHeight = 180
+      act(() => resize?.())
+      checkFit()
+      headingHeight = 200
+      await act(async () => { ready() })
+      checkFit()
+      const calls = flow.api.setViewport.mock.calls.length
+      act(() => flow.props.onMove(null, { x: 50, y: 70, zoom: .12 }))
+      fireEvent.click(screen.getByRole('button', { name: 'Presentation pointer' }))
+      expect(flow.api.setViewport).toHaveBeenCalledTimes(calls)
+      fireEvent.keyDown(window, { key: 'Escape' })
+      expect(disconnect).toHaveBeenCalledTimes(1)
+      expect(flow.api.setViewport).toHaveBeenLastCalledWith({ x: 17, y: 23, zoom: .75 }, { duration: 0 })
+      const restoredCalls = flow.api.setViewport.mock.calls.length
+      act(() => resize?.())
+      expect(flow.api.setViewport).toHaveBeenCalledTimes(restoredCalls)
+      expect(container.querySelector('.presenting')).toBeNull()
+      expect(JSON.stringify(diagram)).toBe(original)
+      expect(props.onCommand).not.toHaveBeenCalled()
+      expect(props.onPreviewChange).not.toHaveBeenCalled()
+    } finally {
+      if (fonts) Object.defineProperty(document, 'fonts', fonts)
+      else Reflect.deleteProperty(document, 'fonts')
+      vi.unstubAllGlobals()
+    }
+  })
+  it.each(['Exit', 'Escape', 'replacement', 'unmount'])('should_notify_shell_synchronously_on_entry_and_once_on_%s', exit => {
+    const notifications: boolean[] = []
+    const onPresentationChange = vi.fn((active: boolean) => {
+      notifications.push(active)
+      if (active) expect(screen.queryByRole('button', { name: 'Exit presentation' })).toBeNull()
+      else if (exit === 'Exit' || exit === 'Escape') expect(screen.getByRole('button', { name: 'Exit presentation' })).toBeTruthy()
+    })
+    const { props, rerender, unmount } = setup({ document: sampleDiagram(), onPresentationChange })
+    fireEvent.click(screen.getByRole('button', { name: 'Present' }))
+    expect(notifications).toEqual([true])
+    if (exit === 'Exit') fireEvent.click(screen.getByRole('button', { name: 'Exit presentation' }))
+    else if (exit === 'Escape') fireEvent.keyDown(window, { key: 'Escape' })
+    else if (exit === 'replacement') rerender(<Editor {...props} document={createDocument('replacement')} />)
+    unmount()
+    expect(notifications).toEqual([true, false])
+  })
+  it('should_notify_shell_only_after_draft_json_acceptance_and_use_latest_callback_for_cleanup', async () => {
+    const first = vi.fn()
+    const latest = vi.fn()
+    const { props, rerender, unmount } = setup({ document: sampleDiagram(), onPresentationChange: first })
+    fireEvent.change(screen.getByLabelText('Document title'), { target: { value: 'Accepted draft' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Present' }))
+    expect(first).not.toHaveBeenCalled()
+    const accepted = applyCommand(props.document, { type: 'metadata', patch: { title: 'Accepted draft' } })
+    const acknowledged = JSON.parse(JSON.stringify(accepted))
+    await act(async () => rerender(<Editor {...props} document={acknowledged} />))
+    expect(first).toHaveBeenCalledExactlyOnceWith(true)
+    rerender(<Editor {...props} document={acknowledged} onPresentationChange={latest} />)
+    expect(latest).not.toHaveBeenCalled()
+    unmount()
+    expect(first).toHaveBeenCalledTimes(1)
+    expect(latest).toHaveBeenCalledExactlyOnceWith(false)
+  })
+  it('should_enter_present_with_semantics_and_no_editing_chrome_or_selection', () => {
+    const { props, container } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('platform'))
+    fireEvent.click(screen.getByRole('button', { name: 'Present' }))
+    expect(screen.getByRole('button', { name: 'Exit presentation' })).toBeTruthy()
+    expect(container.querySelector('.app-shell')?.classList.contains('presenting')).toBe(true)
+    expect(screen.queryByRole('navigation', { name: 'Drawing tools' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Auto-arrange' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'New diagram' })).toBeNull()
+    expect(screen.getByLabelText('Component library').hasAttribute('inert')).toBe(true)
+    expect(screen.getByLabelText('Properties').hasAttribute('inert')).toBe(true)
+    expect(container.querySelector('.tile-selected')).toBeNull()
+    expect(screen.queryAllByTestId('resizer')).toHaveLength(0)
+    expect(screen.queryAllByLabelText(/right connector/)).toHaveLength(0)
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(props.document.title)
+    expect(screen.getByText('SYNTHETIC EXAMPLE')).toBeTruthy()
+    expect(screen.getByRole('list', { name: 'Diagram legend' })).toBeTruthy()
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(props.onPreviewChange).not.toHaveBeenCalled()
+  })
+  it('should_guard_present_against_keyboard_gestures_connections_and_drop', () => {
+    const { props } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('gateway'))
+    fireEvent.keyDown(window, { key: 'c', ctrlKey: true })
+    const node = flow.props.nodes.find((item: any) => item.id === 'gateway')
+    fireEvent.click(screen.getByRole('button', { name: 'Present' }))
+    for (const key of ['Delete', 'Backspace', 'ArrowRight', 'ArrowDown', 'z', 'y', 'x', 'v', 'd']) {
+      for (const modifiers of [{}, { ctrlKey: true }, { metaKey: true, shiftKey: true }, { altKey: true }]) fireEvent.keyDown(window, { key, ...modifiers })
+    }
+    act(() => {
+      flow.props.onNodeDragStart()
+      flow.props.onNodeDrag({}, node, [{ ...node, position: { x: 200, y: 100 } }])
+      flow.props.onNodeDragStop({}, node, [{ ...node, position: { x: 200, y: 100 } }])
+      flow.props.onNodesChange([{ type: 'dimensions', id: 'gateway', dimensions: { width: 400, height: 200 }, resizing: true }])
+      flow.props.onNodesChange([{ type: 'dimensions', id: 'gateway', dimensions: { width: 400, height: 200 }, resizing: false }])
+      flow.props.onConnect({ source: 'app', target: 'sql' })
+      flow.props.onReconnect({ id: 'route' }, { source: 'app', target: 'sql' })
+      flow.props.onPaneClick({ clientX: 200, clientY: 200 })
+    })
+    fireEvent.drop(screen.getByLabelText('Architecture canvas'), { dataTransfer: { getData: () => JSON.stringify(genericLibrary[0]) } })
+    expect(flow.props.nodesDraggable).toBe(false)
+    expect(flow.props.nodesConnectable).toBe(false)
+    expect(flow.props.edgesReconnectable).toBe(false)
+    expect(flow.props.elementsSelectable).toBe(false)
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(props.onPreviewChange).not.toHaveBeenCalled()
+    expect(props.onUndo).not.toHaveBeenCalled()
+    expect(props.onRedo).not.toHaveBeenCalled()
+    expect(props.onArrange).not.toHaveBeenCalled()
+  })
+  it.each(['pending', 'blurred'])('should_wait_for_valid_%s_draft_acceptance_before_present', async state => {
+    const { props, rerender } = setup({ document: sampleDiagram() })
+    const title = screen.getByLabelText('Document title')
+    act(() => title.focus())
+    fireEvent.change(title, { target: { value: 'Accepted presentation' } })
+    if (state === 'blurred') fireEvent.blur(title)
+    fireEvent.click(screen.getByRole('button', { name: 'Present' }))
+    expect(screen.queryByRole('button', { name: 'Exit presentation' })).toBeNull()
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'metadata', patch: { title: 'Accepted presentation' } })
+    const accepted = applyCommand(props.document, { type: 'metadata', patch: { title: 'Accepted presentation' } })
+    await act(async () => rerender(<Editor {...props} document={accepted} />))
+    expect(screen.getByRole('button', { name: 'Exit presentation' })).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Accepted presentation')
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(document.activeElement).toBe(screen.getByLabelText('Document title'))
+    expect(props.onCommand).toHaveBeenCalledTimes(1)
+  })
+  it.each(['local', 'throw', 'parent', 'blur-parent'])('should_keep_editing_when_present_draft_is_rejected_by_%s', reason => {
+    const onPresentationChange = vi.fn()
+    const { props, rerender } = setup({ document: sampleDiagram(), onPresentationChange, onCommand: reason === 'throw' ? vi.fn(() => { throw new Error('Parent rejected draft') }) : vi.fn() })
+    const title = screen.getByLabelText('Document title')
+    fireEvent.change(title, { target: { value: reason === 'local' ? 'X'.repeat(121) : 'Rejected draft' } })
+    if (reason === 'blur-parent') { fireEvent.blur(title); rerender(<Editor {...props} message="Parent rejected draft" />) }
+    fireEvent.click(screen.getByRole('button', { name: 'Present' }))
+    if (reason === 'parent') rerender(<Editor {...props} message="Parent rejected draft" />)
+    expect(screen.queryByRole('button', { name: 'Exit presentation' })).toBeNull()
+    expect(screen.getByLabelText('Document title')).toBeTruthy()
+    expect(screen.getByRole('status').textContent).toMatch(/at most 120|rejected|accepted/i)
+    if (reason === 'local') expect(props.onCommand).not.toHaveBeenCalled()
+    expect(onPresentationChange).not.toHaveBeenCalled()
+  })
+  it('should_prevent_present_when_hex_field_is_invalid', () => {
+    setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('gateway'))
+    const hex = screen.getByLabelText('Hex color')
+    fireEvent.change(hex, { target: { value: '#abcd' } })
+    fireEvent.blur(hex)
+    fireEvent.click(screen.getByRole('button', { name: 'Present' }))
+    expect(screen.queryByRole('button', { name: 'Exit presentation' })).toBeNull()
+    expect(document.activeElement).toBe(hex)
+    expect(screen.getByRole('alert').textContent).toContain('#RGB')
+  })
+  it('should_prevent_present_when_invalid_hex_has_not_blurred', () => {
+    setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('gateway'))
+    const hex = screen.getByLabelText('Hex color')
+    act(() => hex.focus())
+    fireEvent.change(hex, { target: { value: '#abcd' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Present' }))
+    expect(screen.queryByRole('button', { name: 'Exit presentation' })).toBeNull()
+    expect(screen.getByRole('alert').textContent).toContain('#RGB')
+    expect(document.activeElement).toBe(hex)
+  })
+  it('should_commit_pending_gesture_before_present_and_ignore_its_late_finish', () => {
+    const { props, rerender } = setup({ document: sampleDiagram() })
+    const node = flow.props.nodes.find((item: any) => item.id === 'gateway')
+    act(() => flow.props.onNodeDrag({}, node, [{ ...node, position: { x: 80, y: 64 } }]))
+    fireEvent.click(screen.getByRole('button', { name: 'Present' }))
+    const command = { type: 'move', positions: [{ id: 'gateway', x: 84, y: 64 }] } as const
+    expect(props.onCommand).toHaveBeenCalledTimes(1)
+    rerender(<Editor {...props} document={applyCommand(props.document, { ...command, positions: [...command.positions] })} />)
+    act(() => {
+      node.data.startResize()
+      flow.props.onNodesChange([{ type: 'dimensions', id: 'gateway', dimensions: { width: 400, height: 200 }, resizing: true }])
+      flow.props.onNodeDragStop({}, node, [{ ...node, position: { x: 160, y: 64 } }])
+    })
+    fireEvent.keyDown(window, { key: 'Escape' })
+    act(() => flow.props.onNodeDragStop({}, node, [{ ...node, position: { x: 160, y: 64 } }]))
+    expect(props.onCommand).toHaveBeenCalledTimes(1)
+  })
+  it('should_close_present_on_fullscreen_escape_before_request_resolves', async () => {
+    const { props } = setup()
+    const canvas = screen.getByLabelText('Architecture canvas')
+    let fullscreenElement: Element | null = null
+    let complete!: () => void
+    const descriptor = Object.getOwnPropertyDescriptor(document, 'fullscreenElement')
+    Object.defineProperty(document, 'fullscreenElement', { configurable: true, get: () => fullscreenElement })
+    Object.defineProperty(canvas, 'requestFullscreen', { configurable: true, value: vi.fn(() => new Promise<void>(resolve => { complete = resolve; fullscreenElement = canvas; fireEvent(document, new Event('fullscreenchange')) })) })
+    try {
+      fireEvent.click(screen.getByRole('button', { name: 'Present' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Fullscreen presentation' }))
+      act(() => { fullscreenElement = null; fireEvent(document, new Event('fullscreenchange')) })
+      expect(screen.queryByRole('button', { name: 'Exit presentation' })).toBeNull()
+      await act(async () => complete())
+      expect(screen.queryByRole('button', { name: 'Exit presentation' })).toBeNull()
+      expect(props.onCommand).not.toHaveBeenCalled()
+    } finally { if (descriptor) Object.defineProperty(document, 'fullscreenElement', descriptor); else Reflect.deleteProperty(document, 'fullscreenElement') }
+  })
+  it('should_keep_export_canonical_after_pointer_and_restore_closed_panel_intent', () => {
+    const { props } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('gateway'))
+    fireEvent.click(screen.getByLabelText('Close properties'))
+    const original = JSON.stringify(props.document)
+    fireEvent.click(screen.getByRole('button', { name: 'Present' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Presentation pointer' }))
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(screen.getByLabelText('Properties').classList.contains('open')).toBe(false)
+    fireEvent.click(screen.getByText('app'))
+    expect(screen.getByLabelText('Properties').classList.contains('open')).toBe(false)
+    fireEvent.click(screen.getByLabelText('Export'))
+    fireEvent.click(screen.getByLabelText('Export SVG'))
+    expect(props.onExport).toHaveBeenCalledExactlyOnceWith({ format: 'svg', scale: 1, transparent: false })
+    expect(JSON.stringify(props.document)).toBe(original)
+    expect(props.onCommand).not.toHaveBeenCalled()
+  })
+  it('should_preserve_edge_selection_and_focus_present_command_when_no_field_is_active', () => {
+    setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('route'))
+    const present = screen.getByRole('button', { name: 'Present' })
+    act(() => present.focus())
+    fireEvent.click(present)
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Exit presentation' }))
+    expect(flow.props.edges.every((edge: any) => !edge.selected)).toBe(true)
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(flow.props.edges.filter((edge: any) => edge.selected).map((edge: any) => edge.id)).toEqual(['route'])
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Present' }))
+  })
+  it('should_invalidate_pending_icon_import_on_present_even_after_exit', async () => {
+    const { props } = setup({ document: sampleDiagram() })
+    let complete!: (value: ReturnType<typeof iconFixture>) => void
+    vi.mocked(importCustomIcon).mockReturnValueOnce(new Promise(resolve => { complete = resolve }))
+    fireEvent.click(screen.getByText('gateway'))
+    fireEvent.change(screen.getByLabelText('Import icon file'), { target: { files: [new File(['image'], 'icon.png')] } })
+    fireEvent.click(screen.getByRole('button', { name: 'Present' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Exit presentation' }))
+    await act(async () => complete(iconFixture()))
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(screen.getByRole('status').textContent).not.toContain('Import again')
+    expect((screen.getByLabelText('Import custom icon') as HTMLButtonElement).disabled).toBe(false)
+  })
+  it('should_guard_stale_callbacks_and_hidden_inputs_and_keep_the_snapshot_selection', async () => {
+    const { props } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('gateway'))
+    const priorFlow = flow.props
+    const stale = ['Auto-arrange', 'New diagram', 'Open JSON', 'Import skill JSON', 'Undo', 'Redo'].map(label => screen.getByLabelText(label))
+    const title = screen.getByLabelText('Document title')
+    const iconInput = screen.getByLabelText('Import icon file')
+    fireEvent.click(screen.getByRole('button', { name: 'Present' }))
+    for (const button of stale) fireEvent.click(button)
+    fireEvent.change(title, { target: { value: 'Forbidden draft' } })
+    fireEvent.blur(title)
+    await act(async () => fireEvent.change(iconInput, { target: { files: [new File(['image'], 'icon.png')] } }))
+    act(() => {
+      priorFlow.onNodeClick({}, { id: 'app' })
+      priorFlow.onEdgeClick({}, { id: 'route' })
+      priorFlow.onEdgesChange([{ type: 'select', id: 'route', selected: true }])
+      priorFlow.onNodesChange([{ type: 'select', id: 'app', selected: true }])
+      priorFlow.onConnect({ source: 'app', target: 'sql' })
+      priorFlow.onReconnect({ id: 'route' }, { source: 'app', target: 'sql' })
+    })
+    expect(importCustomIcon).not.toHaveBeenCalled()
+    for (const callback of [props.onCommand, props.onPreviewChange, props.onNew, props.onOpen, props.onImport, props.onArrange, props.onUndo, props.onRedo]) expect(callback).not.toHaveBeenCalled()
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(flow.props.nodes.filter((node: any) => node.selected).map((node: any) => node.id)).toEqual(['gateway'])
+  })
+  it.each(['Exit', 'Escape'])('should_restore_exact_camera_panels_pin_tool_selection_and_focus_on_%s', exit => {
+    window.innerWidth = 1600
+    const { props } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByRole('button', { name: 'Pin component library' }))
+    fireEvent.click(screen.getByText('gateway'))
+    fireEvent.click(screen.getByRole('button', { name: 'Add rectangle' }))
+    const focus = screen.getByLabelText('Component label')
+    act(() => focus.focus())
+    const original = JSON.stringify(props.document)
+    fireEvent.click(screen.getByRole('button', { name: 'Present' }))
+    act(() => flow.props.onMove(null, { x: 300, y: 200, zoom: 1.5 }))
+    if (exit === 'Exit') fireEvent.click(screen.getByRole('button', { name: 'Exit presentation' }))
+    else fireEvent.keyDown(window, { key: 'Escape' })
+    expect(flow.api.setViewport).toHaveBeenLastCalledWith({ x: 17, y: 23, zoom: .75 }, { duration: 0 })
+    expect(screen.getByLabelText('Component library').classList.contains('open')).toBe(true)
+    expect(screen.getByLabelText('Properties').classList.contains('open')).toBe(true)
+    expect(screen.getByRole('button', { name: 'Unpin component library' }).getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByRole('button', { name: 'Add rectangle' }).getAttribute('aria-pressed')).toBe('true')
+    expect(flow.props.nodes.filter((node: any) => node.selected).map((node: any) => node.id)).toEqual(['gateway'])
+    expect(document.activeElement).toBe(focus)
+    expect(JSON.stringify(props.document)).toBe(original)
+    expect(props.onCommand).not.toHaveBeenCalled()
+  })
+  it.each([false, true])('should_preserve_storage_readonly_%s_and_changed_lock_on_exit', initiallyLocked => {
+    const { props, rerender } = setup({ document: sampleDiagram(), readOnly: initiallyLocked })
+    fireEvent.click(screen.getByText('gateway'))
+    fireEvent.click(screen.getByRole('button', { name: 'Present' }))
+    rerender(<Editor {...props} readOnly saveState="read-only" />)
+    fireEvent.keyDown(window, { key: 'Escape' })
+    fireEvent.keyDown(window, { key: 'Delete' })
+    expect((screen.getByLabelText('Document title') as HTMLInputElement).disabled).toBe(true)
+    expect(flow.props.nodesDraggable).toBe(false)
+    expect(props.onCommand).not.toHaveBeenCalled()
+  })
+  it('should_cancel_cross_document_snapshot_without_restoring_old_camera_or_focus', () => {
+    const { props, rerender } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('gateway'))
+    fireEvent.click(screen.getByRole('button', { name: 'Present' }))
+    flow.api.setViewport.mockClear()
+    rerender(<Editor {...props} document={createDocument('replacement')} />)
+    expect(screen.queryByRole('button', { name: 'Exit presentation' })).toBeNull()
+    expect(flow.api.setViewport).not.toHaveBeenCalled()
+    expect(flow.props.nodes).toHaveLength(0)
+    expect(props.onCommand).not.toHaveBeenCalled()
+  })
+  it.each(['missing', 'denied'])('should_keep_in_window_present_when_fullscreen_is_%s', async mode => {
+    const { props } = setup()
+    const canvas = screen.getByLabelText('Architecture canvas')
+    Object.defineProperty(canvas, 'requestFullscreen', { configurable: true, value: mode === 'missing' ? undefined : vi.fn().mockRejectedValue(new Error('Denied')) })
+    fireEvent.click(screen.getByRole('button', { name: 'Present' }))
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Fullscreen presentation' })))
+    expect(screen.getByRole('button', { name: 'Exit presentation' })).toBeTruthy()
+    expect(screen.getByRole('status').textContent).toContain('Fullscreen unavailable')
+    expect(props.onCommand).not.toHaveBeenCalled()
+  })
+  it('should_exit_present_on_external_fullscreen_escape_without_overriding_lock', async () => {
+    const { props, rerender } = setup({ document: sampleDiagram() })
+    const canvas = screen.getByLabelText('Architecture canvas')
+    let fullscreenElement: Element | null = null
+    const descriptor = Object.getOwnPropertyDescriptor(document, 'fullscreenElement')
+    Object.defineProperty(document, 'fullscreenElement', { configurable: true, get: () => fullscreenElement })
+    Object.defineProperty(canvas, 'requestFullscreen', { configurable: true, value: vi.fn(async () => { fullscreenElement = canvas; fireEvent(document, new Event('fullscreenchange')) }) })
+    try {
+      fireEvent.click(screen.getByRole('button', { name: 'Present' }))
+      await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Fullscreen presentation' })))
+      rerender(<Editor {...props} readOnly saveState="read-only" />)
+      act(() => { fullscreenElement = null; fireEvent(document, new Event('fullscreenchange')) })
+      expect(screen.queryByRole('button', { name: 'Exit presentation' })).toBeNull()
+      expect(flow.api.setViewport).toHaveBeenLastCalledWith({ x: 17, y: 23, zoom: .75 }, { duration: 0 })
+      expect(flow.props.nodesDraggable).toBe(false)
+    } finally { if (descriptor) Object.defineProperty(document, 'fullscreenElement', descriptor); else Reflect.deleteProperty(document, 'fullscreenElement') }
+  })
+  it('should_keep_pointer_motion_keyboard_and_zoom_outside_document_paint_and_history', () => {
+    const { props } = setup({ document: sampleDiagram() })
+    const original = JSON.stringify(props.document)
+    fireEvent.click(screen.getByRole('button', { name: 'Present' }))
+    vi.mocked(entityMarkup).mockClear(); vi.mocked(connectionMarkup).mockClear(); vi.mocked(buildScene).mockClear()
+    fireEvent.click(screen.getByRole('button', { name: 'Presentation pointer' }))
+    const pointer = screen.getByRole('img', { name: 'Presentation pointer position' })
+    const canvas = screen.getByLabelText('Architecture canvas')
+    vi.spyOn(canvas, 'getBoundingClientRect').mockReturnValue({ x: 0, y: 0, left: 0, top: 0, right: 1280, bottom: 720, width: 1280, height: 720, toJSON: () => ({}) })
+    fireEvent(canvas, new MouseEvent('pointermove', { bubbles: true, clientX: 200, clientY: 250 }))
+    fireEvent.keyDown(pointer, { key: 'ArrowRight' })
+    expect(pointer.style.left).toBe('210px')
+    fireEvent.keyDown(pointer, { key: 'ArrowDown', shiftKey: true })
+    expect(pointer.style.top).toBe('290px')
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom out' }))
+    expect(flow.api.zoomIn).toHaveBeenCalledTimes(1)
+    expect(flow.api.zoomOut).toHaveBeenCalledTimes(1)
+    for (const callback of [props.onCommand, props.onPreviewChange, props.onUndo, props.onRedo, entityMarkup, connectionMarkup, buildScene]) expect(callback).not.toHaveBeenCalled()
+    expect(JSON.stringify(props.document)).toBe(original)
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(screen.queryByRole('img', { name: 'Presentation pointer position' })).toBeNull()
+  })
+  it.each([390, 720, 1440])('should_present_empty_document_at_%s_without_a_fit_or_mutation', width => {
+    window.innerWidth = width
+    const { props } = setup()
+    fireEvent.click(screen.getByRole('button', { name: 'Present' }))
+    expect(screen.getByRole('heading', { level: 1 })).toBeTruthy()
+    expect(flow.api.setViewport).not.toHaveBeenCalled()
+    expect((screen.getByRole('button', { name: 'Fit diagram' }) as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(props.onCommand).not.toHaveBeenCalled()
+  })
+  it('should_frame_nested_selected_content_in_present_without_geometry_changes_or_motion', () => {
+    const diagram = sampleDiagram()
+    diagram.entities.push({ id: 'far', kind: 'component', label: 'Far away', color: 'teal', x: 5000, y: 5000, width: 220, height: 88 })
+    const original = JSON.stringify(diagram)
+    const { props } = setup({ document: diagram })
+    fireEvent.click(screen.getByText('platform'))
+    const canvas = screen.getByLabelText('Architecture canvas')
+    vi.spyOn(canvas, 'getBoundingClientRect').mockReturnValue({ x: 0, y: 0, left: 0, top: 0, right: 1280, bottom: 720, width: 1280, height: 720, toJSON: () => ({}) })
+    fireEvent.click(screen.getByRole('button', { name: 'Present' }))
+    const viewport = flow.api.setViewport.mock.calls.at(-1)![0]
+    expect(flow.api.setViewport.mock.calls.at(-1)![1]).toEqual({ duration: 0 })
+    expect(viewport.x + 5000 * viewport.zoom).toBeGreaterThan(1280)
+    expect(JSON.stringify(diagram)).toBe(original)
+    expect(props.onCommand).not.toHaveBeenCalled()
+  })
+  it.each([1440, 1366, 1280, 1600])('should_start_with_library_and_no_inspector_when_desktop_width_is_%s', width => {
+    window.innerWidth = width
+    const { container } = setup()
+    expect(screen.getByLabelText('Component library').classList.contains('open')).toBe(true)
+    expect(screen.getByLabelText('Properties').classList.contains('open')).toBe(false)
+    expect(container.querySelector('.document-summary')).toBeNull()
+  })
+  it.each([1440, 1366, 1280])('should_swap_panels_unless_library_is_explicitly_pinned_at_%s', width => {
+    window.innerWidth = width
+    const { props } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('gateway'))
+    expect(screen.getByLabelText('Properties').classList.contains('open')).toBe(true)
+    expect(screen.getByLabelText('Component library').classList.contains('open')).toBe(false)
+    fireEvent.click(screen.getByLabelText('Open component library'))
+    expect(screen.getByLabelText('Properties').classList.contains('open')).toBe(false)
+    fireEvent.click(screen.getByRole('button', { name: 'Pin component library' }))
+    fireEvent.click(screen.getByLabelText('Open properties'))
+    expect(screen.getByLabelText('Component library').classList.contains('open')).toBe(true)
+    expect(screen.getByLabelText('Properties').classList.contains('open')).toBe(true)
+    expect(screen.getByRole('button', { name: 'Unpin component library' }).getAttribute('aria-pressed')).toBe('true')
+    expect(flow.api.fitView).not.toHaveBeenCalled()
+    expect(flow.api.setViewport).not.toHaveBeenCalled()
+    expect(props.onCommand).not.toHaveBeenCalled()
+  })
+  it('should_honor_closed_inspector_and_suspend_pin_on_resize_without_camera_changes', () => {
+    window.innerWidth = 1280
+    setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByRole('button', { name: 'Pin component library' }))
+    fireEvent.click(screen.getByText('gateway'))
+    act(() => { window.innerWidth = 390; fireEvent(window, new Event('resize')) })
+    expect(screen.getByLabelText('Properties').classList.contains('open')).toBe(true)
+    expect(screen.getByLabelText('Component library').classList.contains('open')).toBe(false)
+    fireEvent.click(screen.getByLabelText('Close properties'))
+    fireEvent.click(screen.getByText('app'))
+    act(() => { window.innerWidth = 1280; fireEvent(window, new Event('resize')) })
+    expect(screen.getByLabelText('Properties').classList.contains('open')).toBe(false)
+    expect(screen.getByLabelText('Component library').classList.contains('open')).toBe(true)
+    fireEvent.click(screen.getByLabelText('Open properties'))
+    expect(screen.getByLabelText('Component library').classList.contains('open')).toBe(true)
+    expect(flow.api.fitView).not.toHaveBeenCalled()
+    expect(flow.api.setViewport).not.toHaveBeenCalled()
+  })
+  it('should_commit_pending_text_before_selection_or_panel_close_changes_focus', () => {
+    const { props } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('gateway'))
+    fireEvent.change(screen.getByLabelText('Component label'), { target: { value: 'Committed gateway' } })
+    fireEvent.click(screen.getByText('app'))
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'updateEntity', id: 'gateway', patch: { label: 'Committed gateway' } })
+    fireEvent.change(screen.getByLabelText('Component label'), { target: { value: 'Committed app' } })
+    fireEvent.click(screen.getByLabelText('Close properties'))
+    expect(props.onCommand).toHaveBeenLastCalledWith({ type: 'updateEntity', id: 'app', patch: { label: 'Committed app' } })
+  })
+  it('should_frame_boundary_descendants_inside_measured_chrome_without_mutation', async () => {
+    window.innerWidth = 1440
+    const diagram = createDocument('nested')
+    diagram.entities = [
+      { id: 'outer', kind: 'boundary', label: 'Outer', color: 'teal', x: -100, y: -80, width: 360, height: 260 },
+      { id: 'inner', kind: 'boundary', label: 'Inner', color: 'teal', parentId: 'outer', x: 220, y: 180, width: 360, height: 260 },
+      { id: 'child', kind: 'component', label: 'Child', color: 'teal', parentId: 'inner', x: 300, y: 240, width: 220, height: 88 },
+      { id: 'unrelated', kind: 'component', label: 'Far away', color: 'teal', x: 5000, y: 5000, width: 220, height: 88 },
+    ]
+    const original = JSON.stringify(diagram)
+    const { props } = setup({ document: diagram })
+    const fit = screen.getByRole('button', { name: 'Fit selection' }) as HTMLButtonElement
+    expect(fit.disabled).toBe(true)
+    fireEvent.click(screen.getByText('outer'))
+    const canvas = screen.getByLabelText('Architecture canvas')
+    const rect = (x: number, y: number, width: number, height: number) => ({ x, y, left: x, top: y, right: x + width, bottom: y + height, width, height, toJSON: () => ({}) })
+    vi.spyOn(canvas, 'getBoundingClientRect').mockReturnValue(rect(56, 74, 900, 700))
+    vi.spyOn(canvas.querySelector('.canvas-heading')!, 'getBoundingClientRect').mockReturnValue(rect(80, 98, 300, 76))
+    vi.spyOn(canvas.querySelector('.canvas-toolbar')!, 'getBoundingClientRect').mockReturnValue(rect(730, 98, 190, 40))
+    vi.spyOn(canvas.querySelector('.canvas-selection-toolbar')!, 'getBoundingClientRect').mockReturnValue(rect(600, 610, 320, 50))
+    vi.spyOn(canvas.querySelector('.canvas-legend')!, 'getBoundingClientRect').mockReturnValue(rect(80, 600, 300, 60))
+    vi.spyOn(canvas.querySelector('.zoom-controls')!, 'getBoundingClientRect').mockReturnValue(rect(420, 710, 240, 40))
+    vi.spyOn(canvas.querySelector('.mobile-controls')!, 'getBoundingClientRect').mockReturnValue(rect(80, 710, 80, 40))
+    await act(async () => fireEvent.click(fit))
+    const viewport = flow.api.setViewport.mock.calls.at(-1)![0] as { x: number; y: number; zoom: number }
+    const framed = buildScene(diagram).entities.filter(entity => entity.id !== 'unrelated')
+    for (const entity of framed) {
+      expect(viewport.x + entity.absolute.x * viewport.zoom).toBeGreaterThanOrEqual(24 - 1e-6)
+      expect(viewport.y + entity.absolute.y * viewport.zoom).toBeGreaterThanOrEqual(124 - 1e-6)
+      expect(viewport.x + (entity.absolute.x + entity.width) * viewport.zoom).toBeLessThanOrEqual(876 + 1e-6)
+      expect(viewport.y + (entity.absolute.y + entity.height) * viewport.zoom).toBeLessThanOrEqual(502 + 1e-6)
+    }
+    expect(viewport.x + 5000 * viewport.zoom).toBeGreaterThan(900)
+    expect(flow.api.fitView).not.toHaveBeenCalled()
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(props.onPreviewChange).not.toHaveBeenCalled()
+    expect(props.onUndo).not.toHaveBeenCalled()
+    expect(JSON.stringify(diagram)).toBe(original)
+    const calls = flow.api.setViewport.mock.calls.length
+    fireEvent.click(screen.getByLabelText('Close properties'))
+    fireEvent.click(screen.getByLabelText('Open component library'))
+    expect(flow.api.setViewport).toHaveBeenCalledTimes(calls)
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Fit diagram' })))
+    const all = flow.api.setViewport.mock.calls.at(-1)![0] as typeof viewport
+    const bounds = buildScene(diagram).contentBounds
+    expect(all.x + bounds.x * all.zoom).toBeGreaterThanOrEqual(24 - 1e-6)
+    expect(all.x + (bounds.x + bounds.width) * all.zoom).toBeLessThanOrEqual(876 + 1e-6)
+    expect(all.y + bounds.y * all.zoom).toBeGreaterThanOrEqual(124 - 1e-6)
+    expect(all.y + (bounds.y + bounds.height) * all.zoom).toBeLessThanOrEqual(502 + 1e-6)
+    expect(all.zoom).toBeLessThan(viewport.zoom)
+    expect(props.onCommand).not.toHaveBeenCalled()
+  })
+  it('should_name_icon_actions_on_keyboard_focus_and_restore_focus_when_panel_closes', () => {
+    setup({ document: sampleDiagram() })
+    const fit = screen.getByRole('button', { name: 'Fit diagram' })
+    fireEvent.focus(fit)
+    expect(screen.getByRole('tooltip').textContent).toBe('Fit diagram')
+    expect(fit.getAttribute('aria-describedby')).toBe(screen.getByRole('tooltip').id)
+    fireEvent.blur(fit)
+    expect(screen.queryByRole('tooltip')).toBeNull()
+    fireEvent.click(screen.getByText('gateway'))
+    const close = screen.getByLabelText('Close properties')
+    act(() => close.focus())
+    fireEvent.click(close)
+    expect(document.activeElement).toBe(screen.getByLabelText('Open properties'))
+  })
+  it('should_keep_touch_targets_and_fixed_chrome_nonoverlapping_in_responsive_styles', () => {
+    const style = document.createElement('style')
+    style.textContent = readFileSync('src/editor/editor.css', 'utf8')
+    document.head.append(style)
+    try {
+      const media = [...style.sheet!.cssRules].find(rule => rule.type === 4 && (rule as CSSMediaRule).conditionText.includes('pointer: coarse') && (rule as CSSMediaRule).conditionText.includes('max-width: 640px')) as CSSMediaRule
+      expect(media).toBeDefined()
+      const targetRule = [...media.cssRules].find(rule => rule.type === 1 && (rule as CSSStyleRule).selectorText.includes('.panel-heading .icon-button') && (rule as CSSStyleRule).selectorText.includes('.direction-control button')) as CSSStyleRule
+      expect(targetRule).toBeDefined()
+      expect(targetRule.style.getPropertyValue('min-width')).toBe('44px')
+      expect(targetRule.style.getPropertyValue('min-height')).toBe('44px')
+      const tooltip = [...style.sheet!.cssRules].find(rule => rule.type === 1 && (rule as CSSStyleRule).selectorText === '.action-tooltip') as CSSStyleRule
+      expect(tooltip.style.getPropertyValue('position')).toBe('fixed')
+      window.innerWidth = 390
+      const { container } = setup({ document: sampleDiagram() })
+      fireEvent.click(screen.getByText('gateway'))
+      const dock = container.querySelector('.canvas-bottom-chrome')!
+      expect(dock).not.toBeNull()
+      expect(dock.contains(container.querySelector('.canvas-selection-toolbar'))).toBe(true)
+      expect(dock.contains(container.querySelector('.canvas-legend'))).toBe(true)
+      expect(dock.contains(container.querySelector('.zoom-controls'))).toBe(true)
+      expect(dock.contains(container.querySelector('.mobile-controls'))).toBe(true)
+    } finally { style.remove() }
+  })
+  it('should_show_the_theme_action_name_on_keyboard_focus', () => {
+    setup()
+    const theme = screen.getByRole('button', { name: /Switch to .* theme/ })
+    fireEvent.focus(theme)
+    expect(screen.getByRole('tooltip').textContent).toBe(theme.getAttribute('aria-label'))
+    fireEvent.click(theme)
+    expect(screen.getByRole('tooltip').textContent).toBe(theme.getAttribute('aria-label'))
+    fireEvent.blur(theme)
+    expect(screen.queryByRole('tooltip')).toBeNull()
+  })
+  it('should_share_bottom_chrome_rows_on_desktop_and_stack_them_on_mobile', () => {
+    const style = document.createElement('style')
+    style.textContent = readFileSync('src/editor/editor.css', 'utf8')
+    document.head.append(style)
+    try {
+      const rules = [...style.sheet!.cssRules]
+      const dock = rules.filter(rule => rule.type === 1 && (rule as CSSStyleRule).selectorText === '.canvas-bottom-chrome').at(-1) as CSSStyleRule
+      expect(dock.style.getPropertyValue('display')).toBe('grid')
+      expect(dock.style.getPropertyValue('grid-template-columns')).toBe('minmax(0, 1fr) auto')
+      const mobile = rules.filter(rule => rule.type === 4 && (rule as CSSMediaRule).conditionText === '(max-width: 640px)').at(-1) as CSSMediaRule
+      const mobileDock = [...mobile.cssRules].find(rule => rule.type === 1 && (rule as CSSStyleRule).selectorText === '.canvas-bottom-chrome') as CSSStyleRule
+      expect(mobileDock.style.getPropertyValue('grid-template-columns')).toBe('minmax(0, 1fr)')
+    } finally { style.remove() }
+  })
+  it('should_use_parent_first_manual_paint_ranks_without_selection_elevation', () => {
+    const document = sampleDiagram()
+    document.entities.find(item => item.id === 'gateway')!.order = -100
+    document.entities.find(item => item.id === 'platform')!.order = 5
+    const { props, rerender } = setup({ document })
+    expect(flow.props.zIndexMode).toBe('manual')
+    expect(flow.props.elevateNodesOnSelect).toBe(false)
+    expect(flow.props.elevateEdgesOnSelect).toBe(false)
+    const ranks = flow.props.nodes.map((node: any) => [node.id, node.zIndex])
+    expect(vi.mocked(painterOrder).mock.calls.filter(([entities]) => entities === document.entities)).toHaveLength(2)
+    const sourcePaint = painterOrder(document.entities)
+    expect(ranks).toEqual([...sourcePaint.nodeZIndices])
+    expect(flow.props.nodes.map((node: any) => node.id)).toEqual(buildScene(document).entities.map(item => item.id))
+    for (const node of flow.props.nodes) {
+      const parent = flow.props.nodes.find((candidate: any) => candidate.id === node.parentId)
+      if (parent) expect(parent.zIndex).toBeLessThan(node.zIndex)
+      const entity = document.entities.find(item => item.id === node.id)!
+      if (entity.kind === 'boundary' || entity.layer === 'background') expect(node.zIndex).toBeLessThan(sourcePaint.connectionZIndex)
+      else expect(node.zIndex).toBeGreaterThan(sourcePaint.connectionZIndex)
+    }
+    expect(flow.props.edges.every((edge: any) => edge.zIndex === sourcePaint.connectionZIndex)).toBe(true)
+    fireEvent.click(screen.getByText('platform'))
+    expect(flow.props.nodes.map((node: any) => [node.id, node.zIndex])).toEqual(ranks)
+    fireEvent.click(screen.getByText('route'))
+    expect(flow.props.nodes.map((node: any) => [node.id, node.zIndex])).toEqual(ranks)
+    expect(flow.props.edges.every((edge: any) => edge.zIndex === flow.props.edges[0].zIndex)).toBe(true)
+    rerender(<Editor {...props} readOnly />)
+    expect(flow.props.nodes.map((node: any) => [node.id, node.zIndex])).toEqual(ranks)
+    expect(props.onCommand).not.toHaveBeenCalled()
+  })
+  it('should_expose_distinct_order_icons_tooltips_and_dispatch_with_readonly_guard', () => {
+    const { props, rerender } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('gateway'))
+    const actions = [['Bring forward', 'forward'], ['Send backward', 'backward'], ['Bring to top', 'top'], ['Send to bottom', 'bottom']] as const
+    const icons = actions.map(([label, position]) => {
+      const button = screen.getByRole('button', { name: label })
+      expect(button.title).toBe(label)
+      fireEvent.click(button)
+      expect(props.onCommand).toHaveBeenLastCalledWith({ type: 'order', ids: ['gateway'], position })
+      return button.querySelector('svg')!.innerHTML
+    })
+    expect(new Set(icons).size).toBe(4)
+    rerender(<Editor {...props} readOnly />)
+    fireEvent.click(screen.getByText('gateway'))
+    for (const [label] of actions) {
+      const button = screen.getByRole('button', { name: label }) as HTMLButtonElement
+      expect(button.disabled).toBe(true)
+      fireEvent.click(button)
+    }
+    expect(props.onCommand).toHaveBeenCalledTimes(4)
+  })
   it('should_replace_selected_artwork_atomically_when_import_finishes', async () => {
     const { props } = setup({ document: sampleDiagram() })
     const customIcon = iconFixture()
@@ -175,7 +1812,7 @@ describe('controlled editor', () => {
     fireEvent.keyDown(window, { key: 'Escape' })
     act(() => node.data.startResize())
     act(() => flow.props.onNodesChange([{ type: 'dimensions', id: 'platform', dimensions: { width: 760, height: 520 }, resizing: false }]))
-    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'resize', id: 'platform', width: 760, height: 520 })
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'resize', id: 'platform', width: 764, height: 520 })
   })
   it.each([
     ['path', 'M 1 2 L 30 40'], ['label', 'Changed route'], ['style', 'dashed'], ['arrow', 'both'], ['labelPosition', { x: 345, y: 234 }],
@@ -190,21 +1827,42 @@ describe('controlled editor', () => {
     expect(connectionMarkup).toHaveBeenCalledExactlyOnceWith(connection)
     expect(view.container.querySelector('g g')?.innerHTML).toBe(normalizedSvg(connectionMarkup(connection)))
   })
-  it('should_keep_current_preview_geometry_and_restore_canonical_paint_when_cancelled', () => {
-    setup({ document: sampleDiagram() })
+  it.each(['window', 'dialog'] as const)('should_keep_current_preview_geometry_and_restore_canonical_paint_when_cancelled_from_%s', target => {
+    const { props } = setup({ document: sampleDiagram() })
     const originalNode = flow.props.nodes.find((node: any) => node.id === 'gateway')
     const originalLinks = flow.props.edges
     act(() => flow.props.onNodeDrag({}, originalNode, [{ ...originalNode, position: { x: 144, y: 64 } }]))
     const previewLinks = flow.props.edges
-    expect(flow.props.nodes.find((node: any) => node.id === 'gateway').position.x).toBe(144)
+    expect(flow.props.nodes.find((node: any) => node.id === 'gateway').position.x).toBe(148)
     expect(previewLinks.find((edge: any) => edge.id === 'route').data.connection.path).not.toBe(originalLinks.find((edge: any) => edge.id === 'route').data.connection.path)
     vi.mocked(buildScene).mockClear()
     fireEvent.click(screen.getByLabelText('Export'))
     expect(buildScene).not.toHaveBeenCalled()
     expect(flow.props.edges).toBe(previewLinks)
-    fireEvent.keyDown(window, { key: 'Escape' })
+    vi.mocked(props.onPreviewChange).mockClear()
+    fireEvent.keyDown(target === 'window' ? window : screen.getByLabelText('Cancel export'), { key: 'Escape' })
+    expect(screen.queryByRole('dialog', { name: 'Export diagram' })).toBeNull()
     expect(flow.props.nodes.find((node: any) => node.id === 'gateway').position).toEqual(originalNode.position)
     for (const edge of originalLinks) expect(screen.getByTestId(`link-${edge.id}`).querySelector('path')?.getAttribute('d')).toBe(edge.data.connection.path)
+    act(() => flow.props.onNodeDragStop({}, originalNode, [{ ...originalNode, position: { x: 144, y: 64 } }]))
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(props.onExport).not.toHaveBeenCalled()
+    expect(props.onPreviewChange).toHaveBeenCalledExactlyOnceWith(null)
+  })
+  it.each(['Cancel export', 'Close export menu'])('should_preserve_active_drag_preview_when_export_is_dismissed_with_%s', label => {
+    const { props } = setup({ document: sampleDiagram() })
+    const node = flow.props.nodes.find((candidate: any) => candidate.id === 'gateway')
+    act(() => flow.props.onNodeDrag({}, node, [{ ...node, position: { x: 144, y: 64 } }]))
+    const previewLinks = flow.props.edges
+    fireEvent.click(screen.getByLabelText('Export'))
+    vi.mocked(props.onPreviewChange).mockClear()
+    fireEvent.click(screen.getByLabelText(label))
+    expect(screen.queryByRole('dialog', { name: 'Export diagram' })).toBeNull()
+    expect(flow.props.nodes.find((candidate: any) => candidate.id === 'gateway').position.x).toBe(148)
+    expect(flow.props.edges).toBe(previewLinks)
+    expect(props.onPreviewChange).not.toHaveBeenCalled()
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(props.onExport).not.toHaveBeenCalled()
   })
   it.each(['sourceSide', 'targetSide'] as const)('should_refresh_outer_handle_and_full_link_when_%s_changes', side => {
     const { props, rerender } = setup({ document: sampleDiagram() })
@@ -251,6 +1909,8 @@ describe('controlled editor', () => {
     const latestPosition = flow.props.edges.find((edge: any) => edge.id === 'route').data.connection.labelPosition
     expect(latestPosition).not.toEqual(oldPosition)
     fireEvent.click(screen.getByRole('button', { name: 'Insert App Service' }))
+    expect(latestCommand).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Insert on connection' }))
     expect(props.onCommand).toHaveBeenCalledTimes(1)
     expect(latestCommand).toHaveBeenCalledTimes(1)
     const command = latestCommand.mock.calls[0][0]
@@ -274,7 +1934,7 @@ describe('controlled editor', () => {
     act(() => flow.props.onNodesChange([{ type: 'dimensions', id: 'platform', dimensions: { width: 720, height: 500 }, resizing: true }]))
     expect(props.onCommand).toHaveBeenCalledTimes(1)
     act(() => flow.props.onNodesChange([{ type: 'dimensions', id: 'platform', dimensions: { width: 720, height: 500 }, resizing: false }]))
-    expect(props.onCommand).toHaveBeenLastCalledWith({ type: 'resize', id: 'platform', width: 720, height: 500 })
+    expect(props.onCommand).toHaveBeenLastCalledWith({ type: 'resize', id: 'platform', width: 724, height: 504 })
     expect(props.document.entities[0].width).toBe(680)
   })
   it('should_preserve_measurement_metadata_when_document_nodes_are_derived', () => {
@@ -297,13 +1957,14 @@ describe('controlled editor', () => {
     const { props } = setup({ document: sampleDiagram() })
     fireEvent.click(screen.getByText('gateway'))
     fireEvent.keyDown(window, { key: 'ArrowRight' })
-    expect(props.onCommand).toHaveBeenLastCalledWith({ type: 'move', positions: [{ id: 'gateway', x: 40, y: 64 }] })
+    expect(props.onCommand).toHaveBeenLastCalledWith({ type: 'move', positions: [{ id: 'gateway', x: 44, y: 64 }] })
     fireEvent.keyDown(window, { key: 'c', ctrlKey: true })
     expect(props.onCommand).toHaveBeenCalledTimes(1)
     fireEvent.keyDown(window, { key: 'v', ctrlKey: true })
     expect(props.onCommand).toHaveBeenLastCalledWith({ type: 'paste', fragment: expect.objectContaining({ entities: [expect.objectContaining({ id: 'gateway', parentId: null })] }), idMap: { gateway: expect.any(String) }, offset: { x: 32, y: 32 } })
     fireEvent.click(screen.getByText('route'))
-    fireEvent.click(screen.getByLabelText('Insert App Service'))
+    fireEvent.change(screen.getByLabelText('Insertion component'), { target: { value: 'azure-app' } })
+    fireEvent.click(screen.getByLabelText('Insert on connection'))
     expect(props.onCommand).toHaveBeenLastCalledWith({ type: 'insertOnConnection', connectionId: 'route', entity: expect.objectContaining({ icon: 'azure-app', kind: 'component' }), upstreamId: expect.any(String), downstreamId: expect.any(String) })
   })
   it('should_guard_all_mutations_but_allow_export_when_read_only', () => {
@@ -326,11 +1987,18 @@ describe('controlled editor', () => {
   })
   it('should_forward_file_history_and_busy_state_when_toolbar_is_used', () => {
     const { props } = setup({ isArranging: true, isExporting: true, saveState: 'error', message: 'Storage unavailable. Save JSON.' })
-    for (const [label, callback] of [['New diagram', props.onNew], ['Open JSON', props.onOpen], ['Import skill JSON', props.onImport], ['Save JSON', props.onSaveJson], ['Undo', props.onUndo], ['Redo', props.onRedo]] as const) { fireEvent.click(screen.getByLabelText(label)); expect(callback).toHaveBeenCalledTimes(1) }
+    fireEvent.click(screen.getByLabelText('New diagram'))
+    expect(screen.getByRole('dialog', { name: 'New diagram' })).toBeTruthy()
+    expect(props.onNew).not.toHaveBeenCalled()
+    fireEvent.keyDown(screen.getByRole('dialog', { name: 'New diagram' }), { key: 'Escape' })
+    for (const [label, callback] of [['Open JSON', props.onOpen], ['Import skill JSON', props.onImport], ['Save JSON', props.onSaveJson], ['Undo', props.onUndo], ['Redo', props.onRedo]] as const) { fireEvent.click(screen.getByLabelText(label)); expect(callback).toHaveBeenCalledTimes(1) }
     expect((screen.getByLabelText('Auto-arrange') as HTMLButtonElement).disabled).toBe(true)
-    expect((screen.getByLabelText('Export') as HTMLButtonElement).disabled).toBe(true)
-    expect(within(screen.getByRole('contentinfo')).getByText('Save failed')).toBeTruthy()
-    expect(screen.getByText('JSON backup needed')).toBeTruthy()
+    expect(screen.getByLabelText('Export').getAttribute('aria-disabled')).toBe('true')
+    fireEvent.click(screen.getByLabelText('Export'))
+    expect(screen.queryByRole('dialog', { name: 'Export diagram' })).toBeNull()
+    expect(props.onExport).not.toHaveBeenCalled()
+    expect(within(screen.getByRole('contentinfo')).getByText('Local save failed')).toBeTruthy()
+    expect(screen.getByText('Editable JSON copy needed')).toBeTruthy()
     expect(screen.getByRole('status').textContent).toContain('Storage unavailable')
   })
   it('should_cancel_a_drag_without_committing_when_escape_precedes_drag_stop', () => {
@@ -349,7 +2017,7 @@ describe('controlled editor', () => {
     act(() => node.data.startResize())
     act(() => flow.props.onNodesChange([{ type: 'dimensions', id: 'platform', dimensions: { width: 760, height: 520 }, resizing: true }]))
     act(() => flow.props.onNodesChange([{ type: 'dimensions', id: 'platform', dimensions: { width: 760, height: 520 }, resizing: false }]))
-    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'resize', id: 'platform', width: 760, height: 520 })
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'resize', id: 'platform', width: 764, height: 520 })
   })
   it('should_not_recommit_an_active_drag_when_history_action_cancels_it', () => {
     const { props } = setup({ document: sampleDiagram() })
@@ -439,8 +2107,8 @@ describe('controlled editor', () => {
     expect(props.onCommand).not.toHaveBeenCalled()
     fireEvent.blur(note)
     expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'updateEntity', id: 'note', patch: { label: text } })
-    fireEvent.click(screen.getByLabelText('Send to background'))
-    expect(props.onCommand).toHaveBeenLastCalledWith({ type: 'order', ids: ['note'], layer: 'background' })
+    fireEvent.click(screen.getByLabelText('Send to bottom'))
+    expect(props.onCommand).toHaveBeenLastCalledWith({ type: 'order', ids: ['note'], position: 'bottom' })
   })
   it('should_search_all_catalogs_and_reopen_panels_when_controls_are_used', () => {
     setup()
@@ -466,8 +2134,8 @@ describe('controlled editor', () => {
     fireEvent.click(screen.getByRole('button', { name: headerName }))
     fireEvent.click(screen.getByText('gateway'))
     fireEvent.keyDown(window, { key: 'ArrowRight' })
-    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'move', positions: [{ id: 'gateway', x: 40, y: 64 }] })
-    const next = { ...props.document, revision: 1, entities: props.document.entities.map(entity => entity.id === 'gateway' ? { ...entity, x: 40 } : entity) }
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'move', positions: [{ id: 'gateway', x: 44, y: 64 }] })
+    const next = { ...props.document, revision: 1, entities: props.document.entities.map(entity => entity.id === 'gateway' ? { ...entity, x: 44 } : entity) }
     rerender(<Editor {...props} document={next} />)
     expect(screen.getByRole('button', { name: headerName }).getAttribute('aria-expanded')).toBe('true')
     fireEvent.change(screen.getByLabelText('Search components'), { target: { value: 'OneLake' } })

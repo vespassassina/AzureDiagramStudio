@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import { test } from 'vitest'
 import { allLibraryItems, fabricLibrary, isIconKey, vendorLibrary, microsoftLibrary } from '../catalog.ts'
 import { isSelectableIcon, legacyItem, menuGroups, searchGroups, searchableLibrary, selectionLibrary } from './presentation.ts'
+import * as presentation from './presentation.ts'
 import { lifecycleDecision } from './lifecycle.ts'
 import semantics from './semantics.json'
 import legacy from './legacy.json'
@@ -17,6 +19,109 @@ const pins = [
   ['SharePoint', 'Microsoft Teams', 'Microsoft 365', 'Microsoft 365 Copilot'],
 ]
 const alphabetical = (labels: string[]) => labels.slice().sort((left, right) => left.localeCompare(right, 'en', { sensitivity: 'base', numeric: true }))
+
+test('should_rank_API_Management_first_when_searching_APIM', () => {
+  const groups = searchGroups('APIM')
+  assert.equal(groups[0]?.items[0]?.icon, 'azure-api')
+  assert.equal(groups[0]?.id, 'azure-integration')
+})
+
+test('should_rank_curated_aliases_and_exact_labels_first_when_searching_current_services', () => {
+  const queries = [
+    ['APIM', 'azure-api'], ['AAD', 'azure-entra'], ['Azure AD', 'azure-entra'],
+    ['Azure Active Directory', 'azure-entra'], ['Entra ID', 'azure-entra'],
+    ['ACA', 'azure-container-apps'], ['AKS', 'azure-aks'], ['API', 'api'],
+    ['API Management', 'azure-api'], ['Microsoft Entra ID', 'azure-entra'],
+    ['Container Apps', 'azure-container-apps'],
+  ]
+  for (const [query, icon] of queries) {
+    const groups = searchGroups(query)
+    assert.equal(groups[0]?.items[0]?.icon, icon, query)
+    assert.deepEqual(searchGroups(`  ${query.toLowerCase()}  `), groups, query)
+  }
+})
+
+test('should_keep_token_prefixes_ahead_of_Central_substrings_when_searching_Entra', () => {
+  const matches = searchGroups('entra').flatMap(group => group.items)
+  const identityIndex = matches.findIndex(item => item.icon === 'azure-entra')
+  const centralMatches = matches.filter(item => /central/i.test(item.label))
+  assert.ok(identityIndex >= 0)
+  assert.ok(centralMatches.length > 0)
+  for (const item of centralMatches) assert.ok(matches.indexOf(item) > identityIndex, item.label)
+  assert.equal(searchGroups('Entra ID')[0]?.items[0]?.icon, 'azure-entra')
+  assert.equal(searchGroups('Entra ID')[0]?.id, 'azure-security-management')
+})
+
+test('should_return_complete_flat_ranked_results_when_context_picker_searches', () => {
+  assert.equal(typeof presentation.rankedSearch, 'function')
+  assert.equal(presentation.rankedSearch(''), searchableLibrary)
+  assert.equal(presentation.rankedSearch('  '), searchableLibrary)
+  for (const query of ['APIM', 'AAD', 'Entra ID', 'ACA', 'pipeline', 'azure', 'no-such-component-12345']) {
+    const flat = presentation.rankedSearch(query)
+    const grouped = searchGroups(query).flatMap(group => group.items)
+    assert.deepEqual(flat.map(item => item.icon).sort(), grouped.map(item => item.icon).sort(), query)
+    assert.equal(new Set(flat.map(item => item.icon)).size, flat.length, query)
+    assert.equal(Object.isFrozen(flat), true)
+    for (const item of flat) assert.equal(item, searchableLibrary.find(candidate => candidate.icon === item.icon))
+    assert.equal(presentation.rankedSearch(`  ${query.toUpperCase()} `), flat)
+  }
+  assert.equal(presentation.rankedSearch('APIM')[0]?.icon, 'azure-api')
+  const snapshot = presentation.rankedSearch('Entra ID')
+  presentation.rankedSearch('pipeline')
+  assert.equal(snapshot[0]?.icon, 'azure-entra')
+})
+
+test('should_sort_match_tiers_and_stable_collator_ties_when_searching_flat_or_grouped', () => {
+  assert.equal(typeof presentation.rankedSearch, 'function')
+  const collator = new Intl.Collator('en', { sensitivity: 'base', numeric: true })
+  const owners = new Map(searchGroups('').flatMap(group => group.items.map(item => [item.icon, group] as const)))
+  for (const query of ['API', 'APIM', 'AAD', 'ACA', 'Entra ID', 'entr', 'azure', 'pipeline', 'vm', 'server']) {
+    const normalized = query.toLocaleLowerCase('en')
+    const prefix = new RegExp(`(?:^|[^\\p{L}\\p{N}])${normalized}`, 'u')
+    const ranked = searchableLibrary.map(item => {
+      const fields = [item.label, item.subtitle, item.category, owners.get(item.icon)!.label, ...item.source.categories, ...(item.aliases ?? []), ...(item.keywords ?? [])]
+        .map(field => field.toLocaleLowerCase('en'))
+      const exactLabel = item.label.toLocaleLowerCase('en') === normalized
+      const exactAlias = item.aliases?.some(alias => alias.toLocaleLowerCase('en') === normalized)
+      const rank = exactLabel ? 0 : exactAlias ? 1 : fields.some(field => prefix.test(field)) ? 2 : 3
+      return { item, rank, matches: fields.some(field => field.includes(normalized)) }
+    }).filter(entry => entry.matches).sort((left, right) => left.rank - right.rank
+      || collator.compare(left.item.label, right.item.label) || collator.compare(left.item.icon, right.item.icon))
+    assert.deepEqual(presentation.rankedSearch(query).map(item => item.icon), ranked.map(entry => entry.item.icon), query)
+    const groupIds = [...new Set(ranked.map(entry => owners.get(entry.item.icon)!.id))]
+    const groups = searchGroups(query)
+    assert.deepEqual(groups.map(group => group.id), groupIds, query)
+    for (const group of groups) {
+      assert.deepEqual(group.items.map(item => item.icon), ranked.filter(entry => owners.get(entry.item.icon)!.id === group.id).map(entry => entry.item.icon), `${query}: ${group.id}`)
+    }
+    assert.deepEqual(presentation.rankedSearch(query), presentation.rankedSearch(query), query)
+  }
+})
+
+test('should_preserve_all_inventory_ids_raw_metadata_and_default_menus_when_ranking_search', () => {
+  const fingerprint = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex')
+  assert.equal(selectionLibrary.length, 696)
+  assert.equal(allLibraryItems.length, 2266)
+  assert.equal(fingerprint(selectionLibrary.map(item => item.icon).sort()), '08a681c123944a31891ffc77f6da2f7763896fa08a76c8425e97c84b946f114a')
+  assert.equal(fingerprint(allLibraryItems), '33dc7dded3b3466747950f5cbcd4352deb1a8ec470c852da6ba194a7137e7ebf')
+  const menus = [...menuGroups('azure'), ...menuGroups('software')].map(group => ({ ...group, items: group.items.map(item => item.icon) }))
+  assert.equal(fingerprint(menus), '6dd6e41c0431d47b14bedf2db94e1af325eb93b86cd98553765de9040f2810ca')
+})
+
+test('should_keep_excluded_icons_out_of_ranked_search_when_legacy_documents_can_still_resolve_them', () => {
+  assert.equal(typeof presentation.rankedSearch, 'function')
+  const excluded = allLibraryItems.filter(item => lifecycleDecision(item).excluded)
+  assert.equal(excluded.length, 32)
+  for (const item of excluded) {
+    assert.equal(presentation.rankedSearch(item.label).some(candidate => candidate.icon === item.icon), false, item.icon)
+    assert.equal(isSelectableIcon(item.icon), false, item.icon)
+    assert.equal(legacyItem(item.icon), item)
+    assert.equal(isIconKey(item.icon), true)
+  }
+  for (const query of ['Bonsai', 'Blockchain', 'Batch AI', 'Scheduler', 'QnA Maker']) {
+    assert.deepEqual(presentation.rankedSearch(query), [], query)
+  }
+})
 
 test('should_expose_eight_compact_azure_microsoft_groups_with_icons_and_editorial_pins', () => {
   const groups = menuGroups('azure')
@@ -59,7 +164,7 @@ test('should_search_names_aliases_and_categories_case_insensitively_without_dupl
     assert.ok(groups.length, query)
     const keys = groups.flatMap(group => group.items.map(item => item.icon))
     assert.equal(new Set(keys).size, keys.length, query)
-    for (const group of groups) assert.deepEqual(group.items.map(item => item.label), alphabetical(group.items.map(item => item.label)))
+    assert.deepEqual(searchGroups(`  ${query.toUpperCase()}  `), groups, query)
   }
   assert.deepEqual(searchGroups('OneLake'), searchGroups('onelake'))
 })

@@ -81,7 +81,7 @@ async function newPage(context, viewport = { width: 1440, height: 900 }) {
   return page
 }
 async function writable(page) { await page.getByRole('button', { name: 'New diagram', exact: true }).waitFor(); await page.waitForFunction(() => !document.querySelector('button[aria-label="New diagram"]').disabled) }
-async function saved(page) { await page.waitForFunction(() => document.querySelector('.statusbar .save-label')?.textContent === 'Saved') }
+async function saved(page) { await page.waitForFunction(() => document.querySelector('.statusbar .save-label')?.textContent === 'Saved on this device') }
 async function durable(page) {
   await saved(page)
   return page.evaluate(() => new Promise((resolve, reject) => {
@@ -172,13 +172,13 @@ async function arrangeCompletion(page) {
   const previous = await page.locator('.react-flow__node').evaluateAll(nodes => JSON.stringify(nodes.map(node => [node.dataset.id, node.style.transform, node.style.width, node.style.height])))
   await page.getByRole('button', { name: 'Auto-arrange', exact: true }).click()
   await page.waitForFunction(previous => {
-    if (document.querySelector('button[aria-label="Auto-arrange"]').disabled || document.querySelector('.statusbar .save-label')?.textContent !== 'Saved') return false
+    if (document.querySelector('button[aria-label="Auto-arrange"]').disabled || document.querySelector('.statusbar .save-label')?.textContent !== 'Saved on this device') return false
     const failed = /Auto-arrange failed|Layout may change only/.test(document.querySelector('[role="status"]')?.textContent ?? '')
     const current = JSON.stringify([...document.querySelectorAll('.react-flow__node')].map(node => [node.dataset.id, node.style.transform, node.style.width, node.style.height]))
     return failed || current !== previous
   }, previous)
   await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
-  assert.equal(await page.locator('.statusbar .save-label').textContent(), 'Saved')
+  assert.equal(await page.locator('.statusbar .save-label').textContent(), 'Saved on this device')
   return await page.getByRole('status').textContent()
 }
 
@@ -296,10 +296,10 @@ try {
         await field(page, 'Document subtitle', 'Explicitly synthetic integration fixture')
         await panelsClosed(page)
         const backed = await json(page, `${viewport.width}-roundtrip`)
-        assert.equal(await page.locator('.backup-state').textContent(), 'JSON backup current')
+        assert.equal(await page.locator('.backup-state').textContent(), 'No newer JSON changes')
         await field(page, 'Document title', 'Changed since JSON backup')
         await saved(page)
-        assert.equal(await page.locator('.backup-state').textContent(), 'JSON backup needed')
+        assert.equal(await page.locator('.backup-state').textContent(), 'Editable JSON copy needed')
         await open(page, backed.bytes)
         await opened(page, backed.document.title)
         assert.deepEqual(await durable(page), backed.document)
@@ -551,7 +551,7 @@ try {
       assert.ok(imported.connections[0].points.length >= 2)
       assert.equal(imported.connections[0].routeRevision, imported.revision)
       assert.ok((await page.getByRole('status').textContent()).includes('Unknown icon'))
-      assert.equal(await page.locator('.backup-state').textContent(), 'JSON backup needed')
+      assert.equal(await page.locator('.backup-state').textContent(), 'Editable JSON copy needed')
       await page.screenshot({ path: `${output}/import-warnings.png` })
       return { importedId: imported.id, prompts: page.dialogs }
     } finally { await closeContext(context) }
@@ -595,7 +595,7 @@ try {
       assert.equal(await page.getByLabel('Document title', { exact: true }).isDisabled(), false)
       const backup = await json(page, 'quota-fallback')
       assert.equal(backup.document.title, 'Quota protected work')
-      assert.equal(await page.locator('.save-label').textContent(), 'Save failed')
+      assert.equal(await page.locator('.save-label').textContent(), 'Local save failed')
       await page.screenshot({ path: `${output}/quota-failure.png` })
       await page.evaluate(() => sessionStorage.removeItem('fail-save'))
       await field(page, 'Document subtitle', 'Recovered')

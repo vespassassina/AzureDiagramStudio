@@ -97,12 +97,20 @@ async function assertOptions(page, label) {
 }
 
 async function selectConnection(page) {
+  const picker = page.getByRole('dialog').filter({ has: page.getByRole('button', { name: 'Cancel component picker', exact: true }) })
+  if (await picker.isVisible()) {
+    await picker.press('Escape')
+    await picker.waitFor({ state: 'detached' })
+  }
   await closePanels(page)
   const point = await page.locator('.react-flow__edge[data-id="route"] .react-flow__edge-interaction').evaluate(path => {
-    const local = path.getPointAtLength(path.getTotalLength() * .23)
-    const screen = new DOMPoint(local.x, local.y).matrixTransform(path.getScreenCTM())
-    return { x: screen.x, y: screen.y }
+    for (const fraction of [.23, .5, .75, .9, .1]) {
+      const local = path.getPointAtLength(path.getTotalLength() * fraction)
+      const screen = new DOMPoint(local.x, local.y).matrixTransform(path.getScreenCTM())
+      if (document.elementFromPoint(screen.x, screen.y)?.closest('.react-flow__edge') === path.closest('.react-flow__edge')) return { x: screen.x, y: screen.y }
+    }
   })
+  assert.ok(point, 'A visible route point is available for real connection selection')
   await page.mouse.click(point.x, point.y)
   if (!(await page.locator('.inspector').evaluate(element => element.classList.contains('open')))) await page.getByRole('button', { name: 'Open properties', exact: true }).click()
 }
@@ -190,7 +198,7 @@ async function selectNode(page, id) {
   assert.ok(box && box.width > 0 && box.height > 0)
   await target.click({ position: { x: Math.min(20, box.width / 2), y: Math.min(20, box.height / 2) } })
 }
-async function saved(page) { await page.waitForFunction(() => document.querySelector('.statusbar .save-label')?.textContent === 'Saved') }
+async function saved(page) { await page.waitForFunction(() => document.querySelector('.statusbar .save-label')?.textContent === 'Saved on this device') }
 async function download(page, action, name) {
   const pending = page.waitForEvent('download')
   await action()

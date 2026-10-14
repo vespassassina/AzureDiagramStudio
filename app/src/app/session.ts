@@ -1,8 +1,23 @@
-import { applyCommand, importSkillSpec, parseDocument } from '../document/index.ts'
+import { applyCommand, importSkillSpec, parseDocument, validateDocument } from '../document/index.ts'
 import { createDocument, historyCommit, historyRedo, historyUndo, sampleDiagram } from '../model.ts'
 import type { Diagram, Direction, History } from '../model.ts'
-import type { DocumentCommand, DocumentStorage, ExportOptions, SaveState } from '../contracts.ts'
+import type { DocumentCommand, DocumentStorage, ExportOptions, ExportSceneOptions, SaveState, StarterKey } from '../contracts.ts'
 import type { LayoutResult } from '../layout.ts'
+import webApiSource from '../../../examples/azure-web-app.json?raw'
+import eventSource from '../../../examples/event-driven.json?raw'
+import fabricSource from '../../../examples/fabric-onelake.json?raw'
+import enterpriseSource from '../../../examples/enterprise-integration.json?raw'
+
+const starterSources: Record<StarterKey, string> = {
+  'web-api': webApiSource, 'event-driven': eventSource, fabric: fabricSource, enterprise: enterpriseSource,
+}
+export const starterKeys: readonly StarterKey[] = ['web-api', 'event-driven', 'fabric', 'enterprise']
+export function starterDocument(key: StarterKey): Diagram {
+  if (!Object.hasOwn(starterSources, key)) throw new Error('Choose an available starting diagram')
+  const parsed = parseDocument(starterSources[key])
+  if (!parsed.ok) throw new Error(parsed.errors.map(issue => `${issue.path}: ${issue.message}`).join('; '))
+  return parsed.value
+}
 
 export type LayoutJob = { promise: Promise<LayoutResult>; cancel(): void }
 export type SessionDependencies = {
@@ -12,8 +27,9 @@ export type SessionDependencies = {
   download(blob: Blob, filename: string): void | Promise<void>
   confirmReplace(): boolean
   newId(): string
-  exportSvg(document: Diagram, transparent: boolean): Promise<string>
-  exportPng(document: Diagram, scale: 1 | 2, transparent: boolean): Promise<Blob>
+  exportSvg(document: Diagram, transparent: boolean, includeGrid?: boolean, options?: ExportSceneOptions): Promise<string>
+  exportPng(document: Diagram, scale: 1 | 2, transparent: boolean, includeGrid?: boolean, options?: ExportSceneOptions): Promise<Blob>
+  copyImage?(png: Promise<Blob>): Promise<void>
 }
 export type SessionSnapshot = {
   document: Diagram; canUndo: boolean; canRedo: boolean; readOnly: boolean
@@ -34,6 +50,7 @@ export function createSession(dependencies: SessionDependencies) {
   let debounce: ReturnType<typeof setTimeout> | undefined
   let preview: Diagram | null = null
   let layoutJob: LayoutJob | undefined
+  let presenting = false
   let snapshot: SessionSnapshot = { document: history.present, canUndo: false, canRedo: false, readOnly: true, saveState: 'loading', backupDirty: true, message: '', isArranging: false, isExporting: false }
   let serializedDocument = history.present
   let serialized = canonical(serializedDocument)
@@ -46,10 +63,16 @@ export function createSession(dependencies: SessionDependencies) {
     for (const listener of listeners) listener()
   }
   function writable() { return !!runtime && !runtime.stopped && runtime.owns && !snapshot.readOnly }
+  function canMutate() { return writable() && !presenting }
   function invalidate() {
     request++
     layoutJob?.cancel(); layoutJob = undefined
     publish({ isArranging: false })
+  }
+  function presentation(active: boolean) {
+    if (presenting === active) return
+    presenting = active
+    if (active) { preview = null; invalidate() }
   }
   function failure(error: unknown, prefix = '') { publish({ message: `${prefix}${describe(error)}` }) }
 
@@ -79,7 +102,7 @@ export function createSession(dependencies: SessionDependencies) {
     invalidate(); publish({ message: '' }); scheduleSave()
   }
   function command(command: DocumentCommand) {
-    if (!writable()) return
+    if (!canMutate()) return
     publish({ message: '' })
     try { accept(historyCommit(history, applyCommand(history.present, command))) }
     catch (error) { failure(error) }
@@ -144,19 +167,37 @@ export function createSession(dependencies: SessionDependencies) {
     }
   }
   function newDocument() {
-    if (!writable()) return
+    if (!canMutate()) return
     publish({ message: '' })
     if (snapshot.backupDirty && !dependencies.confirmReplace()) return
     replace(createDocument(dependencies.newId()), true)
   }
 
+  function openStarter(key: StarterKey): boolean {
+    if (!canMutate()) return false
+    const version = generation
+    try {
+      const bundled = starterDocument(key)
+      const candidate = validateDocument({ ...bundled, id: dependencies.newId() })
+      if (!candidate.ok) throw new Error(candidate.errors.map(issue => `${issue.path}: ${issue.message}`).join('; '))
+      if (!canMutate() || generation !== version) return false
+      if (snapshot.backupDirty && !dependencies.confirmReplace()) return false
+      if (!canMutate() || generation !== version) return false
+      replace(candidate.value, false)
+      return true
+    } catch (error) {
+      failure(error, 'Start failed: ')
+      return false
+    }
+  }
+
   // Validate, finish initial layout, then confirm replacement. Any newer command or file choice wins.
   async function openFile(file: InputFile, kind: 'open' | 'import') {
-    if (!writable()) return
+    if (!canMutate()) return
     invalidate(); publish({ message: '' })
     const token = request
     const version = generation
-    const current = () => writable() && token === request && version === generation
+    const current = () => canMutate() && token === request && version === generation
     try {
       if (!/\.json$/i.test(file.name)) throw new Error('Choose a .json file')
       if (file.size > 5 * 1024 * 1024) throw new Error('JSON files must be at most 5 MiB')
@@ -184,7 +225,7 @@ export function createSession(dependencies: SessionDependencies) {
     }
   }
   async function arrange(direction: Direction) {
-    if (!writable()) return
+    if (!canMutate()) return
     invalidate(); publish({ message: '', isArranging: true })
     const token = request
     const version = generation
@@ -193,10 +234,10 @@ export function createSession(dependencies: SessionDependencies) {
     try {
       layoutJob = dependencies.layout(preview ?? document, direction)
       const result = await layoutJob.promise
-      if (runtime !== active || !writable() || token !== request || version !== generation || document.revision !== history.present.revision) return
+      if (runtime !== active || !canMutate() || token !== request || version !== generation || document.revision !== history.present.revision) return
       command({ type: 'applyLayout', expectedRevision: document.revision, result })
     } catch (error) {
-      if (token === request && runtime === active && writable()) failure(error, 'Auto-arrange failed; retry: ')
+      if (token === request && runtime === active && canMutate()) failure(error, 'Auto-arrange failed; retry: ')
     } finally {
       if (token === request) { layoutJob?.cancel(); layoutJob = undefined; publish({ isArranging: false }) }
     }
@@ -213,19 +254,46 @@ export function createSession(dependencies: SessionDependencies) {
   async function exportImage(options: ExportOptions) {
     if (snapshot.isExporting) return
     const document = preview ?? history.present
+    const { format, scale, transparent } = options
+    const output = captureOptions(options)
     publish({ message: '', isExporting: true })
     try {
-      const blob = options.format === 'svg' ? new Blob([await dependencies.exportSvg(document, options.transparent)], { type: 'image/svg+xml' }) : await dependencies.exportPng(document, options.scale, options.transparent)
-      await dependencies.download(blob, `${filename(document)}.${options.format}`)
+      const blob = format === 'svg' ? new Blob([await (output ? dependencies.exportSvg(document, transparent, undefined, output) : dependencies.exportSvg(document, transparent))], { type: 'image/svg+xml' }) : await (output ? dependencies.exportPng(document, scale, transparent, undefined, output) : dependencies.exportPng(document, scale, transparent))
+      await dependencies.download(blob, `${filename(document)}.${format}`)
     } catch (error) { failure(error, 'Export failed: ') }
+    finally { publish({ isExporting: false }) }
+  }
+  function captureOptions(options: ExportOptions): ExportSceneOptions | undefined {
+    const { selectionIds, background, aspect, includeGrid } = options
+    if (selectionIds === undefined && background === undefined && aspect === undefined && includeGrid === undefined) return undefined
+    return { ...(selectionIds === undefined ? {} : { selectionIds: [...selectionIds] }), ...(background === undefined ? {} : { background }), ...(aspect === undefined ? {} : { aspect }), ...(includeGrid === undefined ? {} : { includeGrid }) }
+  }
+  async function copyImage(options: ExportOptions) {
+    if (snapshot.isExporting) return
+    const document = preview ?? history.present
+    const output = captureOptions(options)
+    publish({ message: '', isExporting: true })
+    try {
+      const png = output ? dependencies.exportPng(document, options.scale, options.transparent, undefined, output) : dependencies.exportPng(document, options.scale, options.transparent)
+      let copying: Promise<{ ok: boolean }> = Promise.resolve({ ok: false })
+      try {
+        if (dependencies.copyImage) copying = Promise.resolve(dependencies.copyImage(png)).then(() => ({ ok: true }), () => ({ ok: false }))
+      } catch { copying = Promise.resolve({ ok: false }) }
+      const blob = await png
+      if ((await copying).ok) publish({ message: 'Image copied.' })
+      else {
+        await dependencies.download(blob, `${filename(document)}.png`)
+        publish({ message: 'Image not copied: clipboard unavailable or denied. PNG downloaded.' })
+      }
+    } catch (error) { failure(error, 'Copy image failed: ') }
     finally { publish({ isExporting: false }) }
   }
   return {
     getSnapshot: () => snapshot,
     subscribe: (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener) } },
-    start, stop, command, newDocument, openFile, saveJson, arrange, exportImage, lockError,
-    undo: () => { if (writable()) accept(historyUndo(history)) },
-    redo: () => { if (writable()) accept(historyRedo(history)) },
-    preview: (document: Diagram | null) => { invalidate(); preview = writable() ? document : null },
+    start, stop, command, newDocument, openStarter, openFile, saveJson, arrange, exportImage, copyImage, lockError, presentation, canMutate,
+    undo: () => { if (canMutate()) accept(historyUndo(history)) },
+    redo: () => { if (canMutate()) accept(historyRedo(history)) },
+    preview: (document: Diagram | null) => { if (presenting) return; invalidate(); preview = canMutate() ? document : null },
   }
 }

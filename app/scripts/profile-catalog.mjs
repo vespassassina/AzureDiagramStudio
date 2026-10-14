@@ -22,11 +22,11 @@ try {
   await page.goto(url)
   await page.locator('.react-flow__node').first().waitFor()
   await page.evaluate(() => document.fonts.ready)
-  await page.waitForFunction(() => document.querySelector('.statusbar .save-label')?.textContent === 'Saved')
+  await page.waitForFunction(() => document.querySelector('.statusbar .save-label')?.textContent === 'Saved on this device')
   const chooser = page.waitForEvent('filechooser')
   await page.getByRole('button', { name: 'Open JSON', exact: true }).click()
   await (await chooser).setFiles({ name: 'stress-profile.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(stress)) })
-  await page.waitForFunction(title => document.querySelector('input[aria-label="Document title"]')?.value === title && document.querySelector('.statusbar .save-label')?.textContent === 'Saved', stress.title)
+  await page.waitForFunction(title => document.querySelector('input[aria-label="Document title"]')?.value === title && document.querySelector('.statusbar .save-label')?.textContent === 'Saved on this device', stress.title)
   for (const name of ['Close component library', 'Close properties']) {
     const button = page.getByRole('button', { name, exact: true })
     if (await button.isVisible()) await button.click()
@@ -51,7 +51,7 @@ try {
   })
   const { profile } = await session.send('Profiler.stop')
   await session.send('Profiler.disable')
-  await page.waitForFunction(() => document.querySelector('.statusbar .save-label')?.textContent === 'Saved')
+  await page.waitForFunction(() => document.querySelector('.statusbar .save-label')?.textContent === 'Saved on this device')
   const revision = await page.evaluate(() => new Promise((resolve, reject) => {
     const request = indexedDB.open('diagrammer-v1', 1)
     request.onerror = () => reject(request.error)
