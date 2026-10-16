@@ -1,10 +1,12 @@
 # Azure Diagram Studio: Short Manual
 
-This manual includes the Sprint 3 source candidate. Existing v0.1.0 executables have not been rebuilt or republished with these changes; see [Sprint 3 verification](verification/sprint-3-review.md) for the tested browser build and remaining manual checks.
+This manual describes the Sprint 4 source controls and the subsequently added [first-use UI guide](verification/DGM-117.md). See [Sprint 4 verification](verification/sprint-4-review.md) for the historical passing integration gate (5,488 tests), retained earlier failures and remaining manual checks. The [0.2.0 ARM64 prerelease](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/arm64-v0.2.0) has independent native and publication evidence, not general platform or human acceptance. The new guide is source-only and is not in that published executable. The separate v0.1.0 links below identify the historical stable release.
 
 ## Install and Launch
 
 Download from the verified [v0.1.0 release](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/v0.1.0), or use the [README download links](../README.md#release-downloads). The source repository is public. Both portable files bundle the runtime and work without Node.js, a local server or a cloud account.
+
+For the current Windows ARM64 candidate, use the [0.2.0 ARM64 prerelease](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/arm64-v0.2.0) and its own checksum manifest. There is no 0.2.0 x64/Mac asset in that release. Its attached source candidate ZIP, not GitHub's automatic tag archives, contains the verified candidate; no source branch was pushed.
 
 1. In Windows **Settings > System > About**, check **System type**. Choose **ARM64** for Windows on ARM/Snapdragon, or **x64** for Intel/AMD Windows PCs.
 2. Choose the matching `Azure-Diagram-Studio-0.1.0-win-{arch}-portable.exe` and [SHA256SUMS.txt](https://github.com/vespassassina/AzureDiagramStudio/releases/download/v0.1.0/SHA256SUMS.txt) from the same release. Downloads are approximately 403-404 MB.
@@ -13,11 +15,29 @@ Download from the verified [v0.1.0 release](https://github.com/vespassassina/Azu
 
 Source/browser setup is in the [README](../README.md#build-from-source). Packaged offline launch, workers, image import, exports, themes and autosave/relaunch were tested. ARM64 ran natively; x64 ran under Windows ARM64 emulation rather than native Intel/AMD hardware. SmartScreen behavior and native save-dialog appearance remain manual checks. Browser diagrams do not automatically appear in desktop: Save JSON in the browser and Open JSON in the executable.
 
+The current **published 0.2.0 ARM64 candidate** passed independent automated portable-runtime checks: layout/undo, custom images, JSON/SVG/PNG output, themes and autosave after moving/relaunching the executable. See the [ARM64 runtime report](verification/DGM-113-windows-arm64.md) and [publication report](verification/release-0.2.0-arm64.md) for the exact artifact, hashes and retained failures. It remains unsigned and prerelease. Network-offline emulation is not physical-disconnection, SmartScreen, native-dialog or Teams/Office acceptance.
+
+## First-Use UI Guide
+
+Choose the question-mark **Help** button at the top of the left tool rail.
+The ten numbered callouts cover starting and naming a diagram, adding components,
+navigating, connecting and annotating, editing properties, arranging, saving
+editable JSON, exporting artwork and presenting. Each callout highlights the
+corresponding control; **Next** and **Back** move through the guide without
+executing those actions. Close the guide to try them in the editor.
+
+Use **Close guide**, Escape or the final **Finish** button to return to editing.
+Tab and Shift+Tab stay within the guide, and closing returns focus to Help.
+Library and Properties panels may open temporarily for a step; closing restores
+the previous panel choice without changing the document, selection, camera or
+pending label/title draft. The guide is available in Read-only mode, does not
+start automatically and can be replayed from Help at any time while editing.
+
 ## Start With an Example
 
 Use **Open JSON** and select [Azure web/API](../examples/azure-web-app.json), [Fabric/OneLake](../examples/fabric-onelake.json), [event-driven integration](../examples/event-driven.json) or [Microsoft/enterprise integration](../examples/enterprise-integration.json). These are native schema-1 documents, not skill-import files. All components are synthetic illustrations; none asserts a real deployment or verified integration.
 
-Use **New diagram** for a blank document. Save a JSON backup before replacing work. Edit the document title in the top bar; use **Document properties** for its subtitle.
+Choose **New diagram**, then **Blank** or one of the four bundled synthetic starters. Escape or Close cancels the chooser without replacing work; opening or canceling it preserves an active label/property draft. An explicit choice uses the existing replacement confirmation and draft-validation rules. A starter is a fresh editable copy and needs its own JSON backup; it is not a deployed architecture. Save a JSON backup before replacing work. Edit the document title in the top bar; use **Document properties** for its subtitle.
 
 ## Add and Find Components
 
@@ -69,6 +89,10 @@ Use **Select tool** to move objects. Shift-click objects for a multiple selectio
 
 Use **Add boundary** to draw an ownership/trust area, and **Parent** in Properties to assign selected objects to it. Merely placing an object over a boundary does not prove parent membership. Resize a selected boundary using its visible handles.
 
+For a same-parent selection, use **Align left**, **Align center** (horizontal centers) or **Align top** in the selection tools or Commands. Alignment needs at least two selected roots; its anchor is the first root in document order, not the first object clicked. **Distribute horizontally** and **Distribute vertically** need at least three roots and equalize gaps between object edges while retaining the outside ends. A selected boundary moves its subtree once, even when a descendant is also selected.
+
+These commands do not snap their results to the grid or run Auto-arrange. Mixed-parent selections, connections, negative distribution gaps, unchanged results and moves that would change containment are unavailable. They do not grow boundaries or resize content. An accepted action is one undoable move; editing remains disabled in Present and Read-only mode.
+
 Choose **Right layout** or **Down layout**, then **Auto-arrange**. Changing direction alone does not rearrange the document. Auto-arrange is explicit and undoable; it can replace carefully curated example routing. Use **Undo** to restore that layout. Annotations retain their canvas positions during arrangement.
 
 Arrangement now sizes boundaries from their contents and wrapped headers instead of inheriting obsolete expanded dimensions. Removing children and arranging again can shrink a boundary. Ordinary editing still does not rearrange unrelated objects.
@@ -93,8 +117,9 @@ Component **Status** can be **Unset**, **Live**, **Planned**, **Not connected** 
 
 ## Save, Open and Import
 
-- **Saved** means local autosave succeeded. **JSON backup needed** means your transferable file backup is not current: choose **Save JSON**.
-- **Save JSON** writes an editable native document. Keep copies somewhere backed up, and version important milestones.
+- **Loading local work**, **Saving locally** and **Saved on this device** describe local storage, not a transferable file backup. **Editable JSON copy needed** independently means choose **Save JSON** for newer work.
+- **Local save failed** means local storage did not succeed. Download JSON now; free storage and edit again to retry. A successful JSON callback does not turn a local failure into local success.
+- **Save JSON** downloads an editable native document. **No newer JSON changes** means the current revision's download callback completed, not that the OS acknowledged a durable file write. Check the downloaded file, keep copies somewhere backed up, and version important milestones. Native save-dialog cancellation/completion remains unverified.
 - Custom icons are embedded PNG data in that backup, not links to local files. Native JSON and skill JSON have a **5 MiB** limit for the whole file, including embedded images; many icons can reach that limit.
 - **Open JSON** opens that native document, including these examples. It replaces the active document after any applicable confirmation.
 - **Import skill JSON** is separate: it accepts architecture-skill specifications and reports import warnings. Check labels, grouping, unsupported icons and connection meanings after importing.
@@ -118,7 +143,7 @@ To transfer: **Save JSON** in the old editor, then **Open JSON** in the new one.
 
 ## Limits and Notices
 
-This is a local drawing tool, not a cloud deployment, inventory, authentication or live-service validation tool. Boundary labels are documentation, not enforced network isolation. No collaboration backend or automatic update service is included. Native JSON and supported skill JSON are document inputs; image import changes a component icon, not a whole diagram. Earlier packaged offline results apply to the earlier release, not to this unbuilt Sprint 3 desktop candidate.
+This is a local drawing tool, not a cloud deployment, inventory, authentication or live-service validation tool. Boundary labels are documentation, not enforced network isolation. No collaboration backend or automatic update service is included. Native JSON and supported skill JSON are document inputs; image import changes a component icon, not a whole diagram. Earlier packaged offline results apply only to their identified artifacts; local builds do not qualify the current source or a different release. See the [platform readiness packet](specs/DGM-113.md) for target-specific blockers.
 
 The catalogs are curated snapshots, not a promise of every service/SKU. Historical glyphs may remain in older documents without appearing as new choices. PowerPoint insertion fidelity and uncoached novice usability remain manually unverified.
 

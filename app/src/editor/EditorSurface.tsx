@@ -29,6 +29,8 @@ import { painterOrder } from '../order.ts'
 import { applyCommand } from '../document/index.ts'
 import { Presentation, Expand, Crosshair, ArrowLeft } from 'lucide-react'
 import { starterDocument } from '../app/session.ts'
+import { CircleHelp } from 'lucide-react'
+import { HelpGuide } from './HelpGuide.tsx'
 
 type ArchitectureNode = Node<{ entity: Entity; backgroundColor: string; minWidth: number; minHeight: number; writable: boolean; presenting: boolean; startResize(): void; quickAddSourceId: string | null; onQuickAdd(side: AddSide): void }, 'architecture'>
 type ArchitectureEdge = Edge<{ connection: SceneConnection; backgroundColor: string }, 'architecture'>
@@ -178,6 +180,12 @@ function InlineLabel({ edit, style, onDraft, onFinish, onCancel, onComposing, de
 
 export default function EditorSurface(props: EditorProps) {
   const editorElement = useRef<HTMLDivElement>(null)
+  const [guideOpen, setGuideOpen] = useState(false)
+  const [guidePanel, setGuidePanel] = useState<'library' | 'inspector' | null>(null)
+  const guideActive = useRef(false)
+  const guideOpening = useRef(false)
+  const guideReturn = useRef(false)
+  const composing = useRef(false)
   const keyboardOwner = useRef(false)
   const [inlineEdit, setInlineEdit] = useState<InlineEdit | null>(null)
   const inlineRef = useRef<InlineEdit | null>(null)
@@ -251,8 +259,8 @@ export default function EditorSurface(props: EditorProps) {
   const [preferredPanel, setPreferredPanel] = useState<'library' | 'inspector'>('library')
   const inspectorIntent = useRef<boolean | null>(null)
   const bothPanels = windowWidth > 1440 || (windowWidth > 900 && libraryPinned)
-  const libraryOpen = libraryRequested && (bothPanels || !inspectorRequested || preferredPanel === 'library')
-  const inspectorOpen = inspectorRequested && (bothPanels || !libraryRequested || preferredPanel === 'inspector')
+  const libraryOpen = guidePanel === 'library' || (guidePanel !== 'inspector' && libraryRequested && (bothPanels || !inspectorRequested || preferredPanel === 'library'))
+  const inspectorOpen = guidePanel === 'inspector' || (guidePanel !== 'library' && inspectorRequested && (bothPanels || !libraryRequested || preferredPanel === 'inspector'))
   const [exportOpen, setExportOpen] = useState(false)
   const [exportPreset, setExportPreset] = useState<ExportPreset>({})
   const [zoom, setZoom] = useState(1)
@@ -313,6 +321,7 @@ export default function EditorSurface(props: EditorProps) {
     return id
   }
   function clearPreview() {
+    if (guideActive.current || guideOpening.current) return
     if (!transaction.current) return
     transaction.current = null; setDraft(null); props.onPreviewChange(null)
   }
@@ -356,7 +365,7 @@ export default function EditorSurface(props: EditorProps) {
     const next = { ...edit, value, error }; inlineRef.current = next; setInlineEdit(next)
   }
   function openCommands() {
-    if (presentationActive.current || entryCommit.current || connectedPicker || exportOpen || commandsOpen || !finishInline()) return
+    if (guideActive.current || presentationActive.current || entryCommit.current || connectedPicker || exportOpen || commandsOpen || !finishInline()) return
     commandOrigin.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
     setCommandsOpen(true)
   }
@@ -365,7 +374,7 @@ export default function EditorSurface(props: EditorProps) {
     commandReturn.current = restore
   }
   function openStarterChooser(origin?: HTMLElement) {
-    if (!writable || presentationActive.current || starterOpen || connectedPicker || exportOpen) return
+    if (guideActive.current || !writable || presentationActive.current || starterOpen || connectedPicker || exportOpen) return
     starterOpening.current = true
     starterOrigin.current = origin ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null)
     starterDocumentId.current = props.document.id
@@ -426,7 +435,7 @@ export default function EditorSurface(props: EditorProps) {
     setExportOpen(false)
   }
   function finish(command?: DocumentCommand) {
-    if (presentationActive.current || (inlineRef.current && inlineComposing.current)) return false
+    if (guideActive.current || guideOpening.current || presentationActive.current || (inlineRef.current && inlineComposing.current)) return false
     const pending = transaction.current
     const completed = command ?? pending?.command
     try {
@@ -445,7 +454,7 @@ export default function EditorSurface(props: EditorProps) {
     }
   }
   function emit(command: DocumentCommand) {
-    if (!writable || presentationActive.current) return
+    if (guideActive.current || !writable || presentationActive.current) return
     if (transaction.current && !finish()) return
     setNotice('')
     if (changed(props.document, command)) { importEpoch.current++; props.onCommand(command) }
@@ -489,7 +498,7 @@ export default function EditorSurface(props: EditorProps) {
     }
   }
   function preview(command: DocumentCommand, key: string, display = true) {
-    if (!writable || presentationActive.current) return
+    if (guideActive.current || !writable || presentationActive.current) return
     if (transaction.current && transaction.current.key !== key && !finish()) return
     transaction.current = { key, command, documentId: props.document.id, revision: props.document.revision }
     const next = previewDocument(props.document, command)
@@ -547,6 +556,7 @@ export default function EditorSurface(props: EditorProps) {
     return () => window.removeEventListener('resize', resize)
   }, [])
   useEffect(() => {
+    if (guideActive.current) return
     const hidden = (!libraryOpen && document.activeElement?.closest('.library')) || (!inspectorOpen && document.activeElement?.closest('.inspector'))
     if (hidden) { finish(); canvasElement.current?.focus() }
   }, [libraryOpen, inspectorOpen])
@@ -831,6 +841,7 @@ export default function EditorSurface(props: EditorProps) {
   useEffect(() => () => { if (transaction.current) previewCallback.current(null) }, [])
   useEffect(() => {
     const keydown = (event: globalThis.KeyboardEvent) => {
+      if (guideActive.current) return
       const modifier = event.ctrlKey || event.metaKey
       const key = event.key.toLowerCase()
       const root = editorElement.current, active = document.activeElement
@@ -944,7 +955,26 @@ export default function EditorSurface(props: EditorProps) {
   const inlineLeft = anchor ? canvasBounds.left + viewport.x + anchor.x * viewport.zoom - (inlineConnection ? inlineWidth / 2 : 0) : 0
   const inlineTop = anchor ? canvasBounds.top + viewport.y + anchor.y * viewport.zoom : 0
 
-  return <div ref={editorElement} onFocusCapture={() => { keyboardOwner.current = true }} className={`app-shell${presenting ? ' presenting' : ''}`}>
+  const guideBlocked = presenting || commandsOpen || starterOpen || !!connectedPicker || exportOpen || !!entryCommit.current || props.isArranging || props.isExporting || isImportingIcon
+  function openGuide() {
+    if (guideBlocked || composing.current || inlineComposing.current) { guideOpening.current = false; return }
+    guideOpening.current = false; guideActive.current = true; setGuidePanel(null); setGuideOpen(true)
+  }
+  function closeGuide() {
+    guideReturn.current = true; setGuidePanel(null); setGuideOpen(false)
+  }
+  useLayoutEffect(() => {
+    if (guideOpen || !guideReturn.current) return
+    guideReturn.current = false
+    const help = editorElement.current?.querySelector<HTMLButtonElement>('[aria-label="Help"]')
+    help?.focus({ preventScroll: true })
+    guideActive.current = false
+  }, [guideOpen])
+
+  return <div ref={editorElement} inert={guideOpen} onCompositionStartCapture={() => { composing.current = true }} onCompositionEndCapture={() => { composing.current = false }} onBlurCapture={event => {
+    if (guideActive.current || guideOpening.current || (event.relatedTarget instanceof HTMLElement && event.relatedTarget.getAttribute('aria-label') === 'Help')) event.stopPropagation()
+  }} onClickCapture={event => { if (guideActive.current && !(event.target as HTMLElement).closest('.help-guide')) event.stopPropagation() }} onFocusCapture={() => { keyboardOwner.current = true }} className={`app-shell${presenting ? ' presenting' : ''}`}>
+    {guideOpen && <HelpGuide root={editorElement} onReveal={setGuidePanel} onClose={closeGuide} />}
     {commandsOpen && !presenting && <CommandMenu actions={actions} onCancel={() => closeCommands()} onExecute={action => { if (presentationActive.current || action.disabled) return; pendingAction.current = action.label; closeCommands() }} />}
     {starterOpen && !presenting && <StarterChooser onCancel={() => closeStarterChooser()} onChoose={chooseStarter} />}
     {connectedPicker && writable && <ComponentPicker title={`Add connected ${connectedPicker.side}: ${props.document.entities.find(entity => entity.id === connectedPicker.sourceId)?.label ?? connectedPicker.sourceId}`} writable={writable} onChoose={chooseConnectedComponent} onCancel={() => setConnectedPicker(null)} />}
@@ -956,7 +986,7 @@ export default function EditorSurface(props: EditorProps) {
       <button type="button" className="present-button" aria-label="Present" title="Present" disabled={props.saveState === 'loading' || props.isArranging} onPointerDown={() => { entryFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null }} onMouseDown={event => event.preventDefault()} onClick={enterPresentation}><Presentation size={18} /><span>Present</span></button>
     </header>}
     <div className="workspace" inert={commandsOpen}>
-      {!presenting && <nav className="tool-rail" aria-label="Drawing tools">{tools.map(item => <IconButton key={item.tool} icon={item.icon} label={item.label} active={tool === item.tool} disabled={!writable && item.tool !== 'select' && item.tool !== 'pan'} onClick={() => chooseTool(item.tool)} />)}<IconButton icon={isImportingIcon ? LoaderCircle : ImagePlus} label="Import custom icon" disabled={!writable || isImportingIcon} onClick={openIconPicker} /><IconButton icon={CommandIcon} label="Commands" className="commands-trigger" onMouseDown={event => event.preventDefault()} onClick={openCommands} /><span className="rail-spacer" /><EditorThemeToggle /><IconButton icon={ClipboardPaste} label="Paste selection" disabled={!writable || !hasClipboard} onClick={() => paste()} /><IconButton icon={PanelRight} label="Document properties" onClick={() => documentProperties()} /></nav>}
+      {!presenting && <nav className="tool-rail" aria-label="Drawing tools"><IconButton icon={CircleHelp} label="Help" className="help-trigger" disabled={guideBlocked} onPointerDown={() => { if (!guideBlocked && !composing.current && !inlineComposing.current) guideOpening.current = true }} onMouseDown={event => event.preventDefault()} onClick={openGuide} />{tools.map(item => <IconButton key={item.tool} icon={item.icon} label={item.label} active={tool === item.tool} disabled={!writable && item.tool !== 'select' && item.tool !== 'pan'} onClick={() => chooseTool(item.tool)} />)}<IconButton icon={isImportingIcon ? LoaderCircle : ImagePlus} label="Import custom icon" disabled={!writable || isImportingIcon} onClick={openIconPicker} /><IconButton icon={CommandIcon} label="Commands" className="commands-trigger" onMouseDown={event => event.preventDefault()} onClick={openCommands} /><span className="rail-spacer" /><EditorThemeToggle /><IconButton icon={ClipboardPaste} label="Paste selection" disabled={!writable || !hasClipboard} onClick={() => paste()} /><IconButton icon={PanelRight} label="Document properties" onClick={() => documentProperties()} /></nav>}
       <aside className={`library ${!presenting && libraryOpen ? 'open' : ''}`} aria-label="Component library" inert={presenting || !libraryOpen}>
         <div className="panel-heading"><h2>Components</h2><div className="panel-actions">{windowWidth > 900 && <IconButton icon={libraryPinned ? PinOff : Pin} label={libraryPinned ? 'Unpin component library' : 'Pin component library'} active={libraryPinned} onClick={toggleLibraryPin} />}<IconButton icon={PanelLeftClose} label="Close component library" onClick={() => setLibraryOpen(false)} /></div></div>
         <CatalogAccordion writable={writable} selectedIcon={tool === 'component' ? template.icon : null} favoriteIcons={favoriteIcons} onToggleFavorite={toggleFavorite} onClearFavorites={clearFavorites} recentIcons={recentIcons} onClearRecents={clearRecents} onChoose={chooseComponent} />
