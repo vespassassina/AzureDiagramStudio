@@ -81,3 +81,62 @@ problems and adopted process corrections, not new product test results.
 	inconclusive; retained passing evidence with unchanged inputs is reusable.
 - Skipping a review meeting is not passing native or manual acceptance. Track
 	those gaps per platform/release claim and continue independent local work.
+
+## 2026-10-15: Sprint 4 Integration Evidence And Timeout Diagnosis
+
+Evidence: [Sprint 4 review](verification/sprint-4-review.md) and
+[current disposition](roadmap.md#2026-10-15-consolidated-disposition).
+
+- A full source command can collect browser tests with fixed evidence paths and
+	embedded builds. Inspect those writers before execution; a byte-matched
+	isolated copy with actual dependencies preserves previous failures and dist
+	without changing assertions. Retain input/output manifests and first-run logs.
+- A clean tree, version number or passing log without complete input identity
+	is not proof of reuse against today's candidate. Preserve the historical pass
+	and state the uncovered inputs; do not erase it or invent provenance.
+- A timeout reproduced in isolation is still not a diagnosed product defect.
+	Retain diagnostic passes as diagnostics, keep the timeout, and measure the
+	owning stages before changing code. For S4-INTEGRATION-001, queries were not
+	dominant; repeated 696-row picker mounts were costly, but scheduling/GC and
+	instrumentation overhead remain unresolved. No standby event is not proof
+	of an otherwise idle host, and no speculative repair is accepted as GREEN.
+- Existing DGM-113 paperwork and newer local package records can outlive a
+	stale queue. Reconcile them instead of recreating the spec or claiming a
+	local build is published/native-qualified. Independent documentation can
+	finish while the source gate stays visibly blocked.
+
+### Post-Repair Resolution
+
+[Independent closeout](verification/sprint-4-review.md#s4-integration-001-independent-full-source-closeout):
+5,488/5,488 tests pass after attempt 1 / cycle 1 / local typing fix 1.
+The preceding unresolved findings describe the earlier diagnostic state.
+
+- Bound the measured work, not the test's patience. Mounting 32 picker rows
+	initially and expanding on scroll/keyboard demand retains all ranked choices
+	without repeatedly constructing 696 rows. Keep the original timeout and
+	add structural RED/GREEN coverage plus real browser keyboard/wheel checks.
+- Focus can cause scrolling, which can mount another batch. A browser oracle
+	must trap from the actual current final control, not assume the initial
+	batch remains the end. Preserve the invalid-oracle failure and replace its
+	assumption with full-list focus assertions, not a weaker product check.
+- Focused Vitest PASS and editor diagnostics did not catch a test mock's
+	return-type mismatch. Typecheck remains authoritative; correct the local
+	annotation, preserve the failure and resume independent verification.
+
+## 2026-10-15: Windows ARM64 Qualification
+
+Evidence: [independent native report](verification/DGM-113-windows-arm64.md).
+
+- Focus transitions are part of the workflow contract. Tab from the title into
+	New diagram deliberately preserves a draft; a verifier must explicitly
+	commit with Enter before asserting durable storage. Retain the failed
+	persistence assertion and fix the harness under RED/GREEN, not the product's
+	correct draft guard or the assertion's meaning.
+- A harness-only repair does not require rebuilding an unchanged signed or
+	unsigned payload. Reuse exact artifact/ASAR hashes in a fresh runner workspace
+	and profile; preserve the failed candidate and downloads instead of replacing
+	its output. Here, 10 groups / 3 sessions / 8 downloads passed after one repair.
+- Distinguish portable launcher architecture from embedded runtime architecture:
+	this x86 NSIS bootstrap carries ARM64 Electron, verified natively after launch.
+	CDP offline and a local unsigned launch are bounded evidence, not physical
+	disconnection or downloaded-file SmartScreen/policy acceptance.

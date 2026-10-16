@@ -69,19 +69,44 @@ function navigateResults(event: KeyboardEvent, results: HTMLElement | null, inpu
 }
 
 export type ComponentPickerProps = { writable?: boolean; title?: string; onChoose(item: LibraryItem): void; onCancel(): void }
+const pickerBatchSize = 32
 
 export function ComponentPicker({ writable = true, title = 'Choose component', onChoose, onCancel }: ComponentPickerProps) {
   const headingId = useId()
   const searchInput = useRef<HTMLInputElement>(null)
   const results = useRef<HTMLDivElement>(null)
+  const pendingFocus = useRef<number | null>(null)
   const [query, setQuery] = useState('')
+  const [displayedCount, setDisplayedCount] = useState(pickerBatchSize)
   const items = useMemo(() => rankedSearch(query), [query])
   useLayoutEffect(() => {
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
     searchInput.current?.focus()
     return () => { if (opener?.isConnected) opener.focus() }
   }, [])
-  const searchKey = (event: KeyboardEvent) => navigateResults(event, results.current, searchInput.current, writable, onCancel)
+  useLayoutEffect(() => {
+    const index = pendingFocus.current
+    pendingFocus.current = null
+    if (index === null || !writable) return
+    const button = results.current?.querySelectorAll<HTMLButtonElement>('.library-item')[index]
+    button?.focus(); button?.scrollIntoView?.({ block: 'nearest' })
+  }, [displayedCount, items, writable])
+  function searchKey(event: KeyboardEvent) {
+    if (event.nativeEvent.isComposing) return
+    if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); onCancel(); return }
+    const target = event.target as HTMLElement
+    if (target !== searchInput.current && !target.classList?.contains('library-item')) return
+    if (!writable || !items.length) return
+    const index = target === searchInput.current ? -1 : items.findIndex(item => item.icon === target.dataset.icon)
+    if (event.key === 'Enter') { event.preventDefault(); event.stopPropagation(); onChoose(items[Math.max(0, index)]); return }
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
+    event.preventDefault(); event.stopPropagation()
+    const next = index < 0 ? event.key === 'ArrowDown' ? 0 : items.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length
+    const button = results.current?.querySelectorAll<HTMLButtonElement>('.library-item')[next]
+    if (button) { button.focus(); button.scrollIntoView?.({ block: 'nearest' }); return }
+    pendingFocus.current = next
+    setDisplayedCount(Math.min(items.length, Math.ceil((next + 1) / pickerBatchSize) * pickerBatchSize))
+  }
   return <div className="component-picker-backdrop"><section className="component-picker" role="dialog" aria-modal="true" aria-labelledby={headingId} onKeyDown={event => {
     event.stopPropagation()
     if (event.nativeEvent.isComposing) return
@@ -92,8 +117,17 @@ export function ComponentPicker({ writable = true, title = 'Choose component', o
     if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
   }}><div className="component-picker-heading"><h2 id={headingId}>{title}</h2><CatalogAction icon={X} label="Cancel component picker" onClick={onCancel} /></div>
-    <div className="library-search"><Search size={15} aria-hidden="true" /><input ref={searchInput} aria-label="Search components" placeholder="Search components" value={query} onChange={event => setQuery(event.target.value)} onKeyDown={searchKey} /></div>
-    <div ref={results} className="library-list component-picker-results" aria-label="Component choices" onKeyDown={searchKey}>{items.map(item => <CatalogRow key={item.icon} item={item} writable={writable} picked={false} onChoose={onChoose} />)}{!items.length && <div className="no-results">No matching components</div>}</div>
+    <div className="library-search"><Search size={15} aria-hidden="true" /><input ref={searchInput} aria-label="Search components" placeholder="Search components" value={query} onChange={event => {
+      pendingFocus.current = null
+      setDisplayedCount(pickerBatchSize)
+      if (results.current) results.current.scrollTop = 0
+      setQuery(event.target.value)
+    }} onKeyDown={searchKey} /></div>
+    <div ref={results} className="library-list component-picker-results" aria-label="Component choices" onKeyDown={searchKey} onScroll={event => {
+      const list = event.currentTarget
+      if (list.scrollHeight - list.scrollTop - list.clientHeight > list.clientHeight) return
+      setDisplayedCount(current => Math.min(items.length, current + pickerBatchSize))
+    }}>{items.slice(0, displayedCount).map(item => <CatalogRow key={item.icon} item={item} writable={writable} picked={false} onChoose={onChoose} />)}{!items.length && <div className="no-results">No matching components</div>}</div>
   </section></div>
 }
 

@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { useState } from 'react'
 import { afterEach, expect, it, vi } from 'vitest'
 
 const renderCounts = vi.hoisted(() => ({ row: vi.fn(), header: vi.fn(), asset: vi.fn() }))
@@ -31,7 +32,7 @@ const policy = vi.hoisted(() => {
   const selectionLibrary = [...groups.flatMap(group => group.items), ...longtail]
   const archived = [item('retired-bonsai', 'Bonsai'), item('fabric-onelake-old', 'OneLake variant', 'fabric')]
   const searchGroups = vi.fn((query: string) => query === 'ranked' ? [{ ...groups[0], items: [compute[0], longtail[0]] }, groups[5]] : groups.map(group => ({ ...group, items: [...group.items, ...(group.id === 'compute' ? [longtail[0]] : group.id === 'fabric' ? [longtail[1]] : [])].filter(entry => `${entry.label} ${group.label}`.toLowerCase().includes(query.trim().toLowerCase())).sort((before, after) => before.label.localeCompare(after.label)) })).filter(group => group.items.length))
-  const rankedSearch = vi.fn((query: string) => query === 'ranked' ? [compute[0], groups[5].items[0], longtail[0]] : selectionLibrary.filter(entry => entry.label.toLowerCase().includes(query.trim().toLowerCase())).sort((before, after) => before.label.localeCompare(after.label)))
+  const rankedSearch = vi.fn<(query: string) => typeof selectionLibrary | ReturnType<typeof import('../catalog/presentation.ts').rankedSearch>>((query: string) => query === 'ranked' ? [compute[0], groups[5].items[0], longtail[0]] : selectionLibrary.filter(entry => entry.label.toLowerCase().includes(query.trim().toLowerCase())).sort((before, after) => before.label.localeCompare(after.label)))
   return { groups, selectionLibrary, archived, searchGroups, rankedSearch, menuGroups: vi.fn((catalog: string) => groups.filter(group => group.catalog === catalog)), searchableLibrary: selectionLibrary, isSelectableIcon: (key: string) => selectionLibrary.some(entry => entry.icon === key), legacyItem: (key: string) => archived.find(entry => entry.icon === key) }
 })
 vi.mock('../catalog/presentation.ts', () => policy)
@@ -162,6 +163,97 @@ it('should_keep_favorite_rows_draggable_and_never_treat_the_star_enter_as_a_choi
   search('App Service')
   fireEvent.keyDown(screen.getByRole('button', { name: 'Remove App Service from favorites' }), { key: 'Enter' })
   expect(onChoose).not.toHaveBeenCalled()
+})
+
+it('should_bound_picker_mounts_and_preserve_full_ranked_keyboard_choices_when_crossing_a_batch', async () => {
+  const { rankedSearch } = await vi.importActual<typeof import('../catalog/presentation.ts')>('../catalog/presentation.ts')
+  const items = rankedSearch('')
+  await policy.rankedSearch.withImplementation(rankedSearch, () => {
+    const onChoose = vi.fn()
+    render(<ComponentPicker onChoose={onChoose} onCancel={vi.fn()} />)
+    const input = screen.getByLabelText('Search components')
+    const results = screen.getByLabelText('Component choices')
+    const rows = () => Array.from(results.querySelectorAll<HTMLButtonElement>('.library-item'))
+    const initialCount = rows().length
+    expect(initialCount).toBeGreaterThan(0)
+    expect(initialCount).toBeLessThanOrEqual(32)
+    expect(initialCount).toBeLessThan(items.length)
+    expect(rows().map(row => row.dataset.icon)).toEqual(items.slice(0, initialCount).map(item => item.icon))
+    fireEvent.keyDown(input, { key: 'ArrowDown' })
+    for (let step = 0; step < initialCount; step++) fireEvent.keyDown(document.activeElement!, { key: 'ArrowDown' })
+    expect(document.activeElement?.getAttribute('data-icon')).toBe(items[initialCount].icon)
+    expect(rows().length).toBeLessThan(items.length)
+    fireEvent.keyDown(document.activeElement!, { key: 'Enter' })
+    expect(onChoose).toHaveBeenCalledExactlyOnceWith(items[initialCount])
+    input.focus()
+    fireEvent.keyDown(input, { key: 'ArrowUp' })
+    expect(document.activeElement?.getAttribute('data-icon')).toBe(items.at(-1)!.icon)
+    fireEvent.keyDown(document.activeElement!, { key: 'ArrowDown' })
+    expect(document.activeElement?.getAttribute('data-icon')).toBe(items[0].icon)
+    fireEvent.keyDown(document.activeElement!, { key: 'ArrowUp' })
+    expect(document.activeElement?.getAttribute('data-icon')).toBe(items.at(-1)!.icon)
+    fireEvent.keyDown(document.activeElement!, { key: 'Enter' })
+    expect(onChoose).toHaveBeenLastCalledWith(items.at(-1))
+    onChoose.mockClear()
+    const query = items.at(-1)!.label
+    fireEvent.change(input, { target: { value: query } })
+    expect(rows().map(row => row.dataset.icon)).toEqual(rankedSearch(query).slice(0, 32).map(item => item.icon))
+    fireEvent.keyDown(input, { key: 'Enter', isComposing: true })
+    expect(onChoose).not.toHaveBeenCalled()
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(onChoose).toHaveBeenCalledExactlyOnceWith(rankedSearch(query)[0])
+  })
+})
+
+it('should_expose_picker_rows_on_scroll_and_reset_bound_scroll_and_focus_when_searching_or_reopening', async () => {
+  const { rankedSearch } = await vi.importActual<typeof import('../catalog/presentation.ts')>('../catalog/presentation.ts')
+  const items = rankedSearch('')
+  await policy.rankedSearch.withImplementation(rankedSearch, () => {
+    const onChoose = vi.fn(), onCancel = vi.fn()
+    function Host() {
+      const [open, setOpen] = useState(false)
+      return <><button onClick={() => setOpen(true)}>Open picker</button>{open && <ComponentPicker onChoose={onChoose} onCancel={() => { onCancel(); setOpen(false) }} />}</>
+    }
+    render(<Host />)
+    const opener = screen.getByRole('button', { name: 'Open picker' })
+    opener.focus(); fireEvent.click(opener)
+    const input = screen.getByLabelText('Search components')
+    const results = screen.getByLabelText('Component choices')
+    const rows = () => Array.from(results.querySelectorAll<HTMLButtonElement>('.library-item'))
+    const initialCount = rows().length
+    expect(initialCount).toBeLessThanOrEqual(32)
+    expect(initialCount).toBeLessThan(items.length)
+    Object.defineProperties(results, { clientHeight: { configurable: true, value: 300 }, scrollHeight: { configurable: true, value: 1000 } })
+    results.scrollTop = 100
+    fireEvent.scroll(results)
+    expect(rows()).toHaveLength(initialCount)
+    results.scrollTop = 700
+    fireEvent.scroll(results)
+    expect(rows()).toHaveLength(Math.min(initialCount * 2, items.length))
+    expect(rows().map(row => row.dataset.icon)).toEqual(items.slice(0, initialCount * 2).map(item => item.icon))
+    fireEvent.click(rows().at(-1)!)
+    expect(onChoose).toHaveBeenCalledExactlyOnceWith(items[initialCount * 2 - 1])
+    onChoose.mockClear()
+    fireEvent.change(input, { target: { value: 'APIM' } })
+    expect(results.scrollTop).toBe(0)
+    expect(rows().map(row => row.dataset.icon)).toEqual(rankedSearch('APIM').slice(0, initialCount).map(item => item.icon))
+    fireEvent.change(input, { target: { value: '' } })
+    expect(rows()).toHaveLength(initialCount)
+    expect(rows().map(row => row.dataset.icon)).toEqual(items.slice(0, initialCount).map(item => item.icon))
+    expect(document.activeElement).toBe(input)
+    fireEvent.keyDown(input, { key: 'Escape', isComposing: true })
+    expect(onCancel).not.toHaveBeenCalled()
+    fireEvent.keyDown(input, { key: 'Escape' })
+    expect(onCancel).toHaveBeenCalledExactlyOnceWith()
+    expect(onChoose).not.toHaveBeenCalled()
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(document.activeElement).toBe(opener)
+    fireEvent.click(opener)
+    expect(document.activeElement).toBe(screen.getByLabelText('Search components'))
+    expect((screen.getByLabelText('Search components') as HTMLInputElement).value).toBe('')
+    expect(screen.getByLabelText('Component choices').scrollTop).toBe(0)
+    expect(screen.getAllByRole('button', { name: /^Insert / })).toHaveLength(initialCount)
+  })
 })
 
 it('should_export_a_flat_ranked_picker_with_all_matching_choices_and_keyboard_selection', () => {

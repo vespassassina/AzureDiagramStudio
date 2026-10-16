@@ -83,6 +83,46 @@ test('should_use_stable_profile_by_default_and_standard_explicit_test_profile_sw
   assert.match(source, /PROFILE_NAME/)
 })
 
+test('should_resolve_current_package_version_and_report_it_when_verifying_desktop', async () => {
+  const source = await readFile(new URL('../../scripts/verify-desktop.mjs', import.meta.url), 'utf8')
+  assert.match(source, /const metadata = JSON\.parse\(await readFile\(path\.join\(root, 'package.json'\), 'utf8'\)\)/)
+  assert.ok(source.includes('`Azure-Diagram-Studio-${metadata.version}-win-${architecture}-portable.exe`'))
+  assert.match(source, /const report = \{[^\n]*version: metadata\.version/)
+  assert.match(source, /appVersion: app\.getVersion\(\)/)
+  assert.match(source, /assert\.equal\(identity\.appVersion, metadata\.version\)/)
+  assert.doesNotMatch(source, /Azure-Diagram-Studio-\d+\.\d+\.\d+-win-/)
+})
+
+test('should_choose_blank_at_each_new_diagram_site_when_the_current_chooser_opens', async () => {
+  const source = await readFile(new URL('../../scripts/verify-desktop.mjs', import.meta.url), 'utf8')
+  const chooser = await readFile(new URL('../../src/editor/EditorSurface.tsx', import.meta.url), 'utf8')
+  assert.match(chooser, /<h2 id=\{titleId\}>New diagram<\/h2>/)
+  assert.match(chooser, /aria-label="Blank"[^>]*onClick=\{\(\) => onChoose\(null\)\}/)
+  const sites = [...source.matchAll(/await page\.getByRole\('button', \{ name: 'New diagram', exact: true \}\)\.click\(\)/g)]
+  assert.equal(sites.length, 3)
+  for (const site of sites) {
+    assert.match(source.slice(site.index + site[0].length), /^\s*await page\.getByRole\('dialog', \{ name: 'New diagram', exact: true \}\)\.getByRole\('button', \{ name: 'Blank', exact: true \}\)\.click\(\)/)
+  }
+})
+
+test('should_use_current_exact_export_names_in_the_export_dialog_when_downloading', async () => {
+  const source = await readFile(new URL('../../scripts/verify-desktop.mjs', import.meta.url), 'utf8')
+  const dialog = await readFile(new URL('../../src/editor/ExportDialog.tsx', import.meta.url), 'utf8')
+  assert.match(dialog, /<h2 id=\{`\$\{id\}-title`\}>Export diagram<\/h2>/)
+  assert.ok(dialog.includes("aria-label={action.format === 'svg' ? 'Export SVG' : `Export PNG ${action.scale}x`}"))
+  const control = "page.getByRole('dialog', { name: 'Export diagram', exact: true }).getByRole('button', { name: format === 'svg' ? 'Export SVG' : 'Export PNG 1x', exact: true })"
+  assert.equal(source.split(control).length - 1, 3)
+  assert.equal(source.split("name: format === 'svg' ? 'Export SVG' : 'Export PNG 1x'").length - 1, 3)
+})
+
+test('should_explicitly_commit_the_title_when_verifying_durable_desktop_edits', async () => {
+  const source = await readFile(new URL('../../scripts/verify-desktop.mjs', import.meta.url), 'utf8')
+  const editTitle = source.slice(source.indexOf('async function editTitle('), source.indexOf('async function openJson('))
+  assert.match(editTitle, /\.fill\(title\)\s+await page\.getByLabel\('Document title', \{ exact: true \}\)\.press\('Enter'\)\s+await saved\(page\)/)
+  assert.doesNotMatch(editTitle, /\.press\('Tab'\)/)
+  assert.ok(source.includes('assert.equal((await durable(page)).title, `Desktop offline ${architecture}`)'))
+})
+
 test('should_avoid_native_arm64_archive_filters_when_building_nsis_portables', () => {
   assert.ok(compute7zCompressArgs('7z', { compression: config.compression }).includes('-mx=0'))
 })
