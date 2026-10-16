@@ -1,6 +1,6 @@
 # Azure Diagram Studio: Short Manual
 
-This manual describes the Sprint 4 source controls, [first-use UI guide](verification/DGM-117.md) and [subsequent editor/markup improvements](verification/DGM-118.md). See [Sprint 4 verification](verification/sprint-4-review.md) for the historical passing integration gate (5,488 tests), retained earlier failures and remaining manual checks. The [0.2.0 ARM64 prerelease](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/arm64-v0.2.0) has independent native and publication evidence, not general platform or human acceptance. The guide is in source and the local ARM64 candidate below, not that older published executable. Quick delete, larger handles, the context menu and presentation markup are newer source-preview features, not changes to either executable. The separate v0.1.0 links below identify the historical stable release.
+This manual describes the Sprint 4 source controls, [first-use UI guide](verification/DGM-117.md) and [editor/markup improvements](verification/DGM-118.md). See [Sprint 4 verification](verification/sprint-4-review.md) for the historical passing integration gate (5,488 tests), retained failures and remaining manual checks. The [public 0.2.0 ARM64 prerelease](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/arm64-v0.2.0) is unchanged. The latest [local DGM-121 package](verification/DGM-121.md) includes Help, quick delete, larger handles, corrected Escape gestures/tooltips, context actions and presentation markup, with bounded native automated acceptance. No general platform or human acceptance is inferred. The separate v0.1.0 links below identify the historical stable release.
 
 ## Install and Launch
 
@@ -17,7 +17,40 @@ Source/browser setup is in the [README](../README.md#build-from-source). Package
 
 The current **published 0.2.0 ARM64 candidate** passed independent automated portable-runtime checks: layout/undo, custom images, JSON/SVG/PNG output, themes and autosave after moving/relaunching the executable. See the [ARM64 runtime report](verification/DGM-113-windows-arm64.md) and [publication report](verification/release-0.2.0-arm64.md) for the exact artifact, hashes and retained failures. It remains unsigned and prerelease. Network-offline emulation is not physical-disconnection, SmartScreen, native-dialog or Teams/Office acceptance.
 
+## Latest Local Editor And Markup ARM64 Package
+
+[Open the rebuilt local portable](../app/test-results/platform/windows-arm64/20261016T165838092Z/candidate/app/release/Azure-Diagram-Studio-0.2.0-win-arm64-portable.exe).
+This unsigned 0.2.0 package is **403,360,240 bytes** and contains the accepted
+editor/markup source from merge `15a3438`. It is not a new public binary release.
+
+```text
+SHA256 94e6cf183dd36e4577b99ab55957b7f8a7c9b0fbb61021a6e0fc2bab22c2baeb
+```
+
+The [DGM-121 report](verification/DGM-121.md) records 10 accepted general groups
+(nine dated passes plus a fresh final continuation), 10 fresh targeted native
+groups, retained driver failures/repairs and identity-checked cleanup. The driver
+repair is outside the packaged ASAR; executable bytes did not change for it.
+
+The PO launch uses a separate persistent profile beneath
+`app/test-results/platform/windows-arm64/20261016T165838092Z/po-profile/`
+through the existing `--user-data-dir` option, without debugger flags. It does
+not migrate or clear earlier diagrams. Old PID31104 disappeared during the
+build without an agent close/kill; its cause and unsaved state are UNKNOWN.
+The old profile was not read or reopened. Transfer previously exported diagrams
+using Open JSON; do not clear a profile or disable SmartScreen to force access.
+
+The source milestone is
+[source-v0.2.0-dgm120](https://github.com/vespassassina/AzureDiagramStudio/tree/source-v0.2.0-dgm120).
+It includes the tested harness and delivery documentation; package provenance
+identifies its earlier executable-input merge separately. Physical offline,
+downloaded-file policy, human dialogs/IME/clipboard, Teams/Office, novice and
+other-platform acceptance remain separate.
+
 ## Local Current-Guide ARM64 Candidate
+
+This preceding Help-only candidate remains unchanged; the later DGM-121 package
+above adds the editor gestures, context menu and presentation markup.
 
 The [new local portable EXE](../app/test-results/platform/windows-arm64/20261016T130515040Z/candidate/app/release/Azure-Diagram-Studio-0.2.0-win-arm64-portable.exe)
 contains the Help guide from merged source `52f6630`. It is unsigned, version
