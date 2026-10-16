@@ -1,5 +1,7 @@
 import { execFile, spawn } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { createServer } from 'node:net'
+import path from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { promisify } from 'node:util'
 import { chromium } from '@playwright/test'
@@ -128,8 +130,55 @@ export function ownedProcessTree(processes, roots) {
 
 export function processCleanupState(record, processes) {
   const current = processes.find(current => current.pid === record.pid)
-  const matches = current?.created === record.created && current?.CommandLine === record.CommandLine
+  const matches = current?.created === record.created && current?.CommandLine === record.CommandLine && (!record.ExecutablePath || current?.ExecutablePath === record.ExecutablePath) && (!record.started || current?.started === record.started)
   return { pid: record.pid, created: record.created, exited: !matches || current.exitSeen === true, reason: !current ? 'absent' : !matches ? 'identity-changed' : current.exitSeen ? 'exit-seen' : 'live' }
+}
+
+export function desktopProcessCandidates(processes, owned, { launcherPid, executablePath, profileRoot, launchedAt }) {
+  const canonical = value => path.win32.normalize(value).toLowerCase()
+  const same = (left, right) => left.created === right.created && left.CommandLine === right.CommandLine && left.ExecutablePath === right.ExecutablePath
+  const ancestry = new Map([...owned].filter(([pid, record]) => {
+    const current = processes.find(process => process.pid === pid)
+    return !current || same(record, current)
+  }))
+  const selected = new Map()
+  let changed = true
+  while (changed) {
+    changed = false
+    for (const record of processes) {
+      if (selected.has(record.pid) || !record.ExecutablePath || !record.CommandLine || !Number.isFinite(Date.parse(record.created))) continue
+      const profile = /(?:^|\s)(?:"--user-data-dir=([^"]*)"|--user-data-dir="([^"]*)"|--user-data-dir=([^\s"]+))(?=\s|$)/.exec(record.CommandLine)
+      if (!profile || canonical(profile[1] ?? profile[2] ?? profile[3]) !== canonical(profileRoot)) continue
+      const previous = owned.get(record.pid)
+      if (previous && !same(previous, record)) continue
+      const parent = ancestry.get(record.parentPid)
+      const launcher = record.pid === launcherPid && canonical(record.ExecutablePath) === canonical(executablePath) && Date.parse(record.created) >= launchedAt
+      const descendant = parent && Date.parse(record.created) >= Date.parse(parent.created) && canonical(record.ExecutablePath).startsWith(canonical(profileRoot) + '\\')
+      if (!launcher && !descendant) continue
+      selected.set(record.pid, record)
+      ancestry.set(record.pid, record)
+      changed = true
+    }
+  }
+  return [...selected.values()]
+}
+
+export async function cleanupDesktopProcesses({ owned, diagnostics, snapshot, terminate }) {
+  diagnostics.cleanupErrors ??= []
+  for (let attempt = 0; attempt < 3; attempt++) {
+    let current
+    try { current = await snapshot() } catch (error) {
+      diagnostics.cleanupErrors.push({ phase: 'observe', attempt: attempt + 1, message: error.message })
+      continue
+    }
+    const live = [...owned.values()].reverse().filter(record => !processCleanupState(record, current).exited)
+    for (const record of live) {
+      try { await terminate(record, attempt) } catch (error) { diagnostics.cleanupErrors.push({ pid: record.pid, attempt: attempt + 1, message: error.message }) }
+    }
+  }
+  const remaining = await snapshot()
+  diagnostics.cleanup = [...owned.values()].map(record => processCleanupState(record, remaining))
+  if (diagnostics.cleanup.some(record => !record.exited)) throw new Error('Owned desktop test processes remain after cleanup')
 }
 
 export async function closePreservingFailure(application, original) {
@@ -140,9 +189,88 @@ export async function closePreservingFailure(application, original) {
   if (original) throw original
 }
 
-async function windowsProcesses() {
-  const { stdout } = await execute('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', "@(Get-CimInstance Win32_Process | Select-Object @{n='pid';e={$_.ProcessId}},@{n='parentPid';e={$_.ParentProcessId}},@{n='created';e={$_.CreationDate.ToString('o')}},Name,CommandLine,@{n='started';e={try {$handle=[System.Diagnostics.Process]::GetProcessById($_.ProcessId); try {$handle.StartTime.ToUniversalTime().Ticks.ToString()} finally {$handle.Dispose()}} catch {$null}}},@{n='exitSeen';e={try {$handle=[System.Diagnostics.Process]::GetProcessById($_.ProcessId); try {$handle.HasExited} finally {$handle.Dispose()}} catch {$true}}}) | ConvertTo-Json -Compress"], { timeout: 10_000, maxBuffer: 4_000_000, windowsHide: true })
-  return JSON.parse(stdout || '[]')
+export function windowsProcessCommand(pids, expected) {
+  if (pids?.some(pid => !Number.isSafeInteger(pid) || pid <= 0)) throw new Error('Invalid owned process identifier')
+  if (expected && (pids?.length !== 1 || pids[0] !== expected.pid || !/^\d+$/.test(expected.started ?? '') || !expected.ExecutablePath || !expected.CommandLine || !Number.isFinite(Date.parse(expected.created)))) throw new Error('Owned process handle identity is unavailable; refusing termination')
+  const literal = value => `'${value.replaceAll("'", "''")}'`
+  const filter = pids ? ` WHERE ${pids.map(pid => `ProcessId = ${pid}`).join(' OR ')}` : ''
+  const terminate = expected ? `if ($record.ProcessId -eq ${expected.pid} -and $created -ceq ${literal(expected.created)} -and $record.CommandLine -ceq ${literal(expected.CommandLine)} -and $record.ExecutablePath -ceq ${literal(expected.ExecutablePath)} -and $started -ceq ${literal(expected.started)} -and -not $handle.HasExited) { $handle.Kill(); $null = $handle.WaitForExit(3000); $exitSeen = $handle.HasExited }` : ''
+  const handles = pids ? `
+        $started = $null; $exitSeen = $true
+        $identityWatch = [System.Diagnostics.Stopwatch]::StartNew()
+        try {
+          $handle = [System.Diagnostics.Process]::GetProcessById($record.ProcessId)
+          try {
+            $started = $handle.StartTime.ToUniversalTime().Ticks.ToString(); $exitSeen = $handle.HasExited
+            ${terminate}
+          } finally { $handle.Dispose() }
+        } catch [System.ArgumentException] { $exitSeen = $true }
+        $identityMs += $identityWatch.Elapsed.TotalMilliseconds
+        $item.started = $started; $item.exitSeen = $exitSeen` : ''
+  return `$ErrorActionPreference = 'Stop'
+$watch = [System.Diagnostics.Stopwatch]::StartNew()
+$null = [System.Reflection.Assembly]::LoadWithPartialName('System.Management')
+$assemblyMs = $watch.Elapsed.TotalMilliseconds
+$watch.Restart()
+$searcher = [System.Management.ManagementObjectSearcher]::new('SELECT ProcessId,ParentProcessId,CreationDate,Name,CommandLine,ExecutablePath FROM Win32_Process${filter}')
+$records = [System.Collections.Generic.List[object]]::new()
+$identityMs = 0.0
+try {
+  $rows = $searcher.Get()
+  try {
+    foreach ($record in $rows) {
+      try {
+        $created = if ($record.CreationDate) { [DateTime]::SpecifyKind([System.Management.ManagementDateTimeConverter]::ToDateTime($record.CreationDate), [DateTimeKind]::Local).ToString('o') } else { $null }
+        $item = @{ pid = $record.ProcessId; parentPid = $record.ParentProcessId; created = $created; Name = $record.Name; CommandLine = $record.CommandLine; ExecutablePath = $record.ExecutablePath }${handles}
+        $records.Add($item)
+      } finally { $record.Dispose() }
+    }
+  } finally { $rows.Dispose() }
+} finally { $searcher.Dispose() }
+ConvertTo-Json -Compress -Depth 4 -InputObject @{ observer = 'managed-wmi-v1'; records = @($records.ToArray()); timings = @{ assemblyMs = $assemblyMs; queryMs = $watch.Elapsed.TotalMilliseconds - $identityMs; identityMs = $identityMs } }`
+}
+
+function windowsProcessRecords(stdout, pids) {
+  const invalid = () => { throw new Error('Invalid Windows process observation response') }
+  let parsed
+  try { parsed = JSON.parse(stdout) } catch { invalid() }
+  if (parsed?.observer !== 'managed-wmi-v1' || !parsed.records || typeof parsed.records !== 'object') invalid()
+  const records = Array.isArray(parsed.records) ? parsed.records : [parsed.records]
+  const seen = new Set()
+  const normalized = records.map(record => {
+    if (!record || typeof record !== 'object' || Array.isArray(record)) invalid()
+    const fields = Object.fromEntries(Object.entries(record).map(([key, value]) => [key.toLowerCase(), value]))
+    if (!Number.isSafeInteger(fields.pid) || fields.pid < 0 || !Number.isSafeInteger(fields.parentpid) || fields.parentpid < 0 || seen.has(fields.pid) || (pids && !pids.includes(fields.pid))) invalid()
+    if (!['created', 'commandline', 'executablepath'].every(key => key in fields && (fields[key] === null || typeof fields[key] === 'string'))) invalid()
+    if (pids && (!(fields.started === null || /^\d+$/.test(fields.started ?? '')) || typeof fields.exitseen !== 'boolean')) invalid()
+    seen.add(fields.pid)
+    return { pid: fields.pid, parentPid: fields.parentpid, created: fields.created, ...('name' in fields ? { Name: fields.name } : {}), CommandLine: fields.commandline, ExecutablePath: fields.executablepath, ...('started' in fields ? { started: fields.started, exitSeen: fields.exitseen } : {}) }
+  })
+  return { records: normalized, timings: parsed.timings }
+}
+
+export async function observeWindowsProcesses(pids, diagnostics, run = execute, timeout = 10_000, expected) {
+  if (!Number.isFinite(timeout) || timeout <= 0 || timeout > 10_000) throw new Error('Invalid Windows process observation deadline')
+  if (pids?.length === 0) return []
+  const command = windowsProcessCommand(pids, expected)
+  const observation = { startedUtc: new Date().toISOString(), phase: diagnostics.phase, scope: pids ? 'owned-identity' : 'ancestry', pids, observer: 'managed-wmi-v1', timeoutMs: timeout }
+  const start = performance.now()
+  const summary = text => ({ bytes: Buffer.byteLength(text ?? ''), sha256: createHash('sha256').update(text ?? '').digest('hex'), redacted: true })
+  let output
+  try {
+    output = await run('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', command], { timeout, maxBuffer: 4_000_000, windowsHide: true })
+    const { records, timings } = windowsProcessRecords(output.stdout, pids)
+    observation.records = records.length
+    if (timings) observation.timings = Object.fromEntries(['assemblyMs', 'queryMs', 'identityMs'].filter(key => Number.isFinite(timings[key]) && timings[key] >= 0).map(key => [key, timings[key]]))
+    return records
+  } catch (error) {
+    observation.error = { name: error.name, code: error.code ?? null, killed: error.killed ?? null, signal: error.signal ?? null, errno: error.errno ?? null, syscall: error.syscall ?? null, stdout: summary(error.stdout ?? output?.stdout), stderr: summary(error.stderr ?? output?.stderr) }
+    throw error
+  } finally {
+    observation.endedUtc = new Date().toISOString()
+    observation.durationMs = performance.now() - start
+    ;(diagnostics.processObservations ??= []).push(observation)
+  }
 }
 
 async function connectInspector(address, timeout) {
@@ -180,6 +308,7 @@ export async function launchDesktop({ executablePath, cwd, env, profileRoot, tim
   const inspectorPort = await freePort()
   const browserPort = await freePort()
   let log = ''
+  const launchedAt = Date.now()
   const child = spawn(executablePath, [`--inspect-brk=127.0.0.1:${inspectorPort}`, `--remote-debugging-port=${browserPort}`, '--remote-debugging-address=127.0.0.1', `--user-data-dir=${profileRoot}`], { cwd, env: desktopEnvironment(env ?? process.env, profileRoot), stdio: ['ignore', 'pipe', 'pipe'] })
   console.log(`DESKTOP launcher PID ${child.pid}; verifier PID ${process.pid}; inspector ${inspectorPort}`)
   child.stdout.on('data', bytes => { log += bytes.toString() })
@@ -187,51 +316,45 @@ export async function launchDesktop({ executablePath, cwd, env, profileRoot, tim
   let spawnError
   child.on('error', error => { spawnError = error })
   const owned = new Map()
-  const diagnostics = { executablePath, profileRoot, launcherPid: child.pid, inspectorPort, browserPort, targets: [], processes: [], cleanup: [] }
+  const diagnostics = { executablePath, profileRoot, launcherPid: child.pid, inspectorPort, browserPort, phase: 'process-observation', targets: [], processes: [], cleanup: [] }
   child.once('exit', (code, signal) => { diagnostics.launcherExit = { code, signal }; diagnostics.launcherOutput = log })
   let socket, transport, browser, electronObject
   let cleaned = false
   const deadline = Date.now() + timeout
+  const observationBudget = () => diagnostics.phase === 'cleanup' ? 10_000 : Math.min(10_000, deadline - Date.now())
   const track = async () => {
-    if (process.platform !== 'win32') return
-    const processes = await windowsProcesses()
-    const roots = new Set([...owned.values()].filter(record => !processCleanupState(record, processes).exited).map(record => record.pid))
-    if (child.exitCode === null && child.pid && !owned.has(child.pid)) roots.add(child.pid)
-    for (const record of ownedProcessTree(processes, roots)) {
+    if (process.platform !== 'win32') return []
+    const processes = await observeWindowsProcesses(undefined, diagnostics, execute, observationBudget())
+    const candidates = desktopProcessCandidates(processes, owned, { launcherPid: child.pid, executablePath, profileRoot, launchedAt })
+    for (const record of candidates) {
       if (record.pid === process.pid) throw new Error('Refusing to track the verifier as a desktop child')
-      if (!record.CommandLine?.toLowerCase().includes(profileRoot.toLowerCase()) || record.exitSeen) continue
       const previous = owned.get(record.pid)
-      if (!previous || previous.created === record.created) {
-        if (!previous) console.log(`DESKTOP owned PID ${record.pid}: ${record.Name}`)
-        owned.set(record.pid, record)
-      }
+      if (!previous) console.log(`DESKTOP owned PID ${record.pid}: ${record.Name}`)
+      owned.set(record.pid, { ...record, started: previous?.started, exitSeen: previous?.exitSeen })
     }
     diagnostics.processes = [...owned.values()]
+    const identities = await observeWindowsProcesses(candidates.map(record => record.pid), diagnostics, execute, observationBudget())
+    for (const record of identities) {
+      const previous = owned.get(record.pid)
+      if (!previous || record.created !== previous.created || record.CommandLine !== previous.CommandLine || record.ExecutablePath !== previous.ExecutablePath) continue
+      if (previous.started && record.started && previous.started !== record.started) continue
+      owned.set(record.pid, record)
+    }
+    diagnostics.processes = [...owned.values()]
+    return identities
   }
   const cleanup = async () => {
     if (cleaned) return
     transport?.dispose()
     socket?.close()
     await browser?.close().catch(() => {})
-    await track()
     if (process.platform !== 'win32') { if (child.exitCode === null) child.kill(); return }
-    diagnostics.cleanupErrors = []
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const current = await windowsProcesses()
-      const live = [...owned.values()].reverse().filter(record => !processCleanupState(record, current).exited)
-      if (!live.length) break
-      for (const record of live) {
+    diagnostics.phase = 'cleanup'
+    await cleanupDesktopProcesses({ owned, diagnostics, snapshot: track, terminate: async (record, attempt) => {
+        if (!record.started || !record.ExecutablePath) throw new Error('Owned process handle identity is unavailable; refusing termination')
         console.log(`DESKTOP cleanup PID ${record.pid}: ${record.Name}; attempt ${attempt + 1}`)
-        const commandLine = record.CommandLine.replaceAll("'", "''")
-        const command = `$record = Get-CimInstance Win32_Process -Filter 'ProcessId = ${record.pid}'; if ($record -and $record.CreationDate.ToString('o') -eq '${record.created}' -and $record.CommandLine -ceq '${commandLine}') { $handle = [System.Diagnostics.Process]::GetProcessById(${record.pid}); try { if (-not $handle.HasExited -and $handle.StartTime.ToUniversalTime().Ticks.ToString() -eq '${record.started}') { $handle.Kill(); $null = $handle.WaitForExit(3000) } } finally { $handle.Dispose() } }`
-        try { await execute('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', command], { timeout: 10_000, windowsHide: true }) }
-        catch (error) { diagnostics.cleanupErrors.push({ pid: record.pid, message: error.message }) }
-      }
-      await delay(100)
-    }
-    const remaining = await windowsProcesses()
-    diagnostics.cleanup = [...owned.values()].map(record => processCleanupState(record, remaining))
-    if (diagnostics.cleanup.some(record => !record.exited)) throw new Error('Owned desktop test processes remain after cleanup')
+        await observeWindowsProcesses([record.pid], diagnostics, execute, 10_000, record)
+      } })
     cleaned = true
   }
   const evaluate = async (callback, argument) => {
@@ -246,8 +369,9 @@ export async function launchDesktop({ executablePath, cwd, env, profileRoot, tim
       try { targets = await (await fetch(`http://127.0.0.1:${inspectorPort}/json/list`, { signal: AbortSignal.timeout(1000) })).json() } catch {}
       for (const target of inspectorTargets(targets, inspectorPort)) {
         const listener = process.platform === 'win32' ? await inspectorListener(inspectorPort) : { address: '127.0.0.1', pid: child.pid }
-        await track()
-        if (!ownsInspectorListener(listener, new Set([child.pid, ...owned.keys()]))) throw new Error('Inspector listener does not belong to this desktop test')
+        const current = await track()
+        const liveOwned = [...owned.values()].filter(record => record.started && record.exitSeen === false && !processCleanupState(record, current).exited).map(record => record.pid)
+        if (!ownsInspectorListener(listener, new Set(process.platform === 'win32' ? liveOwned : [child.pid]))) throw new Error('Inspector listener does not belong to this desktop test')
         socket = await connectInspector(target.webSocketDebuggerUrl, Math.min(3000, Math.max(1, deadline - Date.now())))
         const candidate = inspectorTransport(socket, Math.min(10_000, Math.max(1, deadline - Date.now())))
         diagnostics.targets.push({ type: target.type, title: target.title, url: target.url, listener })
@@ -257,6 +381,7 @@ export async function launchDesktop({ executablePath, cwd, env, profileRoot, tim
       if (!transport) await delay(100)
     }
     if (!transport) throw new Error(`Portable Electron main inspector did not open; launcher exit ${JSON.stringify(diagnostics.launcherExit ?? 'still running')}: ${log}`)
+    diagnostics.phase = 'runtime-inspector'
     electronObject = await captureMainExports(transport, profileRoot)
     await evaluate(({ app }) => app.whenReady().then(() => true))
     const runtime = await evaluate(() => ({ pid: process.pid, type: process.type, executable: process.execPath, versions: process.versions, argv: process.argv }))
@@ -267,6 +392,7 @@ export async function launchDesktop({ executablePath, cwd, env, profileRoot, tim
     await downloads.send('Browser.setDownloadBehavior', { behavior: 'default' })
     await downloads.detach()
     const context = browser.contexts()[0]
+    diagnostics.phase = 'connected'
     return {
       evaluate, diagnostics,
       async firstWindow() { return offlineWindow(context, Math.max(1, deadline - Date.now())) },
@@ -276,6 +402,7 @@ export async function launchDesktop({ executablePath, cwd, env, profileRoot, tim
       },
     }
   } catch (error) {
+    diagnostics.failurePhase = diagnostics.phase
     error.diagnostics = diagnostics
     await closePreservingFailure({ close: cleanup }, error)
   }
