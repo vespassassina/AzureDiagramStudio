@@ -1,6 +1,6 @@
 # Diagrammer Roadmap and Delegation Plan
 
-Updated: 2026-10-16. Status: DGM-117 SOURCE UI GUIDE AUTOMATED COMPLETE; PRIOR WINDOWS ARM64 PRERELEASE UNCHANGED; MANUAL/OTHER-PLATFORM QUALIFICATION BLOCKED ON EXTERNAL INPUTS.
+Updated: 2026-10-16. Status: DGM-121 DIRECT MERGE/PUSH/TAG AND CURRENT LOCAL ARM64 REBUILD/OPEN AUTHORIZED; DGM-118/119/120 SOURCE ACCEPTED; PRIOR ARTIFACTS PRESERVED.
 
 ## Current Execution Policy
 
@@ -22,6 +22,29 @@ a question-mark Help button and ordered first-use UI callouts. This bounded
 source follow-up is now complete; it was not inferred from a generic "next"
 and does not authorize another feature sprint, packaging or publication.
 
+The subsequent explicit "merge, push and Tag" request authorized source delivery.
+It completed directly on the existing default branch, without a PR. The PO
+clarified "no PRs, just merge/push and tag"; use that Git delivery workflow for
+this repository. The source milestone does not update packaged release assets.
+
+The subsequent "ok let's do it" approves the recommended current-guide local
+Windows ARM64 package and automated native check, scoped by the
+[2026-10-16 cell authorization](specs/DGM-113.md#current-guide-windows-arm64-authorization---2026-10-16).
+This is not approval to publish/sign, build other targets or pass manual gates.
+
+The PO subsequently approved source UI follow-ups: [DGM-118](specs/DGM-118.md)
+component quick delete, [DGM-119](specs/DGM-119.md) larger connection handles,
+Escape gesture cancellation, tooltip repair and right-click quick actions, and
+[DGM-120](specs/DGM-120.md) temporary five-color presentation markup. Complete
+their integrated source acceptance without reopening old package gates. Shared
+surface/CSS/test edits stay serial, and the live portable/profile stays untouched.
+
+The subsequent explicit request "merge, push and tag, rebuild local package ant
+open it" authorizes [DGM-121](specs/DGM-121.md): direct source delivery without
+PRs, an isolated current ARM64 package/native check and normal launch in a fresh
+persistent profile while preserving the old live window. Existing release
+assets remain unchanged; no public binary publication or signing is inferred.
+
 ## Execution Queue
 
 Execute in order; skip only blocked dependencies, not acceptance criteria.
@@ -39,6 +62,12 @@ they are not fresh independent test results.
 | 6 | Consolidated delivery: DELIVERED / ORIGINAL LOCAL QUEUE COMPLETE | [Sprint 4 review](verification/sprint-4-review.md), [readiness packet](specs/DGM-113.md) and the disposition below retain final passing evidence, historical failures, candidate provenance and the combined external decisions. The original approved local queue is complete. | Do not reopen completed baseline work. Later explicit approvals are recorded in rows 7/8; future runtime cells still need their named inputs/authorization. No platform/support promise, packaging, release or commit is inferred. |
 | 7 | Subsequently authorized ARM64 publication: PUBLISHED / independently verified | PO requested "publish to github and next". [Publication report](verification/release-0.2.0-arm64.md): prerelease `arm64-v0.2.0`, ID 414118554, four uploaded assets, matching SHA256/size/readback and public download access. Stable v0.1.0 unchanged. Source branch/history were not pushed; attached candidate source ZIP is authoritative, not automatic tag archives. | Publication complete; do not upload or rebuild again. Next cells are physical/human acceptance and native x64/Mac/separate-browser qualification, blocked on their named participants/devices/policies/scope. No next feature sprint is authorized. |
 | 8 | [DGM-117](specs/DGM-117.md): AUTOMATED COMPLETE / parent visual review PASS, 2026-10-16 | Separate implementer and verifier delivered question-mark Help and ten ordered anchored callouts. [Independent report](verification/DGM-117.md): 18 focused tests, typecheck, isolated production build, 16 browser groups and 60 viewport/theme/step geometry combinations pass; screenshots inspected. Drafts, selection, camera, panel intent and history are preserved. | Source preview http://127.0.0.1:5224/; Help is at the top of the left rail. No confirmed source defect. Published executables and their source ZIP are unchanged and do not contain this guide. Stop local work; physical/human/platform cells still need their named inputs. A current desktop rebuild/release requires separate bounded authorization. |
+| 9 | Subsequently authorized source delivery: MERGED / PUSHED / TAGGED; independently verified 2026-10-16 | Existing default branch `feat/DGM-070-desktop-release` and annotated `source-v0.2.0-dgm117` resolve to merge `52f66306e09798b79d907e97f52c03ddada2e1ad`. [Independent receipt](../app/test-results/source-publication/20261016T070058473Z/verifier/verification-reconciled.json) confirms remote refs, candidate/merge tree equality, 2,744 unchanged inputs and clean worktree/index at handoff. No PR was created or merged. | Complete; do not repeat the merge, push or tag. Existing `v0.1.0` and `arm64-v0.2.0` refs/assets remain unchanged. The source tag avoids tag-based release publication. Merge [Mac CI](https://github.com/vespassassina/AzureDiagramStudio/actions/runs/38864999486) completed successfully at 07:09:33Z; [resume readback](../app/test-results/source-publication/20261016T070058473Z/resume-verifier/20261016T123607106Z-verification.json) confirms it without reruns. CI is not physical/human acceptance. Continue explicitly authorized row 10. |
+| 10 | [DGM-113 current-guide ARM64 cell](specs/DGM-113.md#current-guide-windows-arm64-authorization---2026-10-16): AUTOMATED COMPLETE / parent screenshot review PASS | [Independent report](verification/DGM-113-windows-arm64-guide.md): source `52f6630`, 403,339,602-byte unsigned EXE, SHA256 `89eefd80ccfa78ef5ceb7fb366e980df05dd42d728d4476ae34db240023b9f8c`. Owner: 33 policy tests, 42 ASAR and 73 payload files pass. Actual ARM64 Electron 44: 10 general + 19 Help groups, 80 step/geometry cases and 3 live-resize checks; 6 sessions, 8 downloads, all 12 tracked processes exited; final protection PASS. Retained helper failures are resolved, not discarded. | Hand off the [exact local EXE](../app/test-results/platform/windows-arm64/20261016T130515040Z/candidate/app/release/Azure-Diagram-Studio-0.2.0-win-arm64-portable.exe) for DGM-113's human acceptance. Stop automated work; no rerun/rebuild without new evidence. Native desktop/short-window and 390px CDP coverage are distinguished in the report. Physical offline, policy, dialogs/IME/clipboard, Teams/Office and novice/device checks remain blocked. No publication/signing/commit/PR or other target inferred. |
+| 11 | [DGM-118](specs/DGM-118.md): AUTOMATED COMPLETE / visual review PASS | [Integrated report](verification/DGM-118.md) records actual pointer/Enter/Space component deletion, incident-link cleanup and exact one-Undo, four preserved quick-add directions, desktop/mobile light/dark hit testing. Owner RED/GREEN and initial 40 focused/294 Editor checks remain retained. | Complete; source preview http://127.0.0.1:5224/. Existing live native app/package does not contain this newer button; no rebuild or Git/publication inferred. |
+| 12 | [DGM-119](specs/DGM-119.md): AUTOMATED COMPLETE / attempt 1, repair cycle 1 | [Independent report](verification/DGM-118.md) closes DGM119-VER-001/002/003 with exact physical Escape/release document/geometry/history recovery, active reconnection/library drag and next-gesture/Undo checks. [Final receipt](../app/test-results/editor-interactions/20261016T152504281Z/verifier-recheck-cycle1/final-verification.json): 167 selected tests, both typechecks, fresh isolated build, nine affected browser groups PASS. Original failures and passing menu/handle/tooltip checks retained with dated coverage boundaries. | Complete; no unchanged full-matrix rerun. Parent inspected post-cancel, active reconnect and context-menu screenshots. Human/native/touch/OS-zoom acceptance remains separate; prior package/release unchanged. |
+| 13 | [DGM-120](specs/DGM-120.md): AUTOMATED COMPLETE / visual review PASS | [Integrated report](verification/DGM-118.md) records five-color freehand/Shift rectangle/Alt ellipse/Ctrl arrow pixels, local history/cancel, exact document/export invariants, pan/zoom, read-only, fullscreen and responsive controls. Owner full 417 checks predate capture-only repair; final 167 checks/rechecks are stated separately. | Complete; source preview includes all three tasks, and markup is discarded on exiting Present. Stop approved source work. A new desktop package, commit/push/tag or publication needs separate authorization; do not modify the running old portable/profile. |
+| 14 | [DGM-121](specs/DGM-121.md): RUNNING / direct source delivery | PO explicitly authorized merge/push/tag, local ARM64 rebuild and open. Tag `source-v0.2.0-dgm120`; cell `app/test-results/platform/windows-arm64/20261016T165838092Z/`. Separate package owner and native verifier; orchestrator owns Git and final launch. | Commit/merge/push accepted inputs, package/check exact new artifact, reconcile delivery docs, tag/read back final source, then open it in a fresh persistent profile without closing PID31104. No PR, old-tag replacement, signing or public asset upload. |
 
 DGM-109 and DGM-111 already have independent reports; they are not new
 implementation tasks. DGM-112's desk investigation is complete, not an invitation
@@ -108,6 +137,18 @@ its executable/source ZIP or its native test result. The historical 5,488-test
 integration result predates DGM-117; current guide evidence is the focused and
 production-browser coverage in its [report](verification/DGM-117.md).
 
+Source delivery subsequently completed at merge `52f6630`, published as the
+annotated source-only milestone [source-v0.2.0-dgm117](https://github.com/vespassassina/AzureDiagramStudio/tree/source-v0.2.0-dgm117).
+The existing default branch is `feat/DGM-070-desktop-release`; no `main` branch
+was introduced. The merge tree equals the accepted candidate tree. Independent
+readback passed; no PR, existing-tag replacement or manual asset upload occurred.
+This source tag contains the guide, unlike the older sealed ARM64 release ZIP.
+
+The source merge's existing macOS build completed successfully on 2026-10-16
+at 07:09:33Z, confirmed by one read-only resume check. This closes the earlier
+"still running" observation; no workflow was rerun and no physical Mac,
+Gatekeeper, human usability or new Windows package acceptance is inferred.
+
 The PO's later publication request authorized the verified artifact's release,
 not additional platform support or signing. With the PO unavailable for the
 source-push/CI decision, the conservative route published an ARM64-only unsigned
@@ -131,8 +172,13 @@ SmartScreen/policy observations, actual dialogs/IME/clipboard, Teams/Office
 recipient and novice trials, or assigned native x64/Mac hardware and browser
 targets. Each blocked cell is specified in DGM-113. Do not substitute simulations,
 redo passing automated gates or invent a feature sprint while those inputs are
-missing. Source-branch publication, signing and broader support remain explicit
-future decisions; publication alone does not adopt them.
+missing. Source-branch publication and the separately approved current-guide
+local Windows ARM64 package/native cell are complete. The exact local EXE and
+checksum are in row 10 and the [manual](manual.md#local-current-guide-arm64-candidate).
+Its guide is packaged and natively checked; the prior public release remains
+unchanged. The next action is the named human/device acceptance, not another
+automated rerun. Release publication, signing and broader support remain
+explicit future decisions; a generic "resume" does not authorize them.
 
 ### Newly Authorized Windows ARM64 Work
 

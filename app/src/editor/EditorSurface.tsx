@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { ButtonHTMLAttributes, CSSProperties, MouseEvent, ReactNode, ChangeEvent, FocusEvent, KeyboardEvent } from 'react'
-import { ReactFlow, Background, BackgroundVariant, ConnectionMode, Handle, Position, NodeResizer, NodeToolbar, useReactFlow, getNodesBounds, getViewportForBounds } from '@xyflow/react'
+import { ReactFlow, Background, BackgroundVariant, ConnectionMode, Handle, Position, NodeResizer, NodeToolbar, useReactFlow, useStoreApi, getNodesBounds, getViewportForBounds } from '@xyflow/react'
 import type { Node, NodeProps, Edge, EdgeProps, NodeChange, Connection as FlowConnection } from '@xyflow/react'
 import { Moon, Sun, Scan, Pin, PinOff, MousePointer2, Hand, Boxes, Cable, Frame, Type, Square, Trash2, Copy, ClipboardPaste, Scissors, CopyPlus, Undo2, Redo2, Download, ChevronDown, X, Plus, Minus, Maximize2, PanelRight, PanelLeftClose, LayoutGrid, FilePlus2, FolderOpen, FileInput, Save, ArrowRight, ArrowDown, ArrowUp, SlidersHorizontal, CircleCheck, LoaderCircle, Group, Ungroup, BringToFront, SendToBack, ImagePlus, Command as CommandIcon } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -31,14 +31,17 @@ import { Presentation, Expand, Crosshair, ArrowLeft } from 'lucide-react'
 import { starterDocument } from '../app/session.ts'
 import { CircleHelp } from 'lucide-react'
 import { HelpGuide } from './HelpGuide.tsx'
+import { ContextMenu } from './ContextMenu.tsx'
+import { PresentationMarkup } from './PresentationMarkup.tsx'
 
-type ArchitectureNode = Node<{ entity: Entity; backgroundColor: string; minWidth: number; minHeight: number; writable: boolean; presenting: boolean; startResize(): void; quickAddSourceId: string | null; onQuickAdd(side: AddSide): void }, 'architecture'>
+type ArchitectureNode = Node<{ entity: Entity; backgroundColor: string; minWidth: number; minHeight: number; writable: boolean; presenting: boolean; startResize(): void; quickAddSourceId: string | null; onQuickAdd(side: AddSide): void; onDeleteComponent(): void }, 'architecture'>
 type ArchitectureEdge = Edge<{ connection: SceneConnection; backgroundColor: string }, 'architecture'>
 type Measurement = { width: number; height: number; canonicalWidth: number; canonicalHeight: number }
 type Transaction = { key: string; command: DocumentCommand; documentId: string; revision: number }
 type ConnectedPicker = { document: Diagram; revision: number; selection: string; sourceId: string; side: AddSide }
 type InlineEdit = { document: Diagram; revision: number; id: string; kind: 'entity' | 'connection'; value: string; multiline: boolean; error: string }
 type Viewport = { x: number; y: number; zoom: number }
+type CanvasContext = { document: Diagram; revision: number; writable: boolean; kind: 'pane' | 'entity' | 'connection'; id?: string; point: Point; screen: Point; origin: HTMLElement | null }
 type PresentationSnapshot = { document: Diagram; viewport: { x: number; y: number; zoom: number }; libraryRequested: boolean; inspectorRequested: boolean; libraryPinned: boolean; preferredPanel: 'library' | 'inspector'; inspectorIntent: boolean | null; tool: Tool; selectedIds: string[]; selectedEdges: string[]; focus: HTMLElement | null; focusLabel: string | null }
 type StarterChoice = { key: StarterKey; label: string }
 const SAVE_LABELS = { loading: 'Loading local work', saving: 'Saving locally', saved: 'Saved on this device', error: 'Local save failed', 'read-only': 'Read-only' }
@@ -56,14 +59,28 @@ function IconButton({ icon: Icon, label, active, className = '', ...props }: { i
   const [anchor, setAnchor] = useState<{ left: number; top: number; above: boolean } | null>(null)
   const hovered = useRef(false)
   const focused = useRef(false)
+  const pointerFocus = useRef(false)
+  useEffect(() => { setAnchor(null) }, [props.disabled, active, label])
+  useEffect(() => {
+    if (!anchor) return
+    const hide = () => setAnchor(null)
+    const keydown = (event: globalThis.KeyboardEvent) => { if (['Escape', 'Enter', ' '].includes(event.key)) hide() }
+    const otherTip = (event: Event) => { if ((event as CustomEvent<string>).detail !== tooltipId) hide() }
+    window.addEventListener('scroll', hide, true); window.addEventListener('resize', hide); window.addEventListener('blur', hide)
+    document.addEventListener('pointerdown', hide, true); document.addEventListener('keydown', keydown, true); document.addEventListener('editor-tooltip', otherTip)
+    return () => { window.removeEventListener('scroll', hide, true); window.removeEventListener('resize', hide); window.removeEventListener('blur', hide); document.removeEventListener('pointerdown', hide, true); document.removeEventListener('keydown', keydown, true); document.removeEventListener('editor-tooltip', otherTip) }
+  }, [anchor, tooltipId])
   function show(button: HTMLButtonElement) {
+    if (button.disabled || button.closest('[inert]')) return
+    document.dispatchEvent(new CustomEvent('editor-tooltip', { detail: tooltipId }))
     const bounds = button.getBoundingClientRect()
     const above = bounds.bottom + 48 > window.innerHeight
     setAnchor({ left: Math.max(112, Math.min(window.innerWidth - 112, bounds.left + bounds.width / 2)), top: above ? bounds.top - 8 : bounds.bottom + 8, above })
   }
-  return <><button type="button" className={`icon-button ${active ? 'active' : ''} ${className}`} title={label} aria-label={label} aria-pressed={active} aria-describedby={anchor ? tooltipId : undefined} {...props}
-    onFocus={event => { focused.current = true; if (event.currentTarget.closest('.tool-rail')) event.currentTarget.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }); show(event.currentTarget); props.onFocus?.(event) }} onBlur={event => { focused.current = false; if (!hovered.current) setAnchor(null); props.onBlur?.(event) }}
-    onMouseEnter={event => { hovered.current = true; show(event.currentTarget); props.onMouseEnter?.(event) }} onMouseLeave={event => { hovered.current = false; if (!focused.current) setAnchor(null); props.onMouseLeave?.(event) }}><Icon size={18} strokeWidth={1.7} /></button>{anchor && createPortal(<span id={tooltipId} role="tooltip" className={`action-tooltip ${anchor.above ? 'above' : ''}`} style={{ left: anchor.left, top: anchor.top }}>{label}</span>, document.body)}</>
+  return <><button type="button" className={`icon-button ${active ? 'active' : ''} ${className}`} aria-label={label} aria-pressed={active} aria-describedby={anchor ? tooltipId : undefined} {...props} title={undefined}
+    onPointerDown={event => { pointerFocus.current = true; focused.current = false; setAnchor(null); props.onPointerDown?.(event) }} onClick={event => { setAnchor(null); props.onClick?.(event) }}
+    onFocus={event => { focused.current = !pointerFocus.current; if (event.currentTarget.closest('.tool-rail')) event.currentTarget.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }); if (focused.current) show(event.currentTarget); props.onFocus?.(event) }} onBlur={event => { focused.current = false; pointerFocus.current = false; setAnchor(null); props.onBlur?.(event) }}
+    onMouseEnter={event => { hovered.current = true; show(event.currentTarget); props.onMouseEnter?.(event) }} onMouseLeave={event => { hovered.current = false; setAnchor(null); props.onMouseLeave?.(event) }}><Icon size={18} strokeWidth={1.7} /></button>{anchor && createPortal(<span id={tooltipId} role="tooltip" className={`action-tooltip ${anchor.above ? 'above' : ''}`} style={{ left: anchor.left, top: anchor.top }}>{label}</span>, document.body)}</>
 }
 function EditorThemeToggle() {
   const { theme, toggleTheme, preferenceError } = useTheme()
@@ -81,11 +98,11 @@ const ArchitectureTile = memo(function ArchitectureTile({ data, selected }: Node
   const connectable = entity.kind === 'component' || entity.kind === 'boundary'
   return <div className={`architecture-tile ${entity.kind} ${selected ? 'tile-selected' : ''}`}>
     <EntityArtwork entity={entity} backgroundColor={data.backgroundColor} />
-    {!data.presenting && selected && data.quickAddSourceId === entity.id && <NodeToolbar nodeId={entity.id} isVisible position={Position.Top} align="start" offset={12}><div className="quick-add-actions nodrag nopan" role="group" aria-label={`Add connected from ${entity.label}`} onClick={event => event.stopPropagation()}>{addDirections.map(({ side, icon }) => <IconButton key={side} icon={icon} label={`Add connected component ${side}`} disabled={!data.writable} onClick={() => data.onQuickAdd(side)} />)}</div></NodeToolbar>}
+    {!data.presenting && selected && data.quickAddSourceId === entity.id && <NodeToolbar nodeId={entity.id} isVisible position={Position.Top} align="start" offset={12}><div className="quick-add-actions nodrag nopan" role="group" aria-label={`Add connected from ${entity.label}`} onClick={event => event.stopPropagation()}>{addDirections.map(({ side, icon }) => <IconButton key={side} icon={icon} label={`Add connected component ${side}`} disabled={!data.writable} onClick={() => data.onQuickAdd(side)} />)}{entity.kind === 'component' && <IconButton icon={Trash2} label="Delete component" className="quick-delete-component" disabled={!data.writable} onPointerDown={event => event.stopPropagation()} onMouseDown={event => event.stopPropagation()} onDoubleClick={event => event.stopPropagation()} onClick={() => data.onDeleteComponent()} />}</div></NodeToolbar>}
     {!data.presenting && (entity.kind === 'boundary' || entity.kind === 'rectangle' || entity.kind === 'text') && <NodeResizer isVisible={selected && data.writable} minWidth={data.minWidth} minHeight={data.minHeight} onResizeStart={data.startResize} color="#117865" />}
     {!data.presenting && connectable && Object.entries(positions).map(([side, position]) => <Handle key={side} type="source" position={position} id={side} isConnectable={data.writable} aria-label={`${entity.label} ${side} connector`} />)}
   </div>
-}, (before, after) => before.selected === after.selected && before.data.backgroundColor === after.data.backgroundColor && before.data.presenting === after.data.presenting && before.data.writable === after.data.writable && before.data.minWidth === after.data.minWidth && before.data.minHeight === after.data.minHeight && before.data.startResize === after.data.startResize && before.data.quickAddSourceId === after.data.quickAddSourceId && before.data.onQuickAdd === after.data.onQuickAdd && sameEntityPaint(before.data.entity, after.data.entity))
+}, (before, after) => before.selected === after.selected && before.data.backgroundColor === after.data.backgroundColor && before.data.presenting === after.data.presenting && before.data.writable === after.data.writable && before.data.minWidth === after.data.minWidth && before.data.minHeight === after.data.minHeight && before.data.startResize === after.data.startResize && before.data.quickAddSourceId === after.data.quickAddSourceId && before.data.onQuickAdd === after.data.onQuickAdd && before.data.onDeleteComponent === after.data.onDeleteComponent && sameEntityPaint(before.data.entity, after.data.entity))
 const ArchitectureLink = memo(function ArchitectureLink({ data }: EdgeProps<ArchitectureEdge>) {
   if (!data) return null
   return <g><path d={data.connection.path} stroke="transparent" strokeWidth={20} fill="none" className="react-flow__edge-interaction" /><g dangerouslySetInnerHTML={{ __html: isWhiteBackground(data.backgroundColor) ? connectionMarkup(data.connection) : connectionMarkup(data.connection, data.backgroundColor) }} /></g>
@@ -192,6 +209,8 @@ export default function EditorSurface(props: EditorProps) {
   const inlineComposing = useRef(false)
   const inlineOrigin = useRef<HTMLElement | null>(null)
   const [commandsOpen, setCommandsOpen] = useState(false)
+  const [contextMenu, setContextMenu] = useState<CanvasContext | null>(null)
+  const secondaryPress = useRef<{ x: number; y: number; moved: boolean } | null>(null)
   const commandOrigin = useRef<HTMLElement | null>(null)
   const commandReturn = useRef(false)
   const [starterOpen, setStarterOpen] = useState(false)
@@ -224,7 +243,16 @@ export default function EditorSurface(props: EditorProps) {
   const [draft, setDraft] = useState<Diagram | null>(null)
   const transaction = useRef<Transaction | null>(null)
   const gestureCancelled = useRef(false)
-  const startResize = useCallback(() => { if (!presentationActive.current) gestureCancelled.current = false }, [])
+  const physicalPress = useRef(false)
+  const cancelledPress = useRef(false)
+  const [gestureEpoch, setGestureEpoch] = useState(0)
+  const engineGesture = useRef<{ document: Diagram; revision: number; measurements: Map<string, Measurement> } | null>(null)
+  const flowStore = useStoreApi<ArchitectureNode, ArchitectureEdge>()
+  const startResize = useCallback(() => {
+    if (presentationActive.current || guideActive.current || composing.current || inlineRef.current || cancelledPress.current || !liveDocument.current.writable) return
+    engineGesture.current = { document: liveDocument.current.document, revision: liveDocument.current.document.revision, measurements: measurementState.current }
+    gestureCancelled.current = false
+  }, [])
   const diagram = draft ?? props.document
   const grid = effectiveGrid(diagram.grid)
   const [spacingDraft, setSpacingDraft] = useState(String(grid.spacing))
@@ -276,6 +304,8 @@ export default function EditorSurface(props: EditorProps) {
   const [hasClipboard, setHasClipboard] = useState(false)
   const clipboard = useRef<{ fragment: ClipboardFragment; pastes: number } | null>(null)
   const [measurements, setMeasurements] = useState<Map<string, Measurement>>(() => new Map())
+  const measurementState = useRef(measurements)
+  measurementState.current = measurements
   const idCounter = useRef(0)
   const idPrefix = useRef('')
   const previousDocumentId = useRef(props.document.id)
@@ -288,6 +318,8 @@ export default function EditorSurface(props: EditorProps) {
   }, [])
   const liveDocument = useRef({ document: props.document, writable })
   liveDocument.current = { document: props.document, writable }
+  const latestContext = useRef({ contextMenu, blocked: false })
+  latestContext.current = { contextMenu, blocked: presenting || guideOpen || commandsOpen || starterOpen || !!connectedPicker || exportOpen || !!entryCommit.current }
   const scene = useMemo(() => buildScene(diagram), [diagram])
   const selected = diagram.entities.find(entity => entity.id === selectedIds.at(-1))
   const quickAddSourceId = selectedIds.length === 1 && !selectedEdges.length && selected && (selected.kind === 'component' || selected.kind === 'boundary') ? selected.id : null
@@ -308,6 +340,17 @@ export default function EditorSurface(props: EditorProps) {
   const selectedCustomIcon = validateCustomIcon(selected?.customIcon)
   const latestImport = useRef({ document: props.document, writable, selection: selectedIds.join('\n'), draft, emit })
   latestImport.current = { document: props.document, writable, selection: selectedIds.join('\n'), draft, emit }
+  const quickDeleteContext = useMemo(() => ({ document: props.document, revision: props.document.revision, sourceId: selected?.kind === 'component' ? quickAddSourceId : null, writable }), [props.document, props.document.revision, selected?.kind, quickAddSourceId, selectionKey, writable])
+  const latestQuickDelete = useRef({ context: quickDeleteContext, blocked: false, emit })
+  latestQuickDelete.current = { context: quickDeleteContext, blocked: commandsOpen || starterOpen || !!connectedPicker || exportOpen || !!entryCommit.current, emit }
+  const deleteComponent = useCallback(() => {
+    const current = latestQuickDelete.current
+    if (!mounted.current || current.context !== quickDeleteContext || !quickDeleteContext.writable || !quickDeleteContext.sourceId || current.blocked || guideActive.current || guideOpening.current || presentationActive.current || composing.current || inlineComposing.current || transaction.current || inlineRef.current) return
+    if (quickDeleteContext.document !== liveDocument.current.document || quickDeleteContext.revision !== liveDocument.current.document.revision || !liveDocument.current.writable) return
+    current.blocked = true
+    current.emit({ type: 'remove', entityIds: [quickDeleteContext.sourceId], connectionIds: [] })
+    setSelectedIds([]); setSelectedEdges([]); setConnectionStart(null)
+  }, [quickDeleteContext])
   useEffect(() => { importEpoch.current++ }, [props.document, writable, selectedIds, draft])
   useEffect(() => { mounted.current = true; return () => {
     mounted.current = false; importRequest.current++
@@ -325,6 +368,21 @@ export default function EditorSurface(props: EditorProps) {
     if (!transaction.current) return
     transaction.current = null; setDraft(null); props.onPreviewChange(null)
   }
+  function cancelGesture() {
+    gestureCancelled.current = true
+    cancelledPress.current = physicalPress.current
+    const saved = engineGesture.current?.measurements
+    clearPreview(); if (saved) setMeasurements(saved); setGestureEpoch(current => current + 1)
+    flowStore.getState().cancelConnection()
+  }
+  function blockedGesture() {
+    const gesture = engineGesture.current
+    return gestureCancelled.current || !liveDocument.current.writable || props.document !== liveDocument.current.document || !!gesture && (gesture.document !== liveDocument.current.document || gesture.revision !== liveDocument.current.document.revision)
+  }
+  useEffect(() => {
+    const gesture = engineGesture.current
+    if (gesture && (!writable || gesture.document !== props.document || gesture.revision !== props.document.revision)) cancelGesture()
+  }, [props.document, props.document.revision, writable])
   function validInline(edit = inlineRef.current) {
     return !!edit && liveDocument.current.writable && !presentationActive.current && edit.document === liveDocument.current.document && edit.revision === liveDocument.current.document.revision
   }
@@ -413,7 +471,7 @@ export default function EditorSurface(props: EditorProps) {
     if (!label || !inspectorOpen || commandsOpen) return
     const field = [...(editorElement.current?.querySelectorAll<HTMLElement>('.inspector [aria-label]') ?? [])].find(element => element.getAttribute('aria-label') === label)
     if (field) { propertyFocus.current = null; field.focus() }
-  }, [inspectorOpen, selectedIds, selectedEdges, commandsOpen])
+  }, [inspectorOpen, selectedIds, selectedEdges, commandsOpen, contextMenu])
   useLayoutEffect(() => {
     const canvas = canvasElement.current
     if (!canvas || !inlineEdit) return
@@ -563,6 +621,7 @@ export default function EditorSurface(props: EditorProps) {
   function chooseTool(next: Tool) {
     if (!writable && next !== 'select' && next !== 'pan') return
     finish(); setTool(next); setConnectionStart(null); setNotice('')
+    if (next === 'connector') startResize()
     if (next === 'component') openLibrary()
   }
   function selectEntity(id: string, event?: MouseEvent) {
@@ -648,22 +707,91 @@ export default function EditorSurface(props: EditorProps) {
     if (tool === 'component') insertComponent(template, point)
     else { const entity = makeEntity(tool as Entity['kind'], point, nextId(), template, props.document.grid); emit({ type: 'addEntity', entity }); selectionAfterCommit.current = [entity.id]; setTool('select') }
   }
+  function validContext(context: CanvasContext) {
+    const current = latestContext.current
+    return mounted.current && current.contextMenu === context && !current.blocked && !guideActive.current && !guideOpening.current && !presentationActive.current && !composing.current && !inlineComposing.current && !inlineRef.current && !transaction.current && context.document === liveDocument.current.document && context.revision === liveDocument.current.document.revision && context.writable === liveDocument.current.writable
+  }
+  function showContext(screen: Point, kind: CanvasContext['kind'], id?: string, origin = canvasElement.current) {
+    if (latestContext.current.blocked || guideActive.current || guideOpening.current || presentationActive.current || composing.current || inlineComposing.current || inlineRef.current || transaction.current) return
+    if (kind === 'entity' && !props.document.entities.some(entity => entity.id === id)) return
+    if (kind === 'connection' && !props.document.connections.some(edge => edge.id === id)) return
+    setContextMenu({ document: props.document, revision: props.document.revision, writable, kind, id, point: screenToFlowPosition(screen, { snapToGrid: false }), screen, origin })
+  }
+  function openContext(event: MouseEvent | globalThis.MouseEvent, kind: CanvasContext['kind'], id?: string) {
+    if ((event.target as Element)?.closest?.('input, textarea, select, [contenteditable="true"]')) return
+    event.preventDefault(); event.stopPropagation()
+    if (secondaryPress.current?.moved) return
+    showContext({ x: event.clientX, y: event.clientY }, kind, id)
+  }
+  function trackSecondary(event: { button: number; clientX: number; clientY: number }) {
+    if (event.button === 0) { physicalPress.current = true; cancelledPress.current = false }
+    if (event.button === 2) secondaryPress.current = { x: event.clientX, y: event.clientY, moved: false }
+  }
+  function moveSecondary(event: { buttons: number; clientX: number; clientY: number }) {
+    const press = secondaryPress.current
+    if (press && event.buttons & 2 && Math.hypot(event.clientX - press.x, event.clientY - press.y) > 4) { press.moved = true; setContextMenu(null) }
+  }
+  function keyboardContext(active: Element | null) {
+    const nodeId = active?.closest('.react-flow__node')?.getAttribute('data-id')
+    const edgeId = active?.closest('.react-flow__edge')?.getAttribute('data-id')
+    const entity = scene.entities.find(entity => entity.id === (nodeId ?? selectedIds.at(-1)))
+    const edge = scene.connections.find(edge => edge.id === (edgeId ?? (!entity ? selectedEdges.at(-1) : null)))
+    const bounds = canvasElement.current?.getBoundingClientRect()
+    const camera = getViewport()
+    const point = entity ? { x: entity.absolute.x + entity.width / 2, y: entity.absolute.y + entity.height / 2 } : edge?.labelPosition
+    const screen = point ? { x: (bounds?.left ?? 0) + camera.x + point.x * camera.zoom, y: (bounds?.top ?? 0) + camera.y + point.y * camera.zoom } : { x: (bounds?.left ?? 0) + (bounds?.width ?? 0) / 2, y: (bounds?.top ?? 0) + (bounds?.height ?? 0) / 2 }
+    showContext(screen, entity ? 'entity' : edge ? 'connection' : 'pane', entity?.id ?? edge?.id, active instanceof HTMLElement ? active : canvasElement.current)
+  }
+  useEffect(() => { if (contextMenu && !validContext(contextMenu)) setContextMenu(null) }, [contextMenu, props.document, props.document.revision, writable, guideOpen, commandsOpen, starterOpen, connectedPicker, exportOpen, presenting])
+  useEffect(() => { document.dispatchEvent(new CustomEvent('editor-tooltip', { detail: '' })) }, [tool, writable, presenting, guideOpen, commandsOpen, starterOpen, connectedPicker, exportOpen, contextMenu])
+  useEffect(() => {
+    const release = () => { physicalPress.current = false }
+    window.addEventListener('mouseup', release, true); window.addEventListener('pointerup', release, true); window.addEventListener('pointercancel', release, true); window.addEventListener('dragend', release, true); window.addEventListener('blur', release)
+    return () => { window.removeEventListener('mouseup', release, true); window.removeEventListener('pointerup', release, true); window.removeEventListener('pointercancel', release, true); window.removeEventListener('dragend', release, true); window.removeEventListener('blur', release) }
+  }, [])
+  const contextActions: EditorAction[] = []
+  if (contextMenu) {
+    const context = contextMenu
+    const entity = context.kind === 'entity' ? props.document.entities.find(entity => entity.id === context.id) : null
+    const edge = context.kind === 'connection' ? props.document.connections.find(edge => edge.id === context.id) : null
+    const action = (label: string, icon: LucideIcon, disabled: boolean, run: () => void) => contextActions.push({ label, icon, disabled, run: () => { if (validContext(context) && !disabled) run() } })
+    for (const item of tools.filter(item => ['component', 'boundary', 'text', 'rectangle'].includes(item.tool))) action(item.label, item.icon, !writable, () => {
+      if (item.tool === 'component') insertComponent(template, context.point)
+      else { const added = makeEntity(item.tool as Entity['kind'], context.point, nextId(), template, props.document.grid); emit({ type: 'addEntity', entity: added }); selectionAfterCommit.current = [added.id]; setTool('select') }
+    })
+    if (entity && ['component', 'boundary'].includes(entity.kind)) action('Connect from here', Cable, !writable, () => { startResize(); setSelectedIds([entity.id]); setSelectedEdges([]); setTool('connector'); setConnectionStart(entity.id) })
+    if (entity) {
+      action('Copy', Copy, false, () => { clipboard.current = { fragment: captureFragment(props.document, [entity.id]), pastes: 0 }; setHasClipboard(true) })
+      action('Duplicate', CopyPlus, !writable, () => paste(captureFragment(props.document, [entity.id]), true))
+    }
+    if (entity || edge) action('Delete', Trash2, !writable, () => { emit({ type: 'remove', entityIds: entity ? [entity.id] : [], connectionIds: edge ? [edge.id] : [] }); setSelectedIds([]); setSelectedEdges([]); setConnectionStart(null) })
+    action('Undo', Undo2, !writable || !props.canUndo, undo)
+    action('Redo', Redo2, !writable || !props.canRedo, redo)
+    action('Paste', ClipboardPaste, !writable || !hasClipboard, () => paste())
+    action('Properties', PanelRight, false, () => {
+      if (!entity && !edge) { documentProperties(); return }
+      if (!finishInline() || !finish()) return
+      propertyFocus.current = entity ? entity.kind === 'text' ? 'Note text' : 'Component label' : 'Connection label'
+      setSelectedIds(entity ? [entity.id] : []); setSelectedEdges(edge ? [edge.id] : []); openInspector()
+    })
+  }
   function connect(next: FlowConnection, reconnectId?: string) {
-    if (!writable || presentationActive.current || inlineRef.current) return
+    if (!writable || presentationActive.current || inlineRef.current || guideActive.current || blockedGesture()) return
     if (!canConnect(diagram, next.source, next.target)) { setNotice('Choose two different components or boundaries.'); return }
     const sourceSide = sides.includes(next.sourceHandle as ConnectionSide) ? next.sourceHandle as ConnectionSide : 'auto'
     const targetSide = sides.includes(next.targetHandle as ConnectionSide) ? next.targetHandle as ConnectionSide : 'auto'
     if (reconnectId) emit({ type: 'updateConnection', id: reconnectId, patch: { from: next.source!, to: next.target!, sourceSide, targetSide } })
     else emit({ type: 'connect', connection: { id: nextId(), from: next.source!, to: next.target!, label: '', style: 'solid', arrow: 'forward', sourceSide, targetSide } })
+    engineGesture.current = null
     setConnectionStart(null); setTool('select')
   }
   function moveNodes(moved: ArchitectureNode[], finished: boolean) {
     if (!writable || presentationActive.current || inlineRef.current) return
-    if (gestureCancelled.current) { if (finished) gestureCancelled.current = false; return }
+    if (blockedGesture()) { setGestureEpoch(current => current + 1); return }
     const positions = movePositions(props.document, moved)
     if (!positions.length) return
     const command: DocumentCommand = { type: 'move', positions }
-    if (finished) finish(command); else preview(command, 'move')
+    if (finished) { finish(command); engineGesture.current = null } else preview(command, 'move')
   }
   function alignSelection(action: AlignmentAction) {
     if (!writable || presentationActive.current || selectedEdges.length) return
@@ -682,6 +810,7 @@ export default function EditorSurface(props: EditorProps) {
     })
     const dimensions = changes.filter(change => change.type === 'dimensions')
     if (!dimensions.length) return
+    if (blockedGesture() && dimensions.some(change => change.resizing !== undefined)) { setGestureEpoch(current => current + 1); return }
     setMeasurements(current => {
       const next = new Map(current)
       let updated = false
@@ -699,11 +828,10 @@ export default function EditorSurface(props: EditorProps) {
       if (presentationActive.current) return
     for (const change of dimensions) {
       if (change.type !== 'dimensions' || change.resizing === undefined || !change.dimensions) continue
-      if (gestureCancelled.current) { if (change.resizing === false) gestureCancelled.current = false; continue }
       const entity = props.document.entities.find(candidate => candidate.id === change.id)
       if (!entity) continue
       const command = resizeCommand(props.document, entity, { x: entity.x, y: entity.y, ...change.dimensions })
-      if (change.resizing === false) finish(command); else preview(command, `resize:${entity.id}`)
+      if (change.resizing === false) { finish(command); engineGesture.current = null } else preview(command, `resize:${entity.id}`)
     }
   }
   function undo() { if (!presentationActive.current && writable && props.canUndo) { importEpoch.current++; gestureCancelled.current = true; clearPreview(); props.onUndo() } }
@@ -777,7 +905,7 @@ export default function EditorSurface(props: EditorProps) {
       const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(reframe)
       if (canvas) {
         observer?.observe(canvas)
-        for (const overlay of canvas.querySelectorAll<HTMLElement>('.canvas-heading, .presentation-controls, .canvas-bottom-chrome')) observer?.observe(overlay)
+        for (const overlay of canvas.querySelectorAll<HTMLElement>('.canvas-heading, .presentation-controls, .canvas-bottom-chrome, .presentation-markup-toolbar')) observer?.observe(overlay)
       }
       void document.fonts?.ready.then(reframe)
       return () => { active = false; observer?.disconnect() }
@@ -840,8 +968,16 @@ export default function EditorSurface(props: EditorProps) {
   previewCallback.current = props.onPreviewChange
   useEffect(() => () => { if (transaction.current) previewCallback.current(null) }, [])
   useEffect(() => {
+    const cancelActiveGesture = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== 'Escape' || !physicalPress.current || !engineGesture.current) return
+      if (guideActive.current || presentationActive.current || composing.current || inlineComposing.current || inlineRef.current || event.isComposing || event.keyCode === 229) return
+      if (starterOpen || commandsOpen || connectedPicker || exportOpen || contextMenu || entryCommit.current) return
+      if ((event.target as HTMLElement)?.closest?.('input, textarea, select, [contenteditable="true"]')) return
+      event.preventDefault(); event.stopPropagation()
+      cancelGesture(); setTool('select'); setConnectionStart(null)
+    }
     const keydown = (event: globalThis.KeyboardEvent) => {
-      if (guideActive.current) return
+      if (guideActive.current || composing.current || event.isComposing || event.keyCode === 229) return
       const modifier = event.ctrlKey || event.metaKey
       const key = event.key.toLowerCase()
       const root = editorElement.current, active = document.activeElement
@@ -857,9 +993,11 @@ export default function EditorSurface(props: EditorProps) {
       if (commandsOpen) return
       if (connectedPicker) return
       if (exportOpen) { if (event.key === 'Escape') { event.preventDefault(); closeExport('escape') }; return }
+      if (contextMenu) return
+      if (ownsFocus && (event.key === 'ContextMenu' || (event.key === 'F10' && event.shiftKey && !modifier && !event.altKey))) { event.preventDefault(); keyboardContext(active); return }
       if (modifier && key === 'k' && !event.altKey) { event.preventDefault(); openCommands(); return }
       if (key === 'f2' && !modifier && !event.altKey) { event.preventDefault(); if (writable) openInline(); return }
-      if (key === 'escape') { gestureCancelled.current = true; clearPreview(); setTool('select'); setConnectionStart(null); setExportOpen(false); setLibraryOpen(false); setInspectorOpen(false); return }
+      if (key === 'escape') { cancelGesture(); setTool('select'); setConnectionStart(null); setExportOpen(false); setLibraryOpen(false); setInspectorOpen(false); return }
       if (modifier && key === 'c') { event.preventDefault(); copySelection(); return }
       if (!writable) return
       if (modifier && key === 'z') { event.preventDefault(); if (event.shiftKey) redo(); else undo(); return }
@@ -870,8 +1008,9 @@ export default function EditorSurface(props: EditorProps) {
       if (key === 'delete' || key === 'backspace') { event.preventDefault(); deleteSelection(); return }
       if (!modifier && !event.altKey) { const command = nudgeCommand(props.document, selectedIds, event.key, event.shiftKey); if (command) { event.preventDefault(); emit(command) } }
     }
+    window.addEventListener('keydown', cancelActiveGesture, true)
     window.addEventListener('keydown', keydown)
-    return () => window.removeEventListener('keydown', keydown)
+    return () => { window.removeEventListener('keydown', cancelActiveGesture, true); window.removeEventListener('keydown', keydown) }
   })
   useEffect(() => {
     const pointerdown = (event: PointerEvent) => { keyboardOwner.current = !!editorElement.current?.contains(event.target as globalThis.Node) }
@@ -883,8 +1022,8 @@ export default function EditorSurface(props: EditorProps) {
   const ordered = useMemo(() => scene.entities.map(entity => ({ entity, min: minimumSize(diagram, entity) })), [scene, diagram])
   const nodes = useMemo<ArchitectureNode[]>(() => ordered.map(({ entity, min }) => {
     const measured = measurements.get(entity.id)
-    return { id: entity.id, type: 'architecture', position: { x: entity.x, y: entity.y }, parentId: entity.parentId ?? undefined, width: entity.width, height: entity.height, measured: measured && measured.canonicalWidth === entity.width && measured.canonicalHeight === entity.height ? { width: measured.width, height: measured.height } : { width: entity.width, height: entity.height }, style: { width: entity.width, height: entity.height }, selected: !presenting && selectedIds.includes(entity.id), data: { entity, backgroundColor: scene.entityBackgrounds[entity.id], minWidth: min.width, minHeight: min.height, writable, presenting, startResize, quickAddSourceId, onQuickAdd: openConnectedPicker }, zIndex: paint.nodeZIndices.get(entity.id)! }
-  }), [ordered, scene, paint, measurements, selectedIds, writable, presenting, startResize, quickAddSourceId, openConnectedPicker])
+    return { id: entity.id, type: 'architecture', position: { x: entity.x, y: entity.y }, parentId: entity.parentId ?? undefined, width: entity.width, height: entity.height, measured: measured && measured.canonicalWidth === entity.width && measured.canonicalHeight === entity.height ? { width: measured.width, height: measured.height } : { width: entity.width, height: entity.height }, style: { width: entity.width, height: entity.height }, selected: !presenting && selectedIds.includes(entity.id), data: { entity, backgroundColor: scene.entityBackgrounds[entity.id], minWidth: min.width, minHeight: min.height, writable, presenting, startResize, quickAddSourceId, onQuickAdd: openConnectedPicker, onDeleteComponent: deleteComponent }, zIndex: paint.nodeZIndices.get(entity.id)! }
+  }), [ordered, scene, paint, measurements, selectedIds, writable, presenting, startResize, quickAddSourceId, openConnectedPicker, deleteComponent, gestureEpoch])
   const edges = useMemo<ArchitectureEdge[]>(() => scene.connections.map(item => ({ id: item.id, type: 'architecture', source: item.from, target: item.to, sourceHandle: item.sourceSide && item.sourceSide !== 'auto' ? item.sourceSide : sideAtPoint(diagram, item.from, item.start), targetHandle: item.targetSide && item.targetSide !== 'auto' ? item.targetSide : sideAtPoint(diagram, item.to, item.end), selected: !presenting && selectedEdges.includes(item.id), reconnectable: writable, data: { connection: item, backgroundColor: scene.connectionBackgrounds[item.id] }, zIndex: paint.connectionZIndex })), [scene, paint, diagram, selectedEdges, writable, presenting])
   const customBackground = !isWhiteBackground(scene.backgroundColor)
   const panelTitle = multiSelection ? 'Selection' : selected ? ({ component: 'Component', boundary: 'Boundary', text: 'Text', rectangle: 'Rectangle' })[selected.kind] : connection ? 'Connection' : 'Document'
@@ -971,10 +1110,11 @@ export default function EditorSurface(props: EditorProps) {
     guideActive.current = false
   }, [guideOpen])
 
-  return <div ref={editorElement} inert={guideOpen} onCompositionStartCapture={() => { composing.current = true }} onCompositionEndCapture={() => { composing.current = false }} onBlurCapture={event => {
+  return <div ref={editorElement} inert={guideOpen} onPointerDownCapture={trackSecondary} onMouseDownCapture={trackSecondary} onPointerMoveCapture={moveSecondary} onMouseMoveCapture={moveSecondary} onContextMenuCapture={event => { if ((event.target as Element)?.closest?.('.canvas-surface') && !(event.target as Element)?.closest?.('input, textarea, select, [contenteditable="true"]')) event.preventDefault() }} onDragStartCapture={event => { if ((event.target as HTMLElement).closest('.library-item')) startResize() }} onCompositionStartCapture={() => { composing.current = true }} onCompositionEndCapture={() => { composing.current = false }} onBlurCapture={event => {
     if (guideActive.current || guideOpening.current || (event.relatedTarget instanceof HTMLElement && event.relatedTarget.getAttribute('aria-label') === 'Help')) event.stopPropagation()
   }} onClickCapture={event => { if (guideActive.current && !(event.target as HTMLElement).closest('.help-guide')) event.stopPropagation() }} onFocusCapture={() => { keyboardOwner.current = true }} className={`app-shell${presenting ? ' presenting' : ''}`}>
     {guideOpen && <HelpGuide root={editorElement} onReveal={setGuidePanel} onClose={closeGuide} />}
+    {contextMenu && validContext(contextMenu) && <ContextMenu key={`${contextMenu.screen.x}:${contextMenu.screen.y}:${contextMenu.kind}:${contextMenu.id ?? ''}`} point={contextMenu.screen} origin={contextMenu.origin} actions={contextActions} onClose={() => setContextMenu(null)} />}
     {commandsOpen && !presenting && <CommandMenu actions={actions} onCancel={() => closeCommands()} onExecute={action => { if (presentationActive.current || action.disabled) return; pendingAction.current = action.label; closeCommands() }} />}
     {starterOpen && !presenting && <StarterChooser onCancel={() => closeStarterChooser()} onChoose={chooseStarter} />}
     {connectedPicker && writable && <ComponentPicker title={`Add connected ${connectedPicker.side}: ${props.document.entities.find(entity => entity.id === connectedPicker.sourceId)?.label ?? connectedPicker.sourceId}`} writable={writable} onChoose={chooseConnectedComponent} onCancel={() => setConnectedPicker(null)} />}
@@ -994,14 +1134,16 @@ export default function EditorSurface(props: EditorProps) {
       </aside>
       <main ref={canvasElement} tabIndex={-1} className={`canvas-surface tool-${presenting ? 'pan' : tool}`} style={{ backgroundColor: scene.backgroundColor, '--canvas-surface': scene.backgroundColor, '--grid-dot': customBackground ? contrastInk('#c4d2ce', scene.backgroundColor, 3) : '#c4d2ce' } as CSSProperties} aria-label="Architecture canvas" onPointerMove={event => { if (presentationActive.current && pointerEnabled && canvasElement.current) { const bounds = canvasElement.current.getBoundingClientRect(); setPointer({ x: event.clientX - bounds.left, y: event.clientY - bounds.top }) } }} onDragOver={event => { if (writable && !presentationActive.current && event.dataTransfer.types.includes(DROP_TYPE)) { event.preventDefault(); event.dataTransfer.dropEffect = 'copy' } }} onDrop={event => {
         event.preventDefault()
-        if (!writable || presentationActive.current) return
+        if (!writable || presentationActive.current || guideActive.current || blockedGesture()) return
         const item = readDrop(event.dataTransfer.getData(DROP_TYPE))
         if (!item) { setNotice('Drop a component from the library.'); return }
         insertComponent(item, screenToFlowPosition({ x: event.clientX, y: event.clientY }, { snapToGrid: false }))
       }}>
         <div className="canvas-heading" data-fit-chrome="top">{diagram.synthetic && <div className="canvas-kicker" style={customBackground ? { color: contrastInk('#849293', scene.backgroundColor, 7) } : undefined}><span className="synthetic-dot" />SYNTHETIC EXAMPLE</div>}<h1 style={customBackground ? { color: contrastInk('#203637', scene.backgroundColor, 7) } : undefined}>{diagram.title || 'Untitled architecture'}</h1>{diagram.subtitle && <div className="diagram-meta" style={customBackground ? { color: contrastInk('#849293', scene.backgroundColor, 7) } : undefined}>{diagram.subtitle}</div>}</div>
         {!presenting && <div className="canvas-toolbar" data-fit-chrome="top"><div className="direction-control" role="group" aria-label="Layout direction"><IconButton icon={ArrowRight} label="Right layout" active={diagram.direction === 'RIGHT'} disabled={!writable} className={diagram.direction === 'RIGHT' ? 'chosen' : ''} onClick={() => editMetadata({ direction: 'RIGHT' })} /><IconButton icon={ArrowDown} label="Down layout" active={diagram.direction === 'DOWN'} disabled={!writable} className={diagram.direction === 'DOWN' ? 'chosen' : ''} onClick={() => editMetadata({ direction: 'DOWN' })} /></div><button type="button" className="arrange-button" title="Auto-arrange" aria-label="Auto-arrange" disabled={!writable || props.isArranging || !diagram.entities.some(entity => entity.kind === 'component' || entity.kind === 'boundary')} onClick={() => { if (!presentationActive.current && writable && finish()) props.onArrange(diagram.direction) }}>{props.isArranging ? <LoaderCircle size={15} className="spin" /> : <LayoutGrid size={15} />}<span>Auto-arrange</span></button></div>}
-        <ReactFlow<ArchitectureNode, ArchitectureEdge> nodes={nodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} zIndexMode="manual" elevateNodesOnSelect={false} elevateEdgesOnSelect={false} connectionMode={ConnectionMode.Loose} onNodesChange={updateNodes} onNodeDragStart={() => { if (!presentationActive.current) gestureCancelled.current = false }} onNodeDrag={(_event, _node, moved) => moveNodes(moved, false)} onNodeDragStop={(_event, _node, moved) => moveNodes(moved, true)} onNodeClick={(event, node) => selectEntity(node.id, event)} onNodeDoubleClick={(event, node) => { event.preventDefault(); event.stopPropagation(); openInline(node.id, 'entity', event.currentTarget as HTMLElement) }} onEdgeDoubleClick={(event, edge) => { event.preventDefault(); event.stopPropagation(); openInline(edge.id, 'connection', event.currentTarget as HTMLElement) }} onEdgeClick={(event, edge) => { if (presentationActive.current) return; finish(); setSelectedIds([]); setSelectedEdges(current => event.shiftKey || event.ctrlKey || event.metaKey ? current.includes(edge.id) ? current.filter(id => id !== edge.id) : [...current, edge.id] : [edge.id]); openInspector(false) }} onEdgesChange={changes => { if (presentationActive.current) return; if (changes.some(change => change.type === 'select')) finish(); setSelectedEdges(current => { const next = new Set(current); for (const change of changes) if (change.type === 'select') { if (change.selected) next.add(change.id); else next.delete(change.id) } return [...next] }) }} onPaneClick={insertAt} onConnect={next => connect(next)} onReconnect={(edge, next) => connect(next, edge.id)} isValidConnection={next => !presentationActive.current && writable && !inlineRef.current && canConnect(diagram, next.source, next.target)} onMove={updateCamera} onInit={() => fitCanvas()} minZoom={0.001} maxZoom={2} snapToGrid={!presenting && grid.snap} snapGrid={[grid.spacing, grid.spacing]} panOnDrag={presenting || tool === 'pan' ? true : [1, 2]} elementsSelectable={!presenting} nodesFocusable={!presenting} edgesFocusable={!presenting} selectionOnDrag={!presenting && tool === 'select'} nodesDraggable={writable && !visibleInline && tool === 'select'} nodesConnectable={writable && !visibleInline} edgesReconnectable={writable && !visibleInline} deleteKeyCode={null}>
+        <ReactFlow<ArchitectureNode, ArchitectureEdge> nodes={nodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} zIndexMode="manual" elevateNodesOnSelect={false} elevateEdgesOnSelect={false} connectionMode={ConnectionMode.Loose} onNodesChange={updateNodes} onNodeDragStart={startResize} onNodeDrag={(_event, _node, moved) => moveNodes(moved, false)} onNodeDragStop={(_event, _node, moved) => moveNodes(moved, true)} onNodeClick={(event, node) => selectEntity(node.id, event)} onNodeDoubleClick={(event, node) => { event.preventDefault(); event.stopPropagation(); openInline(node.id, 'entity', event.currentTarget as HTMLElement) }} onEdgeDoubleClick={(event, edge) => { event.preventDefault(); event.stopPropagation(); openInline(edge.id, 'connection', event.currentTarget as HTMLElement) }} onEdgeClick={(event, edge) => { if (presentationActive.current) return; finish(); setSelectedIds([]); setSelectedEdges(current => event.shiftKey || event.ctrlKey || event.metaKey ? current.includes(edge.id) ? current.filter(id => id !== edge.id) : [...current, edge.id] : [edge.id]); openInspector(false) }} onEdgesChange={changes => { if (presentationActive.current) return; if (changes.some(change => change.type === 'select')) finish(); setSelectedEdges(current => { const next = new Set(current); for (const change of changes) if (change.type === 'select') { if (change.selected) next.add(change.id); else next.delete(change.id) } return [...next] }) }}
+          onNodeContextMenu={(event, node) => openContext(event, 'entity', node.id)} onEdgeContextMenu={(event, edge) => openContext(event, 'connection', edge.id)} onPaneContextMenu={event => openContext(event, 'pane')}
+          onPaneClick={insertAt} onConnectStart={startResize} onReconnectStart={startResize} onConnect={next => connect(next)} onReconnect={(edge, next) => connect(next, edge.id)} isValidConnection={next => !presentationActive.current && writable && !inlineRef.current && !blockedGesture() && canConnect(diagram, next.source, next.target)} onMove={updateCamera} onInit={() => fitCanvas()} minZoom={0.001} maxZoom={2} snapToGrid={!presenting && grid.snap} snapGrid={[grid.spacing, grid.spacing]} panOnDrag={presenting || tool === 'pan' ? true : [1, 2]} elementsSelectable={!presenting} nodesFocusable={!presenting} edgesFocusable={!presenting} selectionOnDrag={!presenting && tool === 'select'} nodesDraggable={writable && !visibleInline && tool === 'select'} nodesConnectable={writable && !visibleInline} edgesReconnectable={writable && !visibleInline} deleteKeyCode={null}>
           {(presenting ? grid.present : grid.visible) && <Background id="diagram-grid" variant={grid.style === 'lines' ? BackgroundVariant.Lines : BackgroundVariant.Dots} gap={grid.spacing} offset={editorGridOffset(diagram.grid)} size={1} lineWidth={0.5} color={contrastInk('#c4d2ce', scene.backgroundColor, 3)} />}<svg width={0} height={0}><defs dangerouslySetInnerHTML={{ __html: MARKERS + scene.connections.map(connection => connectionMarkers(connection, scene.connectionBackgrounds[connection.id])).join('') }} /></svg>
         </ReactFlow>
         {visibleInline && anchor && <InlineLabel key={`${visibleInline.kind}:${visibleInline.id}`} edit={visibleInline} style={{ width: inlineWidth, left: canvasBounds.width ? Math.max(4, Math.min(canvasBounds.width - inlineWidth - 4, inlineLeft)) : inlineLeft, top: canvasBounds.height ? Math.max(4, Math.min(canvasBounds.height - (visibleInline.multiline ? 108 : 44) - 4, inlineTop)) : inlineTop }} onDraft={draftInline} onFinish={() => finishInline(true)} onCancel={() => cancelInline()} onComposing={active => { inlineComposing.current = active }} deferFinish={() => starterOpening.current} />}
@@ -1014,6 +1156,7 @@ export default function EditorSurface(props: EditorProps) {
         <div className="zoom-controls" data-fit-chrome="bottom"><IconButton icon={Minus} label="Zoom out" onClick={() => void zoomOut({ duration: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 0 : 150 })} /><span>{Math.round(zoom * 100)}%</span><IconButton icon={Plus} label="Zoom in" onClick={() => void zoomIn({ duration: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 0 : 150 })} /><span className="separator" /><IconButton icon={Maximize2} label="Fit diagram" disabled={!scene.entities.length} onClick={() => fitCanvas()} /><IconButton icon={Scan} label="Fit selection" disabled={!selectedIds.length} onClick={() => fitCanvas(true)} /></div>
         </div></div>
         {presenting && <>
+          <PresentationMarkup />
           <div className="presentation-controls" data-fit-chrome="top" role="group" aria-label="Presentation controls"><button ref={exitButton} type="button" className="present-button" aria-label="Exit presentation" title="Exit presentation" onClick={() => exitPresentation()}><X size={18} /><span>Exit</span></button><IconButton icon={Crosshair} label="Presentation pointer" active={pointerEnabled} onClick={() => { const bounds = canvasElement.current?.getBoundingClientRect(); setPointer({ x: (bounds?.width ?? 0) / 2, y: (bounds?.height ?? 0) / 2 }); setPointerEnabled(!pointerEnabled); if (!pointerEnabled) requestAnimationFrame(() => pointerElement.current?.focus()) }} /><IconButton icon={Expand} label="Fullscreen presentation" onClick={() => void fullscreen()} /></div>
           {pointerEnabled && <div ref={pointerElement} tabIndex={0} role="img" aria-label="Presentation pointer position" className="presentation-pointer" style={{ left: pointer.x, top: pointer.y }} onKeyDown={event => { const delta: Record<string, Point> = { ArrowLeft: { x: -1, y: 0 }, ArrowRight: { x: 1, y: 0 }, ArrowUp: { x: 0, y: -1 }, ArrowDown: { x: 0, y: 1 } }; if (event.ctrlKey || event.metaKey || event.altKey || !delta[event.key]) return; event.preventDefault(); const bounds = canvasElement.current?.getBoundingClientRect(); const step = event.shiftKey ? 40 : 10; const direction = delta[event.key]; setPointer(current => ({ x: Math.max(12, Math.min((bounds?.width ?? 24) - 12, current.x + direction.x * step)), y: Math.max(12, Math.min((bounds?.height ?? 24) - 12, current.y + direction.y * step)) })) }} />}
         </>}

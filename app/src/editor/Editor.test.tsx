@@ -3,7 +3,8 @@ import { act, cleanup, createEvent, fireEvent, render, screen, within } from '@t
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import type { EditorProps } from '../contracts.ts'
-import { createDocument, sampleDiagram } from '../model.ts'
+import { createDocument, historyCommit, historyUndo, sampleDiagram } from '../model.ts'
+import type { History } from '../model.ts'
 import { allLibraryItems, genericLibrary } from '../catalog.ts'
 import { isSelectableIcon, menuGroups, searchGroups, selectionLibrary } from '../catalog/presentation.ts'
 import { iconFixture } from '../custom-icons/test-fixtures.ts'
@@ -12,6 +13,7 @@ import { applyCommand } from '../document/index.ts'
 import { starterDocument } from '../app/session.ts'
 
 vi.mock('../custom-icons/import.ts', () => ({ importCustomIcon: vi.fn() }))
+const engine = vi.hoisted(() => ({ cancelConnection: vi.fn() }))
 vi.mock('../order.ts', async importOriginal => {
   const ordering = await importOriginal<typeof import('../order.ts')>()
   return { ...ordering, painterOrder: vi.fn(ordering.painterOrder) }
@@ -32,6 +34,8 @@ vi.mock('@xyflow/react', async importOriginal => ({
   NodeToolbar: ({ children }: any) => children,
   Position: { Top: 'top', Right: 'right', Bottom: 'bottom', Left: 'left' }, ConnectionMode: { Loose: 'loose' },
   useReactFlow: () => flow.api,
+  useViewport: () => flow.api.getViewport(),
+  useStoreApi: () => ({ getState: () => engine }),
 }))
 import Editor from './Editor.tsx'
 import { buildScene, connectionMarkup, entityMarkup } from '../scene.ts'
@@ -57,9 +61,643 @@ function normalizedSvg(markup: string) {
   svg.innerHTML = markup
   return svg.innerHTML
 }
+function contextMenuDGM119(kind: 'pane' | 'node' | 'edge', id?: string, point = { x: 173, y: 219 }) {
+  const canvas = screen.getByRole('main', { name: 'Architecture canvas' })
+  const event = { clientX: point.x, clientY: point.y, target: canvas, currentTarget: canvas, preventDefault: vi.fn(), stopPropagation: vi.fn() }
+  act(() => {
+    if (kind === 'pane') flow.props.onPaneContextMenu?.(event)
+    else if (kind === 'node') flow.props.onNodeContextMenu?.(event, flow.props.nodes.find((node: any) => node.id === id))
+    else flow.props.onEdgeContextMenu?.(event, flow.props.edges.find((edge: any) => edge.id === id))
+  })
+  return screen.getByRole('menu', { name: 'Canvas actions' })
+}
 afterEach(() => { cleanup(); vi.clearAllMocks(); window.innerWidth = 1024 })
 
 describe('controlled editor', () => {
+  function markupPointerDGM120(target: Element, type: 'pointerDown' | 'pointerMove' | 'pointerUp', values: Record<string, unknown> = {}) {
+    const event = createEvent[type](target, { bubbles: true, cancelable: true })
+    for (const [key, value] of Object.entries({ button: 0, pointerId: 7, isPrimary: true, clientX: 80, clientY: 100, ...values })) Object.defineProperty(event, key, { value })
+    fireEvent(target, event)
+  }
+  function markupCanvasDGM120() {
+    fireEvent.click(screen.getByRole('button', { name: 'Draw' }))
+    const canvas = screen.getByTestId('markup-canvas')
+    Object.assign(canvas, { setPointerCapture: vi.fn(), hasPointerCapture: vi.fn(() => true), releasePointerCapture: vi.fn() })
+    return canvas
+  }
+  function markupStrokeDGM120(canvas: Element) {
+    markupPointerDGM120(canvas, 'pointerDown')
+    markupPointerDGM120(canvas, 'pointerMove', { clientX: 180, clientY: 200 })
+    markupPointerDGM120(canvas, 'pointerUp', { clientX: 180, clientY: 200 })
+  }
+  it('should_mount_markup_only_in_Present_and_reset_after_Exit_DGM120', () => {
+    setup({ document: sampleDiagram() })
+    expect(screen.queryByRole('toolbar', { name: 'Presentation markup' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Present' }))
+    expect(screen.getByRole('button', { name: 'Navigate' }).getAttribute('aria-pressed')).toBe('true')
+    const canvas = markupCanvasDGM120()
+    fireEvent.click(screen.getByRole('button', { name: 'Blue markup' })); markupStrokeDGM120(canvas)
+    expect(canvas.querySelectorAll('[data-markup-committed]')).toHaveLength(1)
+    for (const name of ['Exit presentation', 'Presentation pointer', 'Fullscreen presentation', 'Zoom in', 'Zoom out']) expect(screen.getByRole('button', { name })).toHaveProperty('disabled', false)
+    expect(canvas.hasAttribute('data-fit-chrome')).toBe(false)
+    expect(screen.getByRole('toolbar', { name: 'Presentation markup' }).getAttribute('data-fit-chrome')).toBe('bottom')
+    fireEvent.click(screen.getByRole('button', { name: 'Exit presentation' }))
+    expect(screen.queryByTestId('markup-canvas')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Present' }))
+    expect(screen.getByTestId('markup-canvas').querySelectorAll('[data-markup-committed]')).toHaveLength(0)
+    expect(screen.getByRole('button', { name: 'Red markup' }).getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByRole('button', { name: 'Navigate' }).getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByRole('button', { name: 'Undo markup' })).toHaveProperty('disabled', true)
+  })
+  it.each([false, true])('should_cancel_active_ink_before_idle_Escape_exits_readonly_%s_DGM120', readOnly => {
+    const { props } = setup({ document: sampleDiagram(), readOnly })
+    fireEvent.click(screen.getByRole('button', { name: 'Present' }))
+    const canvas = markupCanvasDGM120()
+    markupPointerDGM120(canvas, 'pointerDown'); markupPointerDGM120(canvas, 'pointerMove', { clientX: 180, clientY: 200 })
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(screen.getByRole('button', { name: 'Exit presentation' })).toBeTruthy()
+    markupPointerDGM120(canvas, 'pointerUp', { clientX: 180, clientY: 200 })
+    expect(canvas.querySelectorAll('[data-markup-committed], [data-markup-preview]')).toHaveLength(0)
+    markupStrokeDGM120(canvas)
+    expect(canvas.querySelectorAll('[data-markup-committed]')).toHaveLength(1)
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(screen.queryByTestId('markup-canvas')).toBeNull()
+    expect(props.onCommand).not.toHaveBeenCalled(); expect(props.onUndo).not.toHaveBeenCalled(); expect(props.onRedo).not.toHaveBeenCalled()
+  })
+  it.each([false, true])('should_keep_markup_out_of_document_history_preview_save_and_export_readonly_%s_DGM120', readOnly => {
+    const diagram = sampleDiagram(), before = JSON.stringify(diagram)
+    const { props } = setup({ document: diagram, readOnly })
+    fireEvent.click(screen.getByRole('button', { name: 'Present' }))
+    vi.mocked(props.onPreviewChange).mockClear()
+    const canvas = markupCanvasDGM120()
+    markupStrokeDGM120(canvas)
+    fireEvent.keyDown(canvas, { key: 'z', ctrlKey: true })
+    expect(canvas.querySelectorAll('[data-markup-committed]')).toHaveLength(0)
+    fireEvent.keyDown(canvas, { key: 'z', metaKey: true, shiftKey: true })
+    expect(canvas.querySelectorAll('[data-markup-committed]')).toHaveLength(1)
+    fireEvent.contextMenu(canvas, { clientX: 80, clientY: 100 })
+    expect(screen.queryByRole('menu')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Clear markup' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Undo markup' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Navigate' }))
+    expect(flow.props.panOnDrag).toBe(true)
+    expect(flow.props.nodesDraggable).toBe(false); expect(flow.props.nodesConnectable).toBe(false)
+    expect(JSON.stringify(diagram)).toBe(before)
+    for (const callback of [props.onCommand, props.onUndo, props.onRedo, props.onPreviewChange, props.onSaveJson, props.onExport]) expect(callback).not.toHaveBeenCalled()
+  })
+  it('should_discard_active_markup_on_document_change_and_ignore_detached_release_DGM120', () => {
+    const { props, rerender } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByRole('button', { name: 'Present' }))
+    const canvas = markupCanvasDGM120()
+    markupPointerDGM120(canvas, 'pointerDown')
+    const next = { ...props.document }
+    rerender(<Editor {...props} document={next} />)
+    expect(screen.queryByTestId('markup-canvas')).toBeNull()
+    markupPointerDGM120(canvas, 'pointerUp', { clientX: 180, clientY: 200 })
+    fireEvent.click(screen.getByRole('button', { name: 'Present' }))
+    expect(screen.getByTestId('markup-canvas').querySelectorAll('[data-markup-committed], [data-markup-preview]')).toHaveLength(0)
+    expect(props.onCommand).not.toHaveBeenCalled(); expect(props.onUndo).not.toHaveBeenCalled(); expect(props.onRedo).not.toHaveBeenCalled()
+  })
+  it.each(['node', 'multi', 'resize'])('should_cancel_before_engine_Escape_deselection_commits_%s_preview_DGM119', kind => {
+    const { props } = setup({ document: sampleDiagram() })
+    const canvas = screen.getByRole('main', { name: 'Architecture canvas' })
+    const ids = kind === 'multi' ? ['app', 'gateway'] : [kind === 'resize' ? 'platform' : 'app']
+    act(() => flow.props.onNodesChange(ids.map(id => ({ type: 'select', id, selected: true }))))
+    const nodes = flow.props.nodes.filter((node: any) => ids.includes(node.id))
+    const moved = nodes.map((node: any) => ({ ...node, position: { x: node.position.x + 70, y: node.position.y + 40 } }))
+    const geometry = () => flow.props.nodes.map((node: any) => ({ id: node.id, position: node.position, measured: node.measured, selected: node.selected }))
+    const original = geometry()
+    const resize = (resizing: boolean) => flow.props.onNodesChange([{ type: 'dimensions', id: nodes[0].id, dimensions: { width: 880, height: 640 }, resizing }])
+    const finishGesture = () => kind === 'resize' ? resize(false) : flow.props.onNodeDragStop({}, nodes[0], moved)
+    const startGesture = () => {
+      fireEvent.mouseDown(canvas, { button: 0 })
+      act(() => { nodes[0].data.startResize(); if (kind === 'resize') resize(true); else flow.props.onNodeDrag({}, nodes[0], moved) })
+    }
+    const target = screen.getByText(ids[0])
+    const engineEscape = vi.fn((event: Event) => {
+      if ((event as KeyboardEvent).key === 'Escape') flow.props.onNodesChange(ids.map(id => ({ type: 'select', id, selected: false })))
+    })
+    target.addEventListener('keydown', engineEscape)
+    try {
+      startGesture()
+      fireEvent.keyDown(target, { key: 'Escape' })
+      expect(props.onCommand).not.toHaveBeenCalled()
+      expect(props.onPreviewChange).toHaveBeenLastCalledWith(null)
+      expect(engineEscape).not.toHaveBeenCalled()
+      expect(geometry()).toEqual(original)
+      act(() => { if (kind === 'resize') resize(true); else flow.props.onNodeDrag({}, nodes[0], moved) })
+      fireEvent.mouseUp(window)
+      act(finishGesture)
+      expect(props.onCommand).not.toHaveBeenCalled()
+      expect(geometry()).toEqual(original)
+      expect(props.onUndo).not.toHaveBeenCalled(); expect(props.onRedo).not.toHaveBeenCalled()
+      startGesture(); fireEvent.mouseUp(window); act(finishGesture)
+      expect(props.onCommand).toHaveBeenCalledTimes(1)
+    } finally { target.removeEventListener('keydown', engineEscape) }
+  })
+  it('should_restore_pre_gesture_measurements_without_discarding_passive_metadata_DGM119', () => {
+    const { props } = setup({ document: sampleDiagram() })
+    act(() => flow.props.onNodesChange([{ type: 'dimensions', id: 'platform', dimensions: { width: 681, height: 461 } }]))
+    const node = flow.props.nodes.find((node: any) => node.id === 'platform')
+    const before = JSON.stringify(flow.props.nodes.map((node: any) => ({ id: node.id, position: node.position, measured: node.measured })))
+    act(() => { node.data.startResize(); flow.props.onNodesChange([{ type: 'dimensions', id: node.id, dimensions: { width: 880, height: 640 }, resizing: true }]) })
+    fireEvent.keyDown(window, { key: 'Escape' })
+    act(() => flow.props.onNodesChange([{ type: 'dimensions', id: node.id, dimensions: { width: 880, height: 640 }, resizing: false }]))
+    expect(JSON.stringify(flow.props.nodes.map((node: any) => ({ id: node.id, position: node.position, measured: node.measured })))).toBe(before)
+    expect(props.onCommand).not.toHaveBeenCalled(); expect(props.onUndo).not.toHaveBeenCalled(); expect(props.onRedo).not.toHaveBeenCalled()
+  })
+  it.each(['read-only roundtrip', 'same-id replacement'])('should_reject_stale_link_completion_after_%s_DGM119', mode => {
+    const { props, rerender } = setup({ document: sampleDiagram() })
+    const previous = flow.props
+    act(() => previous.onConnectStart({}, {}))
+    if (mode === 'read-only roundtrip') { rerender(<Editor {...props} readOnly />); rerender(<Editor {...props} />) }
+    else rerender(<Editor {...props} document={{ ...props.document }} />)
+    act(() => previous.onConnect({ source: 'gateway', target: 'sql' }))
+    expect(props.onCommand).not.toHaveBeenCalled()
+    act(() => { flow.props.onConnectStart({}, {}); flow.props.onConnect({ source: 'gateway', target: 'sql' }) })
+    expect(props.onCommand).toHaveBeenCalledTimes(1)
+  })
+  it.each(['move', 'resize', 'link', 'reconnect'])('should_not_rearm_canceled_physical_%s_on_delayed_engine_start_DGM119', kind => {
+    const { props } = setup({ document: sampleDiagram() })
+    const canvas = screen.getByRole('main', { name: 'Architecture canvas' })
+    const node = flow.props.nodes.find((node: any) => node.id === 'platform')
+    const start = () => act(() => {
+      if (kind === 'move') flow.props.onNodeDragStart()
+      else if (kind === 'resize') node.data.startResize()
+      else if (kind === 'link') flow.props.onConnectStart({}, {})
+      else flow.props.onReconnectStart({}, {}, 'source')
+    })
+    const commit = () => act(() => {
+      if (kind === 'move') flow.props.onNodeDragStop({}, node, [{ ...node, position: { x: 400, y: 80 } }])
+      else if (kind === 'resize') flow.props.onNodesChange([{ type: 'dimensions', id: node.id, dimensions: { width: 880, height: 640 }, resizing: false }])
+      else if (kind === 'link') flow.props.onConnect({ source: 'gateway', target: 'sql' })
+      else flow.props.onReconnect({ id: 'route' }, { source: 'gateway', target: 'sql' })
+    })
+    fireEvent.mouseDown(canvas, { button: 0 })
+    fireEvent.keyDown(window, { key: 'Escape' })
+    start(); fireEvent.mouseUp(window); commit()
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(engine.cancelConnection).toHaveBeenCalledTimes(1)
+    fireEvent.mouseDown(canvas, { button: 0 }); start(); fireEvent.mouseUp(window); commit()
+    expect(props.onCommand).toHaveBeenCalledTimes(1)
+  })
+  it('should_hide_current_tooltip_on_keyboard_modal_or_Present_entry_DGM119', () => {
+    setup({ document: sampleDiagram() })
+    const fit = screen.getByRole('button', { name: 'Fit diagram' })
+    fireEvent.focus(fit)
+    fireEvent.click(screen.getByRole('button', { name: 'Commands' }))
+    expect(screen.queryByRole('tooltip')).toBeNull()
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+    fireEvent.mouseEnter(fit)
+    fireEvent.click(screen.getByRole('button', { name: 'Present' }))
+    expect(screen.queryByRole('tooltip')).toBeNull()
+  })
+  it.each(['composition', 'inline draft', 'title draft', 'connected picker'])('should_preserve_%s_without_opening_context_menu_DGM119', mode => {
+    const { props } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('app'))
+    const callback = flow.props.onNodeContextMenu
+    if (mode === 'connected picker') fireEvent.click(screen.getByRole('button', { name: 'Add connected component right' }))
+    else {
+      if (mode === 'inline draft') fireEvent.doubleClick(screen.getByText('app'))
+      const field = screen.getByRole('textbox', { name: mode === 'inline draft' ? 'Inline component label' : 'Document title' })
+      if (mode === 'composition') fireEvent.compositionStart(field)
+      fireEvent.change(field, { target: { value: 'Pending right click' } })
+    }
+    const previews = vi.mocked(props.onPreviewChange).mock.calls.length
+    act(() => callback({ target: document.body, currentTarget: document.body, clientX: 10, clientY: 10, preventDefault() {}, stopPropagation() {} }, { id: 'gateway' }))
+    expect(screen.queryByRole('menu')).toBeNull(); expect(props.onCommand).not.toHaveBeenCalled()
+    expect(props.onPreviewChange).toHaveBeenCalledTimes(previews)
+    if (mode !== 'connected picker') expect(screen.getByRole('textbox', { name: mode === 'inline draft' ? 'Inline component label' : 'Document title' })).toHaveProperty('value', 'Pending right click')
+  })
+  it('should_transform_screen_coordinates_before_snapping_context_add_DGM119', () => {
+    const transform = vi.spyOn(flow.api, 'screenToFlowPosition').mockImplementation((point: any) => ({ x: point.x + 100, y: point.y - 100 }))
+    try {
+      const { props } = setup()
+      fireEvent.click(within(contextMenuDGM119('pane', undefined, { x: 173, y: 219 })).getByRole('menuitem', { name: 'Add component' }))
+      expect(props.onCommand).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ type: 'addEntity', entity: expect.objectContaining({ x: 272, y: 120 }) }))
+    } finally { transform.mockRestore() }
+  })
+  it('should_apply_context_history_availability_and_redo_once_DGM119', () => {
+    const { props } = setup({ canUndo: false, canRedo: true })
+    const menu = contextMenuDGM119('pane')
+    expect(within(menu).getByRole('menuitem', { name: 'Undo' })).toHaveProperty('disabled', true)
+    expect(within(menu).getByRole('menuitem', { name: 'Paste' })).toHaveProperty('disabled', true)
+    fireEvent.click(within(menu).getByRole('menuitem', { name: 'Redo' }))
+    expect(props.onRedo).toHaveBeenCalledExactlyOnceWith(); expect(props.onUndo).not.toHaveBeenCalled(); expect(props.onCommand).not.toHaveBeenCalled()
+  })
+  it.each(['component', 'boundary', 'text', 'rectangle'])('should_add_%s_at_clicked_flow_coordinates_without_replacing_diagram_DGM119', kind => {
+    const { props } = setup({ document: sampleDiagram() })
+    const menu = contextMenuDGM119('pane', undefined, { x: 173, y: 219 })
+    fireEvent.click(within(menu).getByRole('menuitem', { name: `Add ${kind}` }))
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ type: 'addEntity', entity: expect.objectContaining({ kind, x: 176, y: 216 }) }))
+    expect(props.onNew).not.toHaveBeenCalled(); expect(props.onChooseStarter).not.toHaveBeenCalled()
+    expect(screen.queryByRole('menu')).toBeNull()
+  })
+  it('should_delete_explicit_unselected_target_and_incident_links_with_one_exact_Undo_DGM119', () => {
+    const diagram = sampleDiagram()
+    let history: History = { past: [], present: diagram, future: [] }
+    const before = JSON.stringify(diagram)
+    const { props, rerender } = setup({ document: diagram, onCommand: vi.fn(command => { history = historyCommit(history, applyCommand(history.present, command)) }), onUndo: vi.fn(() => { history = historyUndo(history) }) })
+    fireEvent.click(screen.getByText('gateway'))
+    const menu = contextMenuDGM119('node', 'app')
+    fireEvent.click(within(menu).getByRole('menuitem', { name: 'Delete' }))
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'remove', entityIds: ['app'], connectionIds: [] })
+    expect(history.present.entities.some(entity => entity.id === 'gateway')).toBe(true)
+    expect(history.present.connections).toEqual(diagram.connections.filter(edge => edge.from !== 'app' && edge.to !== 'app'))
+    expect(history.past).toHaveLength(1)
+    rerender(<Editor {...props} document={history.present} />)
+    fireEvent.click(within(contextMenuDGM119('pane')).getByRole('menuitem', { name: 'Undo' }))
+    expect(JSON.stringify(history.present)).toBe(before); expect(history.past).toHaveLength(0)
+  })
+  it.each(['app', 'platform'])('should_connect_from_explicit_%s_without_using_previous_selection_DGM119', id => {
+    const { props } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('gateway'))
+    fireEvent.click(within(contextMenuDGM119('node', id)).getByRole('menuitem', { name: 'Connect from here' }))
+    fireEvent.click(screen.getByText('sql'))
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ type: 'connect', connection: expect.objectContaining({ from: id, to: 'sql' }) }))
+  })
+  it.each(['Copy', 'Duplicate'])('should_%s_only_right_clicked_node_not_previous_selection_DGM119', label => {
+    const { props } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('gateway'))
+    fireEvent.click(within(contextMenuDGM119('node', 'app')).getByRole('menuitem', { name: label }))
+    if (label === 'Copy') {
+      expect(props.onCommand).not.toHaveBeenCalled()
+      fireEvent.click(within(contextMenuDGM119('pane')).getByRole('menuitem', { name: 'Paste' }))
+    }
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ type: 'paste', fragment: expect.objectContaining({ entities: [expect.objectContaining({ id: 'app' })] }) }))
+  })
+  it.each(['node', 'edge', 'pane'] as const)('should_open_targeted_%s_properties_DGM119', kind => {
+    const { props } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('gateway'))
+    fireEvent.click(within(contextMenuDGM119(kind, kind === 'node' ? 'app' : 'route')).getByRole('menuitem', { name: 'Properties' }))
+    const field = screen.getByRole('textbox', { name: kind === 'node' ? 'Component label' : kind === 'edge' ? 'Connection label' : 'Document subtitle' })
+    expect(document.activeElement).toBe(field)
+    if (kind === 'node') expect(field).toHaveProperty('value', 'App Service')
+    expect(props.onCommand).not.toHaveBeenCalled()
+  })
+  it('should_offer_only_eligible_link_actions_and_delete_explicit_edge_DGM119', () => {
+    const { props } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('gateway'))
+    const menu = contextMenuDGM119('edge', 'route')
+    expect(within(menu).queryByRole('menuitem', { name: 'Connect from here' })).toBeNull()
+    expect(within(menu).queryByRole('menuitem', { name: 'Duplicate' })).toBeNull()
+    fireEvent.click(within(menu).getByRole('menuitem', { name: 'Delete' }))
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'remove', entityIds: [], connectionIds: ['route'] })
+  })
+  it.each(['replacement', 'same-id replacement', 'revision', 'same-object revision', 'read-only', 'loading'])('should_reject_old_context_callback_after_%s_DGM119', change => {
+    const { props, rerender } = setup({ document: sampleDiagram() })
+    const menu = contextMenuDGM119('node', 'app')
+    const button = within(menu).getByRole('menuitem', { name: 'Delete' })
+    if (change === 'same-object revision') props.document.revision++
+    rerender(<Editor {...props} document={change === 'replacement' ? { ...props.document, id: 'new' } : change === 'same-id replacement' ? { ...props.document } : change === 'revision' ? { ...props.document, revision: props.document.revision + 1 } : props.document} readOnly={change === 'read-only'} saveState={change === 'loading' ? 'loading' : 'saved'} />)
+    fireEvent.click(button)
+    expect(props.onCommand).not.toHaveBeenCalled(); expect(screen.queryByRole('menu')).toBeNull()
+  })
+  it.each(['read-only', 'loading'])('should_disable_mutation_history_and_empty_paste_when_%s_DGM119', mode => {
+    const { props } = setup({ document: sampleDiagram(), readOnly: mode === 'read-only', saveState: mode === 'loading' ? 'loading' : 'saved' })
+    const menu = contextMenuDGM119('node', 'app')
+    for (const label of ['Delete', 'Duplicate', 'Connect from here', 'Add component', 'Add boundary', 'Add text', 'Add rectangle', 'Undo', 'Redo', 'Paste']) {
+      const item = within(menu).getByRole('menuitem', { name: label })
+      expect(item).toHaveProperty('disabled', true); fireEvent.click(item)
+    }
+    expect(props.onCommand).not.toHaveBeenCalled(); expect(props.onUndo).not.toHaveBeenCalled(); expect(props.onRedo).not.toHaveBeenCalled()
+    expect(within(menu).getByRole('menuitem', { name: 'Properties' })).toHaveProperty('disabled', false)
+  })
+  it.each(['Help', 'Commands', 'New diagram', 'Export', 'Present'])('should_not_open_context_menu_over_%s_DGM119', modal => {
+    const { props } = setup({ document: sampleDiagram() })
+    const callback = flow.props.onNodeContextMenu
+    fireEvent.click(screen.getByRole('button', { name: modal }))
+    act(() => callback?.({ target: document.body, currentTarget: document.body, clientX: 10, clientY: 10, preventDefault() {}, stopPropagation() {} }, { id: 'app' }))
+    expect(screen.queryByRole('menu')).toBeNull(); expect(props.onCommand).not.toHaveBeenCalled()
+  })
+  it('should_navigate_activate_and_dismiss_menu_with_focus_return_DGM119', () => {
+    const { props } = setup()
+    const canvas = screen.getByRole('main', { name: 'Architecture canvas' })
+    act(() => canvas.focus())
+    let menu = contextMenuDGM119('pane')
+    expect(document.activeElement).toBe(within(menu).getByRole('menuitem', { name: 'Add component' }))
+    fireEvent.keyDown(document.activeElement!, { key: 'End' })
+    expect(document.activeElement).toBe(within(menu).getByRole('menuitem', { name: 'Properties' }))
+    fireEvent.keyDown(document.activeElement!, { key: 'Home' })
+    fireEvent.keyDown(document.activeElement!, { key: 'ArrowDown' })
+    expect(document.activeElement).toBe(within(menu).getByRole('menuitem', { name: 'Add boundary' }))
+    fireEvent.keyDown(document.activeElement!, { key: 'ArrowUp' })
+    fireEvent.keyDown(document.activeElement!, { key: ' ' })
+    expect(props.onCommand).toHaveBeenCalledTimes(1)
+    expect(document.activeElement).toBe(canvas)
+    for (const key of ['Escape', 'Tab']) {
+      menu = contextMenuDGM119('pane')
+      fireEvent.keyDown(menu, { key })
+      expect(screen.queryByRole('menu')).toBeNull(); expect(document.activeElement).toBe(canvas)
+    }
+    menu = contextMenuDGM119('pane')
+    fireEvent.pointerDown(document.body)
+    expect(screen.queryByRole('menu')).toBeNull(); expect(props.onCommand).toHaveBeenCalledTimes(1)
+  })
+  it.each(['ContextMenu', 'F10'])('should_open_keyboard_context_on_selected_target_and_ignore_text_input_DGM119_%s', key => {
+    const { props } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('app'))
+    const canvas = screen.getByRole('main', { name: 'Architecture canvas' })
+    act(() => canvas.focus())
+    fireEvent.keyDown(canvas, { key, shiftKey: key === 'F10' })
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' })
+    const title = screen.getByRole('textbox', { name: 'Document title' })
+    act(() => title.focus())
+    const event = createEvent.contextMenu(title, { bubbles: true, cancelable: true })
+    fireEvent(title, event)
+    expect(event.defaultPrevented).toBe(false)
+    fireEvent.keyDown(title, { key, shiftKey: key === 'F10' })
+    expect(screen.queryByRole('menu')).toBeNull(); expect(props.onCommand).not.toHaveBeenCalled()
+  })
+  it('should_not_open_or_execute_context_after_right_button_pan_DGM119', () => {
+    const { props } = setup({ document: sampleDiagram() })
+    const canvas = screen.getByRole('main', { name: 'Architecture canvas' })
+    fireEvent.mouseDown(canvas, { button: 2, clientX: 10, clientY: 10 })
+    fireEvent.mouseMove(canvas, { buttons: 2, clientX: 90, clientY: 90 })
+    fireEvent.mouseUp(canvas, { button: 2, clientX: 90, clientY: 90 })
+    act(() => flow.props.onPaneContextMenu?.({ target: canvas, currentTarget: canvas, clientX: 90, clientY: 90, preventDefault() {}, stopPropagation() {} }))
+    expect(screen.queryByRole('menu')).toBeNull(); expect(props.onCommand).not.toHaveBeenCalled()
+    expect(flow.props.panOnDrag).toEqual([1, 2])
+  })
+  it.each(['Escape', 'scroll', 'resize', 'window blur', 'other pointer', 'disable', 'unmount'])('should_dismiss_keyboard_tooltip_on_%s_DGM119', cause => {
+    const { props, rerender, unmount } = setup({ document: sampleDiagram() })
+    const button = screen.getByRole('button', { name: 'Undo' })
+    fireEvent.focus(button)
+    expect(screen.getByRole('tooltip').textContent).toBe('Undo')
+    if (cause === 'Escape') fireEvent.keyDown(button, { key: 'Escape' })
+    else if (cause === 'scroll') fireEvent.scroll(window)
+    else if (cause === 'resize') fireEvent.resize(window)
+    else if (cause === 'window blur') fireEvent.blur(window)
+    else if (cause === 'other pointer') fireEvent.pointerDown(screen.getByRole('button', { name: 'Select tool' }))
+    else if (cause === 'disable') rerender(<Editor {...props} readOnly />)
+    else unmount()
+    expect(screen.queryByRole('tooltip')).toBeNull()
+    if (!['disable', 'unmount'].includes(cause)) {
+      fireEvent.blur(button); fireEvent.focus(button)
+      expect(screen.getByRole('tooltip').textContent).toBe('Undo')
+    }
+  })
+  it('should_use_one_custom_tip_without_native_duplicates_DGM119', () => {
+    setup()
+    const button = screen.getByRole('button', { name: 'Select tool' })
+    expect(button.hasAttribute('title')).toBe(false)
+    fireEvent.focus(button)
+    const other = screen.getByRole('button', { name: 'Pan tool' })
+    fireEvent.mouseEnter(other)
+    expect(screen.getAllByRole('tooltip')).toHaveLength(1)
+    expect(screen.getByRole('tooltip').textContent).toBe('Pan tool')
+  })
+  it('should_enlarge_real_handle_hit_box_and_keep_four_semantic_sides_DGM119', () => {
+    setup({ document: sampleDiagram() })
+    const connectors = within(screen.getByTestId('tile-app')).getAllByLabelText(/ connector$/)
+    expect(connectors.map(element => element.getAttribute('aria-label'))).toEqual(['App Service top connector', 'App Service right connector', 'App Service bottom connector', 'App Service left connector'])
+    const style = document.createElement('style')
+    style.textContent = readFileSync('src/editor/editor.css', 'utf8'); document.head.append(style)
+    try {
+      const rules = [...style.sheet!.cssRules].filter(rule => rule.type === 1) as CSSStyleRule[]
+      const hit = rules.find(rule => rule.selectorText === '.react-flow__handle')!
+      expect(parseFloat(hit.style.width)).toBeGreaterThanOrEqual(28)
+      expect(parseFloat(hit.style.width)).toBeLessThanOrEqual(32)
+      expect(parseFloat(hit.style.height)).toBeGreaterThanOrEqual(28)
+      expect(hit.style.background).toBe('transparent')
+      const dot = rules.find(rule => rule.selectorText === '.react-flow__handle::after')!
+      expect(parseFloat(dot.style.width)).toBe(12)
+      expect(parseFloat(dot.style.height)).toBe(12)
+    } finally { style.remove() }
+  })
+  it.each(['link', 'reconnect'])('should_cancel_%s_through_physical_end_and_allow_next_gesture_DGM119', mode => {
+    const { props } = setup({ document: sampleDiagram() })
+    const before = JSON.stringify(props.document)
+    const next = { source: 'gateway', target: 'sql', sourceHandle: 'right', targetHandle: 'left' }
+    const start = () => act(() => mode === 'link' ? flow.props.onConnectStart?.({}, { nodeId: 'gateway', handleId: 'right', handleType: 'source' }) : flow.props.onReconnectStart?.({}, flow.props.edges[0], 'source'))
+    const commit = () => act(() => mode === 'link' ? flow.props.onConnect(next) : flow.props.onReconnect({ id: 'route' }, next))
+    start(); fireEvent.keyDown(window, { key: 'Escape' })
+    fireEvent.mouseUp(window); fireEvent.pointerUp(window)
+    commit(); commit()
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(JSON.stringify(props.document)).toBe(before)
+    start(); commit()
+    expect(props.onCommand).toHaveBeenCalledTimes(1)
+    expect(props.onCommand).toHaveBeenCalledWith(expect.objectContaining({ type: mode === 'link' ? 'connect' : 'updateConnection' }))
+  })
+  it.each(['single', 'multiple'])('should_latch_canceled_%s_move_until_next_start_DGM119', mode => {
+    const { props } = setup({ document: alignmentDiagram() })
+    const original = JSON.stringify(props.document)
+    const nodes = flow.props.nodes.slice(0, mode === 'single' ? 1 : 2)
+    const moved = nodes.map((node: any) => ({ ...node, position: { x: node.position.x + 80, y: node.position.y + 80 } }))
+    act(() => { flow.props.onNodeDragStart(); flow.props.onNodeDrag({}, nodes[0], moved) })
+    fireEvent.keyDown(window, { key: 'Escape' })
+    fireEvent.mouseUp(window); fireEvent.pointerUp(window)
+    act(() => { flow.props.onNodeDragStop({}, nodes[0], moved); flow.props.onNodeDrag({}, nodes[0], moved); flow.props.onNodeDragStop({}, nodes[0], moved) })
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(props.onPreviewChange).toHaveBeenLastCalledWith(null)
+    expect(flow.props.nodes.map((node: any) => node.position)).toEqual(props.document.entities.map(entity => ({ x: entity.x, y: entity.y })))
+    expect(JSON.stringify(props.document)).toBe(original)
+    expect(props.onUndo).not.toHaveBeenCalled(); expect(props.onRedo).not.toHaveBeenCalled()
+    act(() => { flow.props.onNodeDragStart(); flow.props.onNodeDrag({}, nodes[0], moved); flow.props.onNodeDragStop({}, nodes[0], moved) })
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'move', positions: moved.map((node: any) => ({ id: node.id, ...node.position })) })
+  })
+  it('should_restore_resize_measurements_and_reject_late_dimensions_until_fresh_start_DGM119', () => {
+    const { props } = setup({ document: sampleDiagram() })
+    const node = flow.props.nodes.find((candidate: any) => candidate.id === 'platform')
+    const original = JSON.stringify(props.document)
+    const change = (resizing: boolean) => flow.props.onNodesChange([{ type: 'dimensions', id: node.id, dimensions: { width: 880, height: 640 }, resizing }])
+    act(() => { node.data.startResize(); change(true) })
+    fireEvent.keyDown(window, { key: 'Escape' })
+    fireEvent.mouseUp(window)
+    act(() => { change(false); change(true); change(false) })
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(props.onPreviewChange).toHaveBeenLastCalledWith(null)
+    expect(flow.props.nodes.find((candidate: any) => candidate.id === node.id).measured).toEqual(node.measured)
+    expect(JSON.stringify(props.document)).toBe(original)
+    act(() => { node.data.startResize(); change(true); change(false) })
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'resize', id: node.id, width: 884, height: 640 })
+  })
+  it('should_cancel_library_drop_until_a_new_drag_starts_DGM119', () => {
+    const { props } = setup()
+    const canvas = screen.getByRole('main', { name: 'Architecture canvas' })
+    const item = screen.getByRole('button', { name: 'Insert App Service' })
+    const values = new Map<string, string>()
+    const dataTransfer = { types: ['application/x-diagrammer-component'], setData: (type: string, value: string) => values.set(type, value), getData: (type: string) => values.get(type) ?? '' }
+    fireEvent.dragStart(item, { dataTransfer })
+    fireEvent.keyDown(window, { key: 'Escape' })
+    fireEvent.drop(canvas, { dataTransfer, clientX: 200, clientY: 240 })
+    fireEvent.dragEnd(item, { dataTransfer })
+    expect(props.onCommand).not.toHaveBeenCalled()
+    fireEvent.dragStart(item, { dataTransfer })
+    fireEvent.drop(canvas, { dataTransfer, clientX: 200, clientY: 240 })
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ type: 'addEntity', entity: expect.objectContaining({ icon: 'azure-app' }) }))
+  })
+  it('should_dismiss_pointer_focused_tooltip_on_action_and_leave_DGM119', () => {
+    setup({ document: sampleDiagram() })
+    const button = screen.getByRole('button', { name: 'Fit diagram' })
+    fireEvent.mouseEnter(button)
+    expect(screen.getByRole('tooltip').textContent).toBe('Fit diagram')
+    fireEvent.pointerDown(button)
+    fireEvent.mouseDown(button)
+    act(() => button.focus())
+    fireEvent.click(button)
+    fireEvent.mouseLeave(button)
+    expect(screen.queryByRole('tooltip')).toBeNull()
+    fireEvent.mouseEnter(button)
+    expect(screen.getByRole('tooltip').textContent).toBe('Fit diagram')
+  })
+  it('should_remove_only_the_toolbar_component_once_DGM118', () => {
+    const { props } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('app'))
+    const button = screen.getByRole('button', { name: 'Delete component' })
+    expect(button.hasAttribute('title')).toBe(false)
+    expect(button.querySelector('svg.lucide-trash-2')).toBeTruthy()
+    act(() => button.focus())
+    expect(document.activeElement).toBe(button)
+    expect(screen.getByRole('tooltip').textContent).toBe('Delete component')
+    const remove = flow.props.nodes.find((node: any) => node.id === 'app').data.onDeleteComponent
+    fireEvent.click(button)
+    act(() => remove())
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'remove', entityIds: ['app'], connectionIds: [] })
+    expect(screen.queryByRole('button', { name: 'Delete component' })).toBeNull()
+  })
+  it.each(['none', 'boundary', 'text', 'rectangle', 'multiple components', 'mixed entities', 'mixed connection', 'connection'])('should_hide_quick_delete_for_%s_DGM118', selection => {
+    const diagram = sampleDiagram()
+    diagram.entities.push({ ...diagram.entities.find(entity => entity.id === 'note')!, id: 'region', kind: 'rectangle' })
+    const { props } = setup({ document: diagram })
+    const select = (id: string, shiftKey = false) => fireEvent.click(screen.getByTestId(`tile-${id}`).querySelector('button')!, { shiftKey })
+    if (selection === 'boundary') select(diagram.entities.find(entity => entity.kind === 'boundary')!.id)
+    else if (selection === 'text') select('note')
+    else if (selection === 'rectangle') select('region')
+    else if (selection === 'connection') fireEvent.click(screen.getByText(diagram.connections[0].id))
+    else if (selection !== 'none') {
+      select('app')
+      if (selection === 'mixed connection') act(() => flow.props.onEdgesChange([{ type: 'select', id: diagram.connections[0].id, selected: true }]))
+      else select(selection === 'mixed entities' ? 'note' : 'users', true)
+    }
+    expect(screen.queryByRole('button', { name: 'Delete component' })).toBeNull()
+    expect(props.onCommand).not.toHaveBeenCalled()
+  })
+  it.each(['read-only', 'loading'])('should_disable_and_guard_quick_delete_when_%s_DGM118', mode => {
+    const { props } = setup({ document: sampleDiagram(), readOnly: mode === 'read-only', saveState: mode === 'loading' ? 'loading' : 'read-only' })
+    fireEvent.click(screen.getByText('app'))
+    const button = screen.getByRole('button', { name: 'Delete component' })
+    expect(button).toHaveProperty('disabled', true)
+    fireEvent.click(button)
+    act(() => flow.props.nodes.find((node: any) => node.id === 'app').data.onDeleteComponent())
+    expect(props.onCommand).not.toHaveBeenCalled()
+  })
+  it.each(['selection', 'mixed selection', 'document', 'same-id document', 'revision', 'same-object revision', 'read-only', 'loading', 'Present', 'read-only roundtrip', 'Present roundtrip'])('should_reject_saved_callback_after_%s_changes_DGM118', change => {
+    const { props, rerender } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('app'))
+    const remove = flow.props.nodes.find((node: any) => node.id === 'app').data.onDeleteComponent
+    if (change === 'selection') fireEvent.click(screen.getByText('users'))
+    else if (change === 'mixed selection') act(() => flow.props.onEdgesChange([{ type: 'select', id: props.document.connections[0].id, selected: true }]))
+    else if (change.startsWith('Present')) {
+      fireEvent.click(screen.getByRole('button', { name: 'Present' }))
+      expect(screen.queryByRole('button', { name: 'Delete component' })).toBeNull()
+      if (change.endsWith('roundtrip')) fireEvent.click(screen.getByRole('button', { name: 'Exit presentation' }))
+    } else if (change === 'same-object revision') {
+      props.document.revision++
+      rerender(<Editor {...props} />)
+    } else if (change === 'read-only roundtrip') {
+      rerender(<Editor {...props} readOnly />)
+      rerender(<Editor {...props} />)
+    } else rerender(<Editor {...props} document={change === 'document' ? { ...props.document, id: 'replacement' } : change === 'same-id document' ? { ...props.document } : change === 'revision' ? { ...props.document, revision: props.document.revision + 1 } : props.document} readOnly={change === 'read-only'} saveState={change === 'loading' ? 'loading' : 'saved'} />)
+    act(() => remove())
+    expect(props.onCommand).not.toHaveBeenCalled()
+    if (change === 'selection') {
+      fireEvent.click(screen.getByRole('button', { name: 'Delete component' }))
+      expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'remove', entityIds: ['users'], connectionIds: [] })
+    } else if (change === 'same-id document' || change.endsWith('roundtrip')) {
+      fireEvent.click(screen.getByRole('button', { name: 'Delete component' }))
+      expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'remove', entityIds: ['app'], connectionIds: [] })
+    }
+  })
+  it.each(['Help', 'Commands', 'New diagram', 'Export', 'connected picker'])('should_reject_quick_delete_behind_%s_DGM118', modal => {
+    const { props } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('app'))
+    const remove = flow.props.nodes.find((node: any) => node.id === 'app').data.onDeleteComponent
+    fireEvent.click(screen.getByRole('button', { name: modal === 'connected picker' ? 'Add connected component right' : modal }))
+    const dialog = screen.getByRole('dialog')
+    act(() => remove())
+    expect(screen.getByRole('dialog')).toBe(dialog)
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(flow.props.nodes.find((node: any) => node.id === 'app').selected).toBe(true)
+  })
+  it.each(['Document title', 'Component label', 'Inline component label'])('should_preserve_composition_in_%s_without_quick_delete_DGM118', label => {
+    const { props } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('app'))
+    if (label.startsWith('Inline')) fireEvent.doubleClick(screen.getByText('app'))
+    const field = screen.getByRole('textbox', { name: label })
+    fireEvent.compositionStart(field)
+    fireEvent.change(field, { target: { value: 'Composing component' } })
+    const previews = vi.mocked(props.onPreviewChange).mock.calls.length
+    fireEvent.click(screen.getByRole('button', { name: 'Delete component' }))
+    expect(field).toHaveProperty('value', 'Composing component')
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(props.onPreviewChange).toHaveBeenCalledTimes(previews)
+    expect(flow.props.nodes.find((node: any) => node.id === 'app').selected).toBe(true)
+    fireEvent.compositionEnd(field)
+  })
+  it.each(['title', 'inspector', 'inline', 'invalid inline'])('should_preserve_pending_%s_edit_when_quick_delete_is_requested_DGM118', mode => {
+    const { props } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('app'))
+    if (mode.includes('inline')) fireEvent.doubleClick(screen.getByText('app'))
+    const field = screen.getByRole('textbox', { name: mode === 'title' ? 'Document title' : mode === 'inspector' ? 'Component label' : 'Inline component label' })
+    const value = mode === 'invalid inline' ? 'x'.repeat(121) : 'Uncommitted component'
+    fireEvent.change(field, { target: { value } })
+    const before = JSON.stringify(props.document)
+    const previews = vi.mocked(props.onPreviewChange).mock.calls.length
+    fireEvent.click(screen.getByRole('button', { name: 'Delete component' }))
+    expect(field).toHaveProperty('value', value)
+    expect(JSON.stringify(props.document)).toBe(before)
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(props.onPreviewChange).toHaveBeenCalledTimes(previews)
+    expect(flow.props.nodes.find((node: any) => node.id === 'app').selected).toBe(true)
+    if (mode === 'invalid inline') expect(screen.getByRole('alert').textContent).toMatch(/120|Limit/)
+  })
+  it.each(['left', 'right', 'top', 'bottom'])('should_keep_the_%s_quick_add_action_working_beside_delete_DGM118', side => {
+    const { props } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('app'))
+    expect(screen.getByRole('button', { name: 'Delete component' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: `Add connected component ${side}` }))
+    const search = within(screen.getByRole('dialog')).getByRole('textbox', { name: 'Search components' })
+    fireEvent.change(search, { target: { value: 'APIM' } })
+    fireEvent.keyDown(search, { key: 'Enter' })
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ type: 'addConnected', sourceId: 'app', connection: expect.objectContaining({ sourceSide: side }) }))
+  })
+  it('should_stop_pointer_mouse_click_and_double_click_propagation_DGM118', () => {
+    const { props, rerender } = setup({ document: sampleDiagram() })
+    const background = vi.fn()
+    rerender(<div onPointerDown={background} onMouseDown={background} onClick={background} onDoubleClick={background}><Editor {...props} /></div>)
+    fireEvent.click(screen.getByText('app'))
+    background.mockClear()
+    const button = screen.getByRole('button', { name: 'Delete component' })
+    fireEvent.pointerDown(button); fireEvent.mouseDown(button); fireEvent.doubleClick(button); fireEvent.click(button)
+    expect(background).not.toHaveBeenCalled()
+    expect(screen.queryByRole('textbox', { name: 'Inline component label' })).toBeNull()
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'remove', entityIds: ['app'], connectionIds: [] })
+  })
+  it('should_remove_incident_connections_only_and_restore_exact_document_with_one_Undo_DGM118', () => {
+    const diagram = alignmentDiagram()
+    diagram.entities = diagram.entities.map(entity => ({ ...entity, layer: 'foreground' as const }))
+    diagram.connections = [
+      { id: 'ab', from: 'a', to: 'b', label: 'Outbound', style: 'solid', arrow: 'forward' },
+      { id: 'bc', from: 'b', to: 'c', label: 'Unrelated', style: 'dashed', arrow: 'both' },
+      { id: 'ca', from: 'c', to: 'a', label: 'Inbound', style: 'dashed', arrow: 'forward' },
+    ]
+    let history: History = { past: [], present: diagram, future: [] }
+    const before = JSON.stringify(diagram)
+    const { props, rerender } = setup({ document: diagram, onCommand: vi.fn(command => { history = historyCommit(history, applyCommand(history.present, command)) }), onUndo: vi.fn(() => { history = historyUndo(history) }) })
+    fireEvent.click(screen.getByTestId('tile-a').querySelector('button')!)
+    fireEvent.click(screen.getByRole('button', { name: 'Delete component' }))
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'remove', entityIds: ['a'], connectionIds: [] })
+    expect(history.present.entities).toEqual(diagram.entities.filter(entity => entity.id !== 'a'))
+    expect(history.present.connections).toEqual([diagram.connections[1]])
+    expect(history.past).toHaveLength(1)
+    rerender(<Editor {...props} document={history.present} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
+    expect(props.onUndo).toHaveBeenCalledTimes(1)
+    expect(JSON.stringify(history.present)).toBe(before)
+    expect(history.past).toHaveLength(0)
+  })
   it.each(['title', 'inspector', 'inline'] as const)('should_preserve_pending_%s_draft_selection_camera_and_history_DGM117', mode => {
     const { props, container } = setup({ document: sampleDiagram() })
     fireEvent.click(screen.getByText('app'))
@@ -172,7 +810,10 @@ describe('controlled editor', () => {
     const before = JSON.stringify(props.document)
     expect(screen.queryByRole('dialog')).toBeNull()
     const help = screen.getByRole('button', { name: 'Help' })
-    expect(help.title).toBe('Help')
+    fireEvent.focus(help)
+    expect(screen.getByRole('tooltip').textContent).toBe('Help')
+    expect(help.getAttribute('aria-describedby')).toBe(screen.getByRole('tooltip').id)
+    expect(help.title).toBe('')
     expect(help.querySelector('svg')).toBeTruthy()
     fireEvent.click(help)
     const titles = ['Start a diagram', 'Name your diagram', 'Add components', 'Navigate the canvas', 'Connect and annotate', 'Edit properties', 'Arrange your diagram', 'Save editable work', 'Export artwork', 'Present and hand off']
@@ -1178,13 +1819,12 @@ describe('controlled editor', () => {
   })
   it('should_repair_sprint2_present_fit_after_heading_resize_and_fonts_without_reframing_pan_or_exit', async () => {
     window.innerWidth = 720
-    let resize: (() => void) | undefined
-    const observe = vi.fn()
-    const disconnect = vi.fn()
+    const observers: { resize(): void; observe: ReturnType<typeof vi.fn>; disconnect: ReturnType<typeof vi.fn> }[] = []
     vi.stubGlobal('ResizeObserver', class {
-      constructor(callback: () => void) { resize = callback }
-      observe = observe
-      disconnect = disconnect
+      resize: () => void
+      constructor(callback: () => void) { this.resize = callback; observers.push(this) }
+      observe = vi.fn()
+      disconnect = vi.fn()
     })
     let ready!: () => void
     const fonts = Object.getOwnPropertyDescriptor(document, 'fonts')
@@ -1201,10 +1841,16 @@ describe('controlled editor', () => {
       vi.spyOn(canvas.querySelector('.canvas-legend')!, 'getBoundingClientRect').mockReturnValue(rect(16, 354, 600, 36))
       vi.spyOn(canvas.querySelector('.zoom-controls')!, 'getBoundingClientRect').mockReturnValue(rect(444, 398, 260, 36))
       fireEvent.click(screen.getByRole('button', { name: 'Present' }))
+      expect(observers).toHaveLength(2)
+      const fitObserver = observers.find(observer => observer.observe.mock.calls.some(([target]) => target === canvas.querySelector('.canvas-heading')))!
+      const markupObserver = observers.find(observer => observer !== fitObserver)!
+      const { observe, disconnect, resize } = fitObserver
       expect(observe).toHaveBeenCalledWith(canvas)
       expect(observe).toHaveBeenCalledWith(canvas.querySelector('.canvas-heading'))
       expect(observe).toHaveBeenCalledWith(canvas.querySelector('.presentation-controls'))
       expect(observe).toHaveBeenCalledWith(canvas.querySelector('.canvas-bottom-chrome'))
+      expect(observe).toHaveBeenCalledWith(canvas.querySelector('.presentation-markup-toolbar'))
+      expect(markupObserver.observe).toHaveBeenCalledWith(canvas.querySelector('.canvas-bottom-chrome'))
       const checkFit = () => {
         const viewport = flow.api.setViewport.mock.calls.at(-1)![0]
         expect(viewport.zoom).toBeGreaterThanOrEqual(flow.props.minZoom)
@@ -1226,6 +1872,7 @@ describe('controlled editor', () => {
       expect(flow.api.setViewport).toHaveBeenCalledTimes(calls)
       fireEvent.keyDown(window, { key: 'Escape' })
       expect(disconnect).toHaveBeenCalledTimes(1)
+      expect(markupObserver.disconnect).toHaveBeenCalledTimes(1)
       expect(flow.api.setViewport).toHaveBeenLastCalledWith({ x: 17, y: 23, zoom: .75 }, { duration: 0 })
       const restoredCalls = flow.api.setViewport.mock.calls.length
       act(() => resize?.())
@@ -1740,12 +2387,14 @@ describe('controlled editor', () => {
       expect(dock.contains(container.querySelector('.mobile-controls'))).toBe(true)
     } finally { style.remove() }
   })
-  it('should_show_the_theme_action_name_on_keyboard_focus', () => {
+  it('should_show_the_theme_action_name_on_keyboard_focus_DGM119', () => {
     setup()
     const theme = screen.getByRole('button', { name: /Switch to .* theme/ })
     fireEvent.focus(theme)
     expect(screen.getByRole('tooltip').textContent).toBe(theme.getAttribute('aria-label'))
     fireEvent.click(theme)
+    expect(screen.queryByRole('tooltip')).toBeNull()
+    fireEvent.blur(theme); fireEvent.focus(theme)
     expect(screen.getByRole('tooltip').textContent).toBe(theme.getAttribute('aria-label'))
     fireEvent.blur(theme)
     expect(screen.queryByRole('tooltip')).toBeNull()
@@ -1800,7 +2449,10 @@ describe('controlled editor', () => {
     const actions = [['Bring forward', 'forward'], ['Send backward', 'backward'], ['Bring to top', 'top'], ['Send to bottom', 'bottom']] as const
     const icons = actions.map(([label, position]) => {
       const button = screen.getByRole('button', { name: label })
-      expect(button.title).toBe(label)
+      fireEvent.mouseEnter(button)
+      expect(screen.getByRole('tooltip').textContent).toBe(label)
+      expect(button.getAttribute('aria-describedby')).toBe(screen.getByRole('tooltip').id)
+      expect(button.title).toBe('')
       fireEvent.click(button)
       expect(props.onCommand).toHaveBeenLastCalledWith({ type: 'order', ids: ['gateway'], position })
       return button.querySelector('svg')!.innerHTML
