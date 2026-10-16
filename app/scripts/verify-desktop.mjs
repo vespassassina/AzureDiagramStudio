@@ -14,10 +14,11 @@ const execute = promisify(execFile)
 const output = path.join(root, 'test-results', 'desktop')
 const requestedArchitecture = process.argv[2] ?? process.env.DGM_DESKTOP_ARCH
 const architectures = requestedArchitecture ? [requestedArchitecture] : ['arm64', 'x64']
+const metadata = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'))
 const vendors = JSON.parse(await readFile(path.join(root, 'src/vendor-icons/catalog.generated.json'), 'utf8'))
 const microsoft = JSON.parse(await readFile(path.join(root, 'src/microsoft-icons/catalog.generated.json'), 'utf8'))
 const registry = [...vendors, ...microsoft]
-const report = { startedAt: new Date().toISOString(), sourceCommit: (await execute('git', ['-C', root, 'rev-parse', 'HEAD'])).stdout.trim(), driverSha256: createHash('sha256').update(await readFile(path.join(root, 'scripts', 'desktop-driver.mjs'))).digest('hex'), host: { platform: os.platform(), architecture: os.arch(), node: process.version }, targets: [], limitations: ['Unsigned executables may trigger SmartScreen. Native Windows save-dialog appearance requires manual inspection; automation checks its options and saves the resulting DownloadItem.'], passed: false }
+const report = { startedAt: new Date().toISOString(), version: metadata.version, sourceCommit: (await execute('git', ['-C', root, 'rev-parse', 'HEAD'])).stdout.trim(), driverSha256: createHash('sha256').update(await readFile(path.join(root, 'scripts', 'desktop-driver.mjs'))).digest('hex'), host: { platform: os.platform(), architecture: os.arch(), node: process.version }, targets: [], limitations: ['Unsigned executables may trigger SmartScreen. Native Windows save-dialog appearance requires manual inspection; automation checks its options and saves the resulting DownloadItem.'], passed: false }
 await mkdir(output, { recursive: true })
 
 async function saved(page) {
@@ -49,7 +50,7 @@ async function clickNode(page, id) {
 }
 async function editTitle(page, title) {
   await page.getByLabel('Document title', { exact: true }).fill(title)
-  await page.getByLabel('Document title', { exact: true }).press('Tab')
+  await page.getByLabel('Document title', { exact: true }).press('Enter')
   await saved(page)
 }
 async function openJson(page, filename) {
@@ -79,13 +80,14 @@ async function launch(executable, appData, target) {
   await saved(page)
   await page.evaluate(() => document.fonts.ready)
   const identity = await application.evaluate(({ app, BrowserWindow }) => ({
-    packaged: app.isPackaged, name: app.getName(), profile: app.getPath('userData'),
+    packaged: app.isPackaged, name: app.getName(), appVersion: app.getVersion(), profile: app.getPath('userData'),
     executable: process.execPath, arch: process.arch, version: process.versions.electron,
     preferences: BrowserWindow.getAllWindows()[0].webContents.getLastWebPreferences(),
   }))
   assert.equal(identity.packaged, true)
   assert.equal(identity.arch, target.architecture)
   assert.equal(identity.name, 'Azure Diagram Studio')
+  assert.equal(identity.appVersion, metadata.version)
   assert.equal(createHash('sha256').update(await readFile(path.join(path.dirname(identity.executable), 'resources', 'app.asar'))).digest('hex'), target.bundle.sha256, 'Extracted portable runtime must match the verified final ASAR')
   assert.equal(path.basename(identity.profile), 'AzureDiagramStudio')
   assert.ok(identity.profile.toLowerCase().startsWith(appData.toLowerCase()), 'Tests must not modify the real Windows user profile')
@@ -148,6 +150,7 @@ async function featureChecks(application, page, architecture, target) {
   assert.equal(target.initialTheme.selected, target.initialTheme.systemDark ? 'dark' : 'light')
   if (await page.getByRole('button', { name: 'Switch to light theme', exact: true }).isVisible()) await page.getByRole('button', { name: 'Switch to light theme', exact: true }).click()
   await page.getByRole('button', { name: 'New diagram', exact: true }).click()
+  await page.getByRole('dialog', { name: 'New diagram', exact: true }).getByRole('button', { name: 'Blank', exact: true }).click()
   await page.waitForFunction(() => document.querySelectorAll('.react-flow__node').length === 0)
   await upload(page, { name: 'desktop-custom.svg', mimeType: 'image/svg+xml', buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="512"><path fill="#db2134" d="M0 0h512v512H0z"/><path fill="#117865" d="M512 0h512v512H512z"/></svg>') }, 'Import custom icon')
   const created = await durable(page)
@@ -188,6 +191,7 @@ async function featureChecks(application, page, architecture, target) {
   assert.deepEqual(await durable(page), created)
   await page.keyboard.press('Control+c')
   await page.getByRole('button', { name: 'New diagram', exact: true }).click()
+  await page.getByRole('dialog', { name: 'New diagram', exact: true }).getByRole('button', { name: 'Blank', exact: true }).click()
   await page.waitForFunction(() => document.querySelectorAll('.react-flow__node').length === 0)
   await page.keyboard.press('Control+v')
   await page.waitForFunction(() => document.querySelectorAll('.react-flow__node').length === 1)
@@ -217,7 +221,7 @@ async function featureChecks(application, page, architecture, target) {
   target.iconPixels = {}
   for (const format of ['svg', 'png']) {
     await page.getByRole('button', { name: 'Export', exact: true }).click()
-    pictures[format] = (await download(application, page, `${architecture}-mixed.${format}`, () => page.getByRole('button', { name: format === 'svg' ? 'Export SVG' : 'Export PNG 1x', exact: true }).click(), target)).bytes
+    pictures[format] = (await download(application, page, `${architecture}-mixed.${format}`, () => page.getByRole('dialog', { name: 'Export diagram', exact: true }).getByRole('button', { name: format === 'svg' ? 'Export SVG' : 'Export PNG 1x', exact: true }).click(), target)).bytes
   }
   const svg = pictures.svg.toString()
   assert.equal((svg.match(/<image /g) ?? []).length, registry.length + 1)
@@ -243,7 +247,7 @@ async function featureChecks(application, page, architecture, target) {
   assert.deepEqual(await durable(page), mixed)
   for (const format of ['svg', 'png']) {
     await page.getByRole('button', { name: 'Export', exact: true }).click()
-    const dark = await download(application, page, `${architecture}-mixed-dark.${format}`, () => page.getByRole('button', { name: format === 'svg' ? 'Export SVG' : 'Export PNG 1x', exact: true }).click(), target)
+    const dark = await download(application, page, `${architecture}-mixed-dark.${format}`, () => page.getByRole('dialog', { name: 'Export diagram', exact: true }).getByRole('button', { name: format === 'svg' ? 'Export SVG' : 'Export PNG 1x', exact: true }).click(), target)
     assert.deepEqual(dark.bytes, pictures[format])
   }
   await page.getByRole('button', { name: 'Fit diagram', exact: true }).click()
@@ -277,7 +281,7 @@ try {
     assert.ok(['arm64', 'x64'].includes(architecture))
     const target = { architecture, execution: architecture === os.arch() ? 'native' : `${architecture} emulation on ${os.arch()}`, passed: false, checks: [], downloads: [], sessions: [] }
     report.targets.push(target)
-    const portable = path.join(root, 'release', `Azure-Diagram-Studio-0.1.0-win-${architecture}-portable.exe`)
+    const portable = path.join(root, 'release', `Azure-Diagram-Studio-${metadata.version}-win-${architecture}-portable.exe`)
     const artifact = await stat(portable)
     assert.ok(artifact.size > 10_000_000)
     target.artifact = { filename: path.basename(portable), bytes: artifact.size, modified: artifact.mtime.toISOString(), sha256: createHash('sha256').update(await readFile(portable)).digest('hex'), qualification: 'Current integrated final build; passed only after runtime checks and cleanup' }
@@ -335,7 +339,7 @@ try {
       assert.deepEqual(JSON.parse(backup.bytes), before)
       for (const format of ['svg', 'png']) {
         await page.getByRole('button', { name: 'Export', exact: true }).click()
-        const file = await download(application, page, `${architecture}-export.${format}`, () => page.getByRole('button', { name: format === 'svg' ? 'Export SVG' : 'Export PNG 1x', exact: true }).click(), target)
+        const file = await download(application, page, `${architecture}-export.${format}`, () => page.getByRole('dialog', { name: 'Export diagram', exact: true }).getByRole('button', { name: format === 'svg' ? 'Export SVG' : 'Export PNG 1x', exact: true }).click(), target)
         if (format === 'svg') {
           assert.match(file.bytes.toString(), /<svg/)
           assert.match(file.bytes.toString(), /data:font\/ttf;base64/)
@@ -358,6 +362,7 @@ try {
       target.checks.push('JSON/SVG/PNG DownloadItems, save-dialog options, nonblank pixels and embedded font')
       await page.screenshot({ path: path.join(output, `${architecture}-packaged-offline.png`) })
       await page.getByRole('button', { name: 'New diagram', exact: true }).click()
+      await page.getByRole('dialog', { name: 'New diagram', exact: true }).getByRole('button', { name: 'Blank', exact: true }).click()
       await page.waitForFunction(() => document.querySelector('.object-count')?.textContent.includes('0 objects'))
       await saved(page)
       await openJson(page, backup.destination)

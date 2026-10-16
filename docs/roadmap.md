@@ -1,6 +1,6 @@
 # Diagrammer Roadmap and Delegation Plan
 
-Updated: 2026-10-14. Status: EXECUTE THE REMAINING APPROVED LOCAL WORK; RELEASE/PLATFORM ACCEPTANCE IS SEPARATE.
+Updated: 2026-10-16. Status: DGM-117 SOURCE UI GUIDE AUTOMATED COMPLETE; PRIOR WINDOWS ARM64 PRERELEASE UNCHANGED; MANUAL/OTHER-PLATFORM QUALIFICATION BLOCKED ON EXTERNAL INPUTS.
 
 ## Current Execution Policy
 
@@ -17,6 +17,11 @@ already-authorized action. Complete the approved local queue before returning a
 consolidated handoff. Do not invent another sprint, redo a completed feature, or
 substitute cosmetic work because a different task is blocked.
 
+The PO's 2026-10-16 request explicitly approved [DGM-117](specs/DGM-117.md):
+a question-mark Help button and ordered first-use UI callouts. This bounded
+source follow-up is now complete; it was not inferred from a generic "next"
+and does not authorize another feature sprint, packaging or publication.
+
 ## Execution Queue
 
 Execute in order; skip only blocked dependencies, not acceptance criteria.
@@ -29,16 +34,119 @@ they are not fresh independent test results.
 | 1 | [DGM-110](specs/DGM-110.md): AUTOMATED COMPLETE, verified 2026-10-14 | Independent [report](verification/DGM-110.md) records 458 tests, typecheck, build and browser gates with current coverage boundaries. Manual/native items remain separate. | No open source defect; do not requeue without new evidence. Continue 3. |
 | 2 | DGM-110 repairs: CONDITIONAL on verifier findings | Scoped implementer fixes the named failing behavior or adds missing direct acceptance coverage in the existing spec allowlist, with RED/GREEN evidence. Verifier does not repair. | Automatically return to 1 for affected rechecks. Keep prior valid gates when inputs are unchanged; no PO prompt for an in-contract repair. |
 | 3 | [DGM-116](specs/DGM-116.md): AUTOMATED COMPLETE, verified 2026-10-14 | Independent [report](verification/DGM-116.md) records 3/3 current generator tests, source/dist byte provenance and coverage limits. | No open asset defect; do not requeue without new evidence. Continue 4. |
-| 4 | Sprint 4 local integration and documentation: VERIFYING | Orchestrator reuses [DGM-109](verification/DGM-109.md), [DGM-111](verification/DGM-111.md), DGM-110/116 evidence and the completed [DGM-112 investigation](specs/DGM-112.md). Verifier runs the single missing final source gate, then updates the manual only for observed drift and writes `docs/verification/sprint-4-review.md`. | Local work is AUTOMATED COMPLETE only when executable criteria have evidence. Publish the recap with unresolved human/platform checks; proceed to 5 without asking to close the review. |
-| 5 | DGM-113 readiness packet: READY for documentation only | Orchestrator expands the [existing qualification card](specs/DGM-100.md#dgm-113---qualify-supported-platforms) into `docs/specs/DGM-113.md`, using DGM-112's findings. Identify source/artifact provenance, existing runners, per-target prerequisites, owners and acceptance cases. Missing spec paperwork is the orchestrator's work, not a request for the PO to write it. | Deliver an executable handoff contract with explicit per-cell blockers. Current artifact approval, native device availability and support scope remain prerequisites to runtime qualification. Then 6. |
-| 6 | Consolidated delivery: READY after all runnable rows | Orchestrator summarizes completed local work, exact evidence, unresolved defects and one combined list of genuine external decisions. | Stop with LOCAL QUEUE COMPLETE or BLOCKED, never a platform/release claim. Do not invent more features or repeatedly ask the same platform question. |
+| 4 | Sprint 4 local integration: AUTOMATED COMPLETE, independently verified 2026-10-15 | Independent [review](verification/sprint-4-review.md) records 5,488/5,488 tests, 36/36 files, zero failed/skipped, exit 0 after `S4-INTEGRATION-001` repair. The picker mounts 32 rows initially and expands without losing ranked keyboard/scroll choices. Typecheck/build, 32 catalog tests, 16 selected editor tests and 2 production-browser viewports pass. Attempt 1 / cycle 1 / local typing fix 1; original timeout and failures retained. | No open local source defect. Manual/review reconciled; continue completed row 5. Native/manual checks and historical performance coverage remain separate. Do not rerun completed work without new evidence. |
+| 5 | [DGM-113 readiness packet](specs/DGM-113.md): DOCUMENTATION COMPLETE; bounded Windows ARM64 AUTOMATED PASS | Subsequent PO approval enabled isolated ARM64 packaging and independent native checks. [Cell report](verification/DGM-113-windows-arm64.md): 10 check groups, 3 sessions, 8 downloads, exit 0, protection PASS. Physical/human acceptance and other runtime cells remain BLOCKED. | No further ARM64 automated rerun or rebuild without new evidence. Remaining cells need their named owners/devices/policies/participants and any applicable bounded authorization. Missing prerequisites remain visible, never PASS. |
+| 6 | Consolidated delivery: DELIVERED / ORIGINAL LOCAL QUEUE COMPLETE | [Sprint 4 review](verification/sprint-4-review.md), [readiness packet](specs/DGM-113.md) and the disposition below retain final passing evidence, historical failures, candidate provenance and the combined external decisions. The original approved local queue is complete. | Do not reopen completed baseline work. Later explicit approvals are recorded in rows 7/8; future runtime cells still need their named inputs/authorization. No platform/support promise, packaging, release or commit is inferred. |
+| 7 | Subsequently authorized ARM64 publication: PUBLISHED / independently verified | PO requested "publish to github and next". [Publication report](verification/release-0.2.0-arm64.md): prerelease `arm64-v0.2.0`, ID 414118554, four uploaded assets, matching SHA256/size/readback and public download access. Stable v0.1.0 unchanged. Source branch/history were not pushed; attached candidate source ZIP is authoritative, not automatic tag archives. | Publication complete; do not upload or rebuild again. Next cells are physical/human acceptance and native x64/Mac/separate-browser qualification, blocked on their named participants/devices/policies/scope. No next feature sprint is authorized. |
+| 8 | [DGM-117](specs/DGM-117.md): AUTOMATED COMPLETE / parent visual review PASS, 2026-10-16 | Separate implementer and verifier delivered question-mark Help and ten ordered anchored callouts. [Independent report](verification/DGM-117.md): 18 focused tests, typecheck, isolated production build, 16 browser groups and 60 viewport/theme/step geometry combinations pass; screenshots inspected. Drafts, selection, camera, panel intent and history are preserved. | Source preview http://127.0.0.1:5224/; Help is at the top of the left rail. No confirmed source defect. Published executables and their source ZIP are unchanged and do not contain this guide. Stop local work; physical/human/platform cells still need their named inputs. A current desktop rebuild/release requires separate bounded authorization. |
 
 DGM-109 and DGM-111 already have independent reports; they are not new
 implementation tasks. DGM-112's desk investigation is complete, not an invitation
 to repeat it. DGM-116 is approved Sprint 4 work, not a new sprint by itself.
 Historical packaged executables do not represent current source features.
 
+### 2026-10-15 Consolidated Disposition
+
+This source-queue handoff predates the subsequently authorized ARM64 execution
+recorded below; its original no-packaging/no-native-result boundaries are historical.
+
+- **Current final gate: PASS**, after the concrete picker-mount repair:
+	5,488/5,488 tests, 36/36 files, zero failed/skipped, exit 0, 177.04s.
+	Exactly one unfiltered post-repair `npm test -- --maxWorkers=1` ran in the
+	validated snapshot from 13:09:23.295Z to 13:12:21.568Z.
+	[Retained final run](../app/test-results/sprint-4-verifier/integration/20261015T141049067Z/localtypingfix1-recheck/browser-oracle-v03/full-source-result.json).
+	Independent typecheck/build and focused tests pass; production Edge passed
+	1440x900 and 390x844, all 696 choices by keyboard/physical wheel, batch-boundary
+	focus, cancel/reopen/search and four insertion/Undo cases per viewport.
+	[Browser handoff](../app/test-results/sprint-4-verifier/integration/20261015T141049067Z/localtypingfix1-recheck/browser-oracle-v03/handoff.json).
+	All 18,833 candidate inputs match before/after; original dist is unchanged.
+	The repaired snapshot build has a separate recorded identity. No current
+	native/platform, full DGM-110 browser or stress-performance result is inferred.
+- **Initial failed gate (preserved):** one unfiltered
+	`npm test -- --maxWorkers=1` in an isolated, hash-matched source/dependency
+	copy. 5,485 passed / 1 timeout / 0 skipped, 35 passed / 1 failed files,
+	exit 1, 418.69s. [Retained first run](../app/test-results/sprint-4-verifier/integration/20261015T092052957Z/execution-result.json).
+	The original 18,858 inputs, 7,169 earlier evidence files and dist were
+	unchanged. Fixed browser-test output paths required isolation; no tests were
+	excluded or assertions changed.
+- **S4-INTEGRATION-001, CLOSED, attempt 1 / cycle 1 / local typing fix 1:**
+	two added RED/GREEN regressions protect bounded mounting, full-ranked
+	navigation, scrolling and reset; the original 5,000ms timeout is unchanged.
+	The following diagnostic record predates the repair: connected-picker
+	Escape/reopen/APIM/Enter test times out at its unchanged 5,000ms limit.
+	[First diagnosis](../app/test-results/sprint-4-owner/integration/20261015T111408513Z/diagnosis.json)
+	found no standby events and rejected query-scoping as the dominant cause.
+	[Stage diagnosis](../app/test-results/sprint-4-owner/integration/20261015T112855710Z/diagnosis.json)
+	measured two 696-row opens as 62.3% of measured stages; instrumentation and
+	unmeasured scheduling/GC prevent claiming root-cause closure. Unchanged
+	diagnostic passes are not repaired GREEN or independent acceptance.
+- **Reused, not freshly rerun:** DGM-109/111/110 scoped automated acceptance
+	and DGM-116 asset evidence retain their dated coverage limits. Current
+	implementation/dist and brand byte comparisons match. Sprint 3's full
+	performance results remain historical, not a fresh Sprint 4 performance PASS.
+- **Delivered:** independent Sprint 4 recap, factual manual corrections and
+	the expanded existing DGM-113 readiness packet. The repair changes only
+  `CatalogAccordion.tsx` and its colocated tests. Dependencies/config, security,
+  release, user profiles and port 5207 are unchanged. No remote publication
+  check, desktop packaging or commit was performed.
+- **Combined external decisions:** PO adopts/narrows platform/browser/OS
+	minima and delivery requirements; assigns native ARM64/x64/Mac devices,
+	qualification owners, policies and Teams/Office/novice participants; approves
+	a specific current candidate and any bounded packaging/runtime actions;
+	decides whether signing/notarization is required/funded. These do not block
+	an otherwise justified in-contract source repair. No platform, support or
+	release acceptance follows from the local documentation delivery.
+
 ## Autonomous Defaults
+
+### Publication And Exact Next Action
+
+2026-10-16 source follow-up: DGM-117 is independently verified and its parent
+visual review passed. The local source preview at http://127.0.0.1:5224/ includes
+Help and the ten-step guide. This does not update the sealed published candidate,
+its executable/source ZIP or its native test result. The historical 5,488-test
+integration result predates DGM-117; current guide evidence is the focused and
+production-browser coverage in its [report](verification/DGM-117.md).
+
+The PO's later publication request authorized the verified artifact's release,
+not additional platform support or signing. With the PO unavailable for the
+source-push/CI decision, the conservative route published an ARM64-only unsigned
+prerelease at [arm64-v0.2.0](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/arm64-v0.2.0),
+`2026-10-15T18:41:10Z`, without a branch commit/push or a `v*` tag push.
+The tag anchors remote base `a835c23d30eb4b8bf4c9995ab165b3d1013709ef`,
+not the verified local candidate. Exact candidate source is the attached ZIP,
+with public per-file provenance and checksums. Automatic tag archives are not
+equivalent. Post-publication local documentation is not part of that sealed ZIP.
+
+Independent publication verification passed all four asset metadata/hash checks
+and public HEAD checks; fresh source ZIP, provenance and checksum downloads
+matched. No fresh EXE download or native retest was claimed. v0.1.0 remains
+unchanged and latest stable. No candidate Actions run was observed through
+18:45:27.414Z; this is a bounded observation, not a future CI guarantee.
+Publisher envelope and draft-discovery repairs closed after two cycles; draft
+and historical failures remain retained. [Full evidence](verification/release-0.2.0-arm64.md).
+
+Exact next action: human/device owners supply physical offline and downloaded-file
+SmartScreen/policy observations, actual dialogs/IME/clipboard, Teams/Office
+recipient and novice trials, or assigned native x64/Mac hardware and browser
+targets. Each blocked cell is specified in DGM-113. Do not substitute simulations,
+redo passing automated gates or invent a feature sprint while those inputs are
+missing. Source-branch publication, signing and broader support remain explicit
+future decisions; publication alone does not adopt them.
+
+### Newly Authorized Windows ARM64 Work
+
+PO disposition after the completed local queue: "approved, go" authorizes the
+bounded Windows ARM64 package/native test recommended at handoff. It does not
+authorize publication, signing, new support promises or other native targets.
+The [cell contract](specs/DGM-113.md#windows-arm64-authorization---2026-10-15)
+records the current uncommitted candidate, local native host and isolation rules.
+
+| Work | Current owner/state | Exact next action / exit |
+| --- | --- | --- |
+| Windows ARM64 local artifact | OWNER PACKAGE GREEN; exact artifact independently verified | [Cell report](verification/DGM-113-windows-arm64.md) records 0.2.0 unsigned artifact, SHA256 `2ae7d752b5d8fd17766912521d3b74efe7393150d44a1ffd3a534a8f20a066df`, 403,328,830 bytes; all 42 ASAR files match staged inputs. Portable bootstrap is x86; embedded Electron is ARM64. Corrected harness has 12/12 shell and 33/33 policy checks. No rebuild, signing or publication followed the harness-only repair. |
+| Windows ARM64 native verification | AUTOMATED PASS; protection audit PASS | Single corrected run 16:46:54.675Z to 16:48:42.599Z, exit 0: 10/10 check groups, 3 sessions, 8 downloads, all 8 tracked processes exited. Actual packaged Electron 44.0.0 ARM64, sandboxed local origin, assets/worker, exports and autosave/move/relaunch checks passed. [Run result](../app/test-results/platform/windows-arm64/20261015T164359366Z/recheck/verifier/run-result.json), [audit](../app/test-results/platform/windows-arm64/20261015T164359366Z/recheck/verifier/post-run-audit.json). `DGM113-ARM64-001` CLOSED at attempt 1 / cycle 1: Enter explicitly commits the title; Tab into New diagram correctly preserves a draft. First failed run and audit remain retained. No active qualification terminal or owned app process remains; do not repeat completed gates. |
+| Human/platform remainder | BLOCKED per DGM-113 cell; bounded automated handoff delivered | Physical offline, downloaded-file SmartScreen/policy acceptance, human native dialogs/IME/clipboard, Teams/Office/novice, physical zoom/touch and native x64/Mac/separate browser cells need their named inputs. Current runtime offline evidence is CDP emulation only. Next action: PO/device owners supply those prerequisites or explicitly narrow scope; no support/publication claim follows from the local pass. |
 
 - "Next", "continue" and "finish" resume the first runnable queue action. A status/question-only request is answered without starting unrelated work. Never ask whether to run the next already-required test, dispatch the verifier, fix an in-scope defect or update factual docs.
 - The orchestrator owns task breakdown, missing task documents, evidence reconciliation and dispatch. It may clarify routine implementation details within the accepted behavior; changing a frozen behavior or public contract still needs approval. Implementers do not rewrite acceptance criteria.

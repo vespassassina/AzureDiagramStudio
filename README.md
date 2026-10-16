@@ -15,6 +15,14 @@ A local architecture editor for Azure, Microsoft Fabric, Microsoft applications 
 
 ![The same native example in the dark editor theme](docs/images/studio-dark.png)
 
+## Windows ARM64 Prerelease
+
+[0.2.0 ARM64 candidate](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/arm64-v0.2.0) is published with four checksum-verified assets. It is unsigned and ARM64-only, not a stable or general platform qualification. The independently tested EXE is 403,328,830 bytes.
+
+[Download ARM64 EXE](https://github.com/vespassassina/AzureDiagramStudio/releases/download/arm64-v0.2.0/Azure-Diagram-Studio-0.2.0-win-arm64-portable.exe) | [SHA256 checksums](https://github.com/vespassassina/AzureDiagramStudio/releases/download/arm64-v0.2.0/SHA256SUMS.txt) | [Source candidate ZIP](https://github.com/vespassassina/AzureDiagramStudio/releases/download/arm64-v0.2.0/Azure-Diagram-Studio-0.2.0-source-candidate.zip) | [Source provenance](https://github.com/vespassassina/AzureDiagramStudio/releases/download/arm64-v0.2.0/SOURCE-PROVENANCE.json)
+
+The attached **source candidate ZIP is authoritative** for this binary. The tag anchors a remote base only; GitHub's automatic source archives do not contain the verified working-tree candidate, and no source branch was pushed. See [publication verification](docs/verification/release-0.2.0-arm64.md) for full hashes and boundaries. Native ARM64 automation passed 10 groups across three sessions; physical offline, downloaded-file SmartScreen/policy, human Teams/Office/novice and other-platform checks remain open. Follow your organization's policy; do not disable protections.
+
 ## Windows Portable
 
 [Version 0.1.0 is published](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/v0.1.0). Both portable files and the checksum manifest were uploaded and read back with matching sizes and SHA256 digests.
@@ -98,6 +106,8 @@ PowerPoint insertion fidelity and uncoached novice usability have not been manua
 
 ## Release Downloads
 
+- [0.2.0 ARM64-only prerelease and authoritative source ZIP](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/arm64-v0.2.0)
+- [0.2.0 ARM64 candidate SHA256 checksums](https://github.com/vespassassina/AzureDiagramStudio/releases/download/arm64-v0.2.0/SHA256SUMS.txt)
 - [Windows ARM64 portable](https://github.com/vespassassina/AzureDiagramStudio/releases/download/v0.1.0/Azure-Diagram-Studio-0.1.0-win-arm64-portable.exe)
 - [Windows x64 portable](https://github.com/vespassassina/AzureDiagramStudio/releases/download/v0.1.0/Azure-Diagram-Studio-0.1.0-win-x64-portable.exe)
 - [SHA256 checksum manifest](https://github.com/vespassassina/AzureDiagramStudio/releases/download/v0.1.0/SHA256SUMS.txt)

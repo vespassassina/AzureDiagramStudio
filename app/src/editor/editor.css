@@ -361,6 +361,26 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .panel-actions { display: flex; align-items: center; gap: 4px; }
 .action-tooltip { position: fixed; z-index: 100; width: 208px; max-width: calc(100vw - 16px); padding: 7px 10px; border: 1px solid var(--control-line); border-radius: 4px; background: var(--surface); color: var(--ink); font-size: 11px; line-height: 1.4; text-align: center; overflow-wrap: anywhere; pointer-events: none; transform: translateX(-50%); box-shadow: 0 2px 6px var(--chrome-shadow); }
 .action-tooltip.above { transform: translate(-50%, -100%); }
+.tool-rail .help-trigger { width: 44px; height: 44px; }
+.help-guide-overlay { position: fixed; inset: 0; z-index: 60; isolation: isolate; overflow: hidden; background: #0003; }
+.help-guide-spotlight { position: fixed; pointer-events: none; border: 2px solid var(--focus); outline: 2px solid var(--surface); outline-offset: 1px; border-radius: 6px; box-shadow: 0 0 0 9999px #0003; }
+.help-guide { position: fixed; display: flex; flex-direction: column; width: min(352px, calc(100vw - 24px)); min-height: 0; border: 1px solid var(--control-line); border-radius: 6px; background: var(--surface); color: var(--ink); box-shadow: 0 8px 24px var(--chrome-shadow); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.help-guide header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 8px 4px 16px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+.help-guide header > span { font-size: 12px; font-weight: 500; }
+.help-guide button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-width: 44px; min-height: 44px; padding: 8px 12px; border: 1px solid var(--control-line); border-radius: 4px; background: var(--surface); color: var(--ink); }
+.help-guide button:hover:not(:disabled) { background: var(--soft); }
+.help-guide button:disabled { color: var(--muted); cursor: default; }
+.help-guide header button { border-color: transparent; padding: 8px; }
+.help-guide-content { overflow-y: auto; overscroll-behavior: contain; min-height: 0; padding: 14px 16px; }
+.help-guide-content:focus-visible { outline: 2px solid var(--focus); outline-offset: -3px; }
+.help-guide-progress { display: flex; align-items: baseline; gap: 10px; color: var(--muted); font-size: 11px; }
+.help-guide-progress > span:first-child { flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.help-guide-progress > span:last-child { min-width: 0; }
+.help-guide h2 { font-size: 18px; font-weight: 500; line-height: 1.3; margin: 8px 0; }
+.help-guide p { margin: 0; }
+.help-guide .help-guide-unavailable { color: var(--muted); font-size: 12px; margin-top: 8px; }
+.help-guide footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 16px; border-top: 1px solid var(--line); flex-shrink: 0; }
+.help-guide footer button:last-child { color: var(--accent); background: var(--soft); }
 .canvas-heading { top: 24px; left: 24px; right: 260px; max-width: none; }
 .canvas-heading h1, .diagram-meta { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 .diagram-meta { line-height: 1.4; }
