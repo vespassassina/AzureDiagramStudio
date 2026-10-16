@@ -1,0 +1,12 @@
+.presentation-markup-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 4; overflow: hidden; pointer-events: none; }
+.presentation-markup-canvas * { pointer-events: none; }
+.presentation-markup-canvas[data-drawing="true"] { pointer-events: auto; cursor: crosshair; touch-action: none; }
+.presentation-markup-toolbar { position: absolute; bottom: 78px; left: 50%; transform: translateX(-50%); z-index: 8; display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; width: max-content; max-width: calc(100% - 32px); padding: 4px; border: 1px solid var(--control-line); border-radius: 5px; background: var(--surface); color: var(--ink); box-shadow: 0 2px 6px var(--chrome-shadow); }
+.presentation-markup-toolbar > div { display: flex; gap: 2px; }
+.presentation-markup-toolbar button { display: grid; place-items: center; flex: 0 0 32px; width: 32px; height: 36px; padding: 0; border: 1px solid transparent; border-radius: 4px; background: transparent; color: var(--ink); cursor: pointer; }
+.presentation-markup-toolbar button:hover:not(:disabled) { background: var(--soft); }
+.presentation-markup-toolbar button[aria-pressed="true"] { border-color: var(--accent); background: var(--active-surface); }
+.presentation-markup-toolbar button:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.presentation-markup-toolbar button:disabled { opacity: .4; cursor: default; }
+.markup-swatch { width: 20px; height: 20px; border: 1px solid #777; border-radius: 50%; }
+@media (pointer: coarse) { .presentation-markup-toolbar button { width: 44px; height: 44px; flex-basis: 44px; } }

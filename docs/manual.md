@@ -1,12 +1,12 @@
 # Azure Diagram Studio: Short Manual
 
-This manual describes the Sprint 4 source controls and the subsequently added [first-use UI guide](verification/DGM-117.md). See [Sprint 4 verification](verification/sprint-4-review.md) for the historical passing integration gate (5,488 tests), retained earlier failures and remaining manual checks. The [0.2.0 ARM64 prerelease](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/arm64-v0.2.0) has independent native and publication evidence, not general platform or human acceptance. The new guide is source-only and is not in that published executable. The separate v0.1.0 links below identify the historical stable release.
+This manual describes the Sprint 4 source controls, [first-use UI guide](verification/DGM-117.md) and [subsequent editor/markup improvements](verification/DGM-118.md). See [Sprint 4 verification](verification/sprint-4-review.md) for the historical passing integration gate (5,488 tests), retained earlier failures and remaining manual checks. The [0.2.0 ARM64 prerelease](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/arm64-v0.2.0) has independent native and publication evidence, not general platform or human acceptance. The guide is in source and the local ARM64 candidate below, not that older published executable. Quick delete, larger handles, the context menu and presentation markup are newer source-preview features, not changes to either executable. The separate v0.1.0 links below identify the historical stable release.
 
 ## Install and Launch
 
 Download from the verified [v0.1.0 release](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/v0.1.0), or use the [README download links](../README.md#release-downloads). The source repository is public. Both portable files bundle the runtime and work without Node.js, a local server or a cloud account.
 
-For the current Windows ARM64 candidate, use the [0.2.0 ARM64 prerelease](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/arm64-v0.2.0) and its own checksum manifest. There is no 0.2.0 x64/Mac asset in that release. Its attached source candidate ZIP, not GitHub's automatic tag archives, contains the verified candidate; no source branch was pushed.
+For the published Windows ARM64 prerelease, use [arm64-v0.2.0](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/arm64-v0.2.0) and its own checksum manifest. There is no 0.2.0 x64/Mac asset in that release. Its attached source candidate ZIP, not GitHub's automatic tag archives, contains that older verified candidate; at its publication no source branch was pushed. The later source milestone and local guide package do not replace those release assets.
 
 1. In Windows **Settings > System > About**, check **System type**. Choose **ARM64** for Windows on ARM/Snapdragon, or **x64** for Intel/AMD Windows PCs.
 2. Choose the matching `Azure-Diagram-Studio-0.1.0-win-{arch}-portable.exe` and [SHA256SUMS.txt](https://github.com/vespassassina/AzureDiagramStudio/releases/download/v0.1.0/SHA256SUMS.txt) from the same release. Downloads are approximately 403-404 MB.
@@ -16,6 +16,28 @@ For the current Windows ARM64 candidate, use the [0.2.0 ARM64 prerelease](https:
 Source/browser setup is in the [README](../README.md#build-from-source). Packaged offline launch, workers, image import, exports, themes and autosave/relaunch were tested. ARM64 ran natively; x64 ran under Windows ARM64 emulation rather than native Intel/AMD hardware. SmartScreen behavior and native save-dialog appearance remain manual checks. Browser diagrams do not automatically appear in desktop: Save JSON in the browser and Open JSON in the executable.
 
 The current **published 0.2.0 ARM64 candidate** passed independent automated portable-runtime checks: layout/undo, custom images, JSON/SVG/PNG output, themes and autosave after moving/relaunching the executable. See the [ARM64 runtime report](verification/DGM-113-windows-arm64.md) and [publication report](verification/release-0.2.0-arm64.md) for the exact artifact, hashes and retained failures. It remains unsigned and prerelease. Network-offline emulation is not physical-disconnection, SmartScreen, native-dialog or Teams/Office acceptance.
+
+## Local Current-Guide ARM64 Candidate
+
+The [new local portable EXE](../app/test-results/platform/windows-arm64/20261016T130515040Z/candidate/app/release/Azure-Diagram-Studio-0.2.0-win-arm64-portable.exe)
+contains the Help guide from merged source `52f6630`. It is unsigned, version
+0.2.0, **403,339,602 bytes**, and is not a new public release. Its identical
+version/filename does not make it the older prerelease artifact.
+
+SHA256:
+
+```text
+89eefd80ccfa78ef5ceb7fb366e980df05dd42d728d4476ae34db240023b9f8c
+```
+
+Compare `Get-FileHash -Algorithm SHA256` for this exact EXE before running it.
+Use a native Windows ARM64 device, follow normal organizational protections,
+and do not disable SmartScreen. Keep JSON backups and do not clear existing
+profiles to test ownership. The [current native report](verification/DGM-113-windows-arm64-guide.md)
+records passing automated desktop/Help checks, retained failures, isolation and
+cleanup. It does not establish physical offline, downloaded-file policy, human
+file dialogs/IME/clipboard, Teams/Office or novice acceptance. Those are the
+next human checks; publication remains a separate decision.
 
 ## First-Use UI Guide
 
@@ -73,15 +95,34 @@ In **Document properties**, use the background color picker or hex input (`#RGB`
 
 Choose **Connect components**, click the source and then the target. You can also drag from a component's connector handle to another component. Select a connection to edit its **Label**, **Source**, **Target**, **Source side**, **Target side**, **Line** and **Direction**.
 
+Connection dots now have larger visible and pointer-hit areas. Press Escape
+while holding a component move, multi-selection move, resize, connection,
+reconnection or library drag to cancel it; releasing afterward does not commit
+the canceled gesture. A fresh drag starts normally.
+
 Use a short action such as `Load`, `Queue work` or `Read secrets`. A solid/dashed line describes your chosen meaning, not a verified integration. To insert a component in an existing connection, select the connection and use **Insert component**, then **Insert on connection**.
 
 With a single component or boundary selected, use a directional **Add connected component** button and choose a service. It adds the new component and connection together in one undoable action. A boundary adds a child; a component adds a sibling. Ancestors may expand to contain it, while existing content keeps its canvas position. Escape cancels without changing the diagram.
+
+With one component selected, the same small toolbar also has **Delete component**
+(trash icon). It removes that component and its incident connections; one Undo
+restores them. It does not delete unrelated selected content and is unavailable
+when editing is disabled.
 
 ## Direct Editing and Commands
 
 Double-click a component, connection label or text note, or select it and press F2, to edit inline. Enter commits a single-line label; Escape cancels. For notes, Enter adds a newline and Ctrl/Command+Enter commits. Leaving a valid field commits once; invalid content remains editable with an error. These edits are disabled in Present and Read-only mode.
 
 Choose **Commands**, or Ctrl/Command+K while the editor owns focus, to search existing actions. Arrow keys and Enter choose an enabled action; Escape closes the menu and returns focus. Text fields retain their own shortcuts. Background and grid commands focus the corresponding document setting.
+
+Right-click a component, connection or canvas to open **Canvas actions** for
+that target: add a component/boundary/text/rectangle at the clicked point,
+connect from a component, copy, duplicate, delete, Undo/Redo, paste or Properties
+where applicable. Properties on blank canvas means document properties. Adding
+an item does not replace the diagram. A right-button pan drag does not execute
+an action. Shift+F10 or the ContextMenu key opens the menu from editor focus;
+Arrow/Home/End navigate, Enter/Space activate, and Escape/Tab/outside click close.
+Read-only and modal/presentation guards still apply.
 
 ## Group, Move and Arrange
 
@@ -99,13 +140,28 @@ Arrangement now sizes boundaries from their contents and wrapped headers instead
 
 Use **Pan tool**, **Zoom in**, **Zoom out** and **Fit diagram** to navigate. **Fit selection** frames selected objects, including a selected boundary's descendants; it changes only the camera. Select objects for **Copy selection**, **Cut selection**, **Duplicate selection** or **Delete selection**; use **Paste selection** to paste within the editor. This selection clipboard is not a JSON file backup or a promise of cross-application clipboard transfer.
 
-The inspector starts closed. On constrained screens, opening Properties or the library swaps the active panel. **Pin component library** allows both panels on desktop. On small/short screens, scroll the tool rail to reach remaining commands; mobile drawer navigation stays below the drawer. Icon descriptions appear on keyboard focus as well as hover.
+The inspector starts closed. On constrained screens, opening Properties or the library swaps the active panel. **Pin component library** allows both panels on desktop. On small/short screens, scroll the tool rail to reach remaining commands; mobile drawer navigation stays below the drawer. Icon descriptions appear on keyboard focus as well as hover, then dismiss on interaction, pointer leave, Escape or layout/mode changes rather than remaining pinned by mouse-created focus.
 
 ## Present in a Meeting
 
 Choose **Present** to hide editing controls, handles and selection outlines. Grid is hidden unless **Show grid in Present** is enabled. With objects selected, entry frames their content; with nothing selected, it frames the whole diagram. Use **Fit diagram** to return to the full architecture or **Fit selection** for the retained selection. Content outside a focused selection can still be visible when panning: this is focus, not redaction.
 
-Pan and zoom remain available. **Presentation pointer** shows a temporary pointer; it follows pointer movement and supports arrow keys when focused. It is not saved or included in exports. **Fullscreen presentation** is optional; if denied, presentation continues in the window. **Exit** or Escape restores the previous camera, panel preferences, selection and tool. A storage-lock change still applies after exit.
+Pan and zoom remain available in **Navigate**, the initial markup mode. **Presentation pointer** shows a temporary pointer; it follows pointer movement and supports arrow keys when focused. It is not saved or included in exports. **Fullscreen presentation** is optional; if denied, presentation continues in the window. **Exit**, or Escape when no drawing stroke is active, restores the previous camera, panel preferences, selection and tool. A storage-lock change still applies after exit.
+
+Choose **Draw** (pencil) for temporary whiteboard markup. Pick red, blue, green,
+yellow or black; red is initially selected. Primary click+drag draws a thick
+round freehand line. Shift+drag draws a rectangle, Alt+drag an ellipse, and
+Ctrl/Command+drag a straight arrow. When modifiers are combined, arrow takes
+precedence over ellipse, then rectangle. A stroke keeps the shape chosen when
+the drag started; reverse-direction drags also work.
+
+Escape during a stroke cancels that stroke and stays in Present. The local
+**Undo markup**, **Redo markup** and **Clear markup** controls affect only ink;
+Clear can be undone. Ctrl/Command+Z and redo variants work while Draw owns focus.
+Switch to Navigate to pan, or use zoom controls; ink follows diagram coordinates.
+Read-only diagrams can be marked up without editing their saved contents.
+Markup is not saved, exported or added to diagram history, and is discarded on
+Exit/re-entry. Empty clicks do not create empty ink objects.
 
 Document editing, drag/drop, imports, arrange and mutation shortcuts are blocked during Present. Pending file/image/layout operations are invalidated on entry. Existing autosave of a previously committed edit can finish. Present does not remove customer names, hide OS notifications or control Teams sharing. Choose appropriate content and share the intended window. Actual Teams recipient readability and native fullscreen Escape remain manual checks.
 
