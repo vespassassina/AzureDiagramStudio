@@ -1,6 +1,6 @@
 # Diagrammer Roadmap and Delegation Plan
 
-Updated: 2026-10-17. Status: DGM-124 MARKDOWN PREVIEW/SHARED RESIZABLE PRESENTATION BAR AUTOMATED SOURCE ACCEPTANCE COMPLETE / VISUAL REVIEW PASS; PRIOR PACKAGES/TAGS UNCHANGED.
+Updated: 2026-10-17. Status: DGM-122/123/124 SOURCE ACCEPTED AND DELIVERED; DIRECT SOURCE MILESTONE source-v0.2.0-dgm124; PRIOR PACKAGES/RELEASES UNCHANGED.
 
 ## Current Execution Policy
 
@@ -59,6 +59,13 @@ request. Following the delegated parser decision it pins only marked 18.1.0,
 reuses DOMPurify and changes no Electron policy. Prior field/storage/guide
 acceptance stays; no Git, packaging or release operation is inferred.
 
+The PO then explicitly requested "merge push and tag" for this accepted source.
+Direct source merge `58448ff45f105caf5eb8d07d4a52181abd8f6f8a` is pushed to the
+existing default branch. The annotated source-only milestone
+`source-v0.2.0-dgm124` includes this factual documentation closeout. No PR,
+desktop rebuild, binary upload, old-tag replacement or release publication is
+part of that request; normal existing branch CI may run without policy changes.
+
 ## Execution Queue
 
 Execute in order; skip only blocked dependencies, not acceptance criteria.
@@ -85,6 +92,7 @@ they are not fresh independent test results.
 | 15 | [DGM-122](specs/DGM-122.md): AUTOMATED COMPLETE / visual review PASS | [Independent combined report](verification/DGM-122.md): 51 selected tests, both typechecks, isolated build, 25 description browser groups; 20,000-character inert Markdown source/native JSON/storage/history/guards pass, with exact SVG/PNG parity and legacy omission. Owner foundation evidence remains dated. | Complete; Document properties -> Architecture description (Markdown) in http://127.0.0.1:5224/. DGM-124 subsequently adds sanitized Preview and shared sidebar without changing the saved-field contract; no strict skill-format extension, migration or old-package update. |
 | 16 | [DGM-123](specs/DGM-123.md): AUTOMATED COMPLETE / visual review PASS | [Independent report](verification/DGM-122.md): seven Learn adaptations plus original four, 72 starter/Blank selections across six viewport/theme cells, eleven previews, seven detailed exports, literal guides/references/fresh copies/keyboard and geometry pass. Owner 695/8-file test slice is dated, not repeated independently. Parent inspected all seven diagrams, mobile chooser and description. | Approved source queue complete; preview http://127.0.0.1:5224/. Manual and source limitations reconciled; detailed evidence/first failures retained. Existing normal app/profile, packages, tags and public releases unchanged. New commit/push/tag, native rebuild or publication needs separate authorization; human/platform cells remain separate. |
 | 17 | [DGM-124](specs/DGM-124.md): AUTOMATED COMPLETE / parent visual review PASS | [Independent report](verification/DGM-124.md): 52 focused tests, both typechecks, one isolated build, 51 accepted browser groups across desktop/mobile/short light/dark; hostile/no-network preview, shared draft/Undo and selected context, pointer/keyboard resize/cancel/collapse/reopen, Present/fullscreen/ink/restoration and exact JSON/SVG/PNG checks pass. Owner 418+37 gates retained as dated evidence. Only marked18.1.0 with license/notice added; no old dependency drift/security-policy change. | Approved source queue complete; preview http://127.0.0.1:5224/. Parent inspected editing/Present/fullscreen/mobile/hostile screenshots and reconciled manual/specs. Preserve existing normal app/profile, packages and tags. New Git delivery, native rebuild or publication needs separate authorization; no platform/human acceptance implied. |
+| 18 | DGM-122/123/124 authorized direct source delivery: DELIVERED SOURCE SNAPSHOT | Feature `97efbb8` and source merge `58448ff` contain the exact 33 accepted source/example/dependency/license inputs and seven accepted documents. Source merge and feature branch are pushed; source milestone [source-v0.2.0-dgm124](https://github.com/vespassassina/AzureDiagramStudio/tree/source-v0.2.0-dgm124) additionally identifies this documentation-only closeout. [Retained operation recorder](../app/test-results/source-publication/20261017T121719646Z/git.mjs) preserves first command outputs/input identity. | Verify final origin default and peeled annotated tag agree and worktree/index are clean, then stop approved work. Existing binaries and older tags/assets are unchanged. Native rebuild, public binary delivery, signing and human/platform qualification remain separate explicit tasks. No PR. |
 
 DGM-109 and DGM-111 already have independent reports; they are not new
 implementation tasks. DGM-112's desk investigation is complete, not an invitation
