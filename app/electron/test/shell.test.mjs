@@ -6,7 +6,7 @@ import { secureSession, secureWindow } from '../security.mjs'
 import config from '../../electron-builder.config.cjs'
 import { compute7zCompressArgs } from 'app-builder-lib/out/targets/archive.js'
 
-test('should_deny_permissions_and_remote_requests_in_the_electron_session', () => {
+function sessionHandlers() {
   const callbacks = {}
   const session = {
     setPermissionRequestHandler: callback => { callbacks.permission = callback },
@@ -16,6 +16,191 @@ test('should_deny_permissions_and_remote_requests_in_the_electron_session', () =
     on: (event, callback) => { callbacks[event] = callback },
   }
   secureSession(session)
+  return callbacks
+}
+
+function studioWindow(registered = true) {
+  const frame = { url: 'ads://studio/', isDestroyed: () => false, detached: false }
+  const contents = {
+    mainFrame: frame, getURL: () => 'ads://studio/', isDestroyed: () => false,
+    setWindowOpenHandler: () => {}, on: () => {},
+  }
+  const window = { webContents: contents, isDestroyed: () => false }
+  if (registered) secureWindow(window)
+  return { window, contents, frame }
+}
+
+function assertPermission(callbacks, contents, permission, details, expected, label = 'permission callback result and count') {
+  const results = []
+  callbacks.permission(contents, permission, result => { results.push(result) }, details)
+  assert.deepEqual(results, [expected], label)
+}
+
+test('should_allow_fullscreen_when_the_registered_live_studio_main_frame_requests_it', () => {
+  const callbacks = sessionHandlers()
+  const { contents } = studioWindow()
+  assertPermission(callbacks, contents, 'fullscreen', { isMainFrame: true, requestingUrl: 'ads://studio/' }, true)
+})
+
+test('should_deny_fullscreen_when_contents_are_not_the_registered_window_identity', () => {
+  const callbacks = sessionHandlers()
+  const details = { isMainFrame: true, requestingUrl: 'ads://studio/' }
+  const unregistered = studioWindow(false)
+  assertPermission(callbacks, unregistered.contents, 'fullscreen', details, false, 'no registered app window')
+  const registered = studioWindow()
+  assertPermission(callbacks, studioWindow(false).contents, 'fullscreen', details, false, 'foreign contents at the same URL')
+  registered.window.webContents = unregistered.contents
+  assertPermission(callbacks, registered.contents, 'fullscreen', details, false, 'window no longer owns contents')
+  for (const contents of [null, undefined, {}]) {
+    assertPermission(callbacks, contents, 'fullscreen', details, false, 'missing contents identity')
+  }
+})
+
+test('should_deny_fullscreen_when_main_frame_request_details_are_missing_or_not_strict', () => {
+  const callbacks = sessionHandlers()
+  const { contents } = studioWindow()
+  for (const details of [undefined, null, {}, { requestingUrl: 'ads://studio/' }, { isMainFrame: true }]) {
+    assertPermission(callbacks, contents, 'fullscreen', details, false, 'missing request provenance')
+  }
+  for (const isMainFrame of [false, undefined, null, 0, 1, 'true', {}, []]) {
+    assertPermission(callbacks, contents, 'fullscreen', { isMainFrame, requestingUrl: 'ads://studio/' }, false, `isMainFrame ${String(isMainFrame)}`)
+  }
+})
+
+test('should_deny_fullscreen_when_any_request_contents_or_frame_url_is_untrusted', () => {
+  const callbacks = sessionHandlers()
+  const addresses = [
+    undefined, null, '', {}, 'not a URL', 'https://studio/', 'https://example.com/',
+    'data:text/html,studio', 'blob:ads://studio/id', 'ads://foreign/', 'ads://studio.evil/',
+    'ads://user@studio/', 'ads://user:secret@studio/', 'ads://studio:443/', 'ads://studio:80/',
+    'file:///studio/', 'about:blank',
+  ]
+  for (const address of addresses) {
+    for (const source of ['request', 'contents', 'frame']) {
+      const { contents, frame } = studioWindow()
+      const details = { isMainFrame: true, requestingUrl: 'ads://studio/' }
+      if (source === 'request') details.requestingUrl = address
+      if (source === 'contents') contents.getURL = () => address
+      if (source === 'frame') frame.url = address
+      assertPermission(callbacks, contents, 'fullscreen', details, false, `${source}: ${String(address)}`)
+    }
+  }
+})
+
+test('should_deny_fullscreen_when_live_window_contents_or_frame_provenance_is_missing_or_destroyed', () => {
+  const callbacks = sessionHandlers()
+  const details = { isMainFrame: true, requestingUrl: 'ads://studio/' }
+  for (const target of ['window', 'contents', 'frame']) {
+    for (const state of [true, undefined, null, 0, 'false']) {
+      const fixture = studioWindow()
+      fixture[target].isDestroyed = () => state
+      assertPermission(callbacks, fixture.contents, 'fullscreen', details, false, `${target} destruction state ${String(state)}`)
+    }
+    const fixture = studioWindow()
+    delete fixture[target].isDestroyed
+    assertPermission(callbacks, fixture.contents, 'fullscreen', details, false, `${target} missing isDestroyed`)
+  }
+  for (const detached of [true, undefined, null, 0, 'false']) {
+    const { contents, frame } = studioWindow()
+    frame.detached = detached
+    assertPermission(callbacks, contents, 'fullscreen', details, false, `detached ${String(detached)}`)
+  }
+  for (const mainFrame of [null, undefined, {}]) {
+    const { contents } = studioWindow()
+    contents.mainFrame = mainFrame
+    assertPermission(callbacks, contents, 'fullscreen', details, false, 'missing live frame')
+  }
+  const { contents } = studioWindow()
+  delete contents.getURL
+  assertPermission(callbacks, contents, 'fullscreen', details, false, 'missing current contents URL')
+})
+
+test('should_deny_fullscreen_once_when_live_provenance_access_throws', () => {
+  const callbacks = sessionHandlers()
+  for (const [target, property] of [
+    ['window', 'isDestroyed'], ['window', 'webContents'], ['contents', 'isDestroyed'],
+    ['contents', 'mainFrame'], ['contents', 'getURL'], ['frame', 'isDestroyed'],
+    ['frame', 'url'], ['frame', 'detached'],
+  ]) {
+    const fixture = studioWindow()
+    Object.defineProperty(fixture[target], property, { get: () => { throw new Error('Destroyed during access') } })
+    assertPermission(callbacks, fixture.contents, 'fullscreen', { isMainFrame: true, requestingUrl: 'ads://studio/' }, false, `${target}.${property} getter throws`)
+  }
+  for (const target of ['window', 'contents', 'frame']) {
+    const fixture = studioWindow()
+    fixture[target].isDestroyed = () => { throw new Error('Destroyed during call') }
+    assertPermission(callbacks, fixture.contents, 'fullscreen', { isMainFrame: true, requestingUrl: 'ads://studio/' }, false, `${target}.isDestroyed throws`)
+  }
+  const { contents } = studioWindow()
+  contents.getURL = () => { throw new Error('Destroyed before URL lookup') }
+  assertPermission(callbacks, contents, 'fullscreen', { isMainFrame: true, requestingUrl: 'ads://studio/' }, false, 'getURL throws')
+  for (const property of ['isMainFrame', 'requestingUrl']) {
+    const details = { isMainFrame: true, requestingUrl: 'ads://studio/' }
+    Object.defineProperty(details, property, { get: () => { throw new Error('Unavailable request provenance') } })
+    assertPermission(callbacks, contents, 'fullscreen', details, false, `${property} throws`)
+  }
+})
+
+test('should_deny_fullscreen_when_window_or_frame_identity_changes_during_validation', () => {
+  const callbacks = sessionHandlers()
+  const details = { isMainFrame: true, requestingUrl: 'ads://studio/' }
+  for (const target of ['window', 'contents', 'frame']) {
+    const fixture = studioWindow()
+    fixture.contents.getURL = () => {
+      fixture[target].isDestroyed = () => true
+      return 'ads://studio/'
+    }
+    assertPermission(callbacks, fixture.contents, 'fullscreen', details, false, `${target} destroyed during URL lookup`)
+  }
+  for (const change of ['window', 'frame', 'detached']) {
+    const fixture = studioWindow()
+    fixture.contents.getURL = () => {
+      if (change === 'window') fixture.window.webContents = studioWindow(false).contents
+      if (change === 'frame') fixture.contents.mainFrame = studioWindow(false).frame
+      if (change === 'detached') fixture.frame.detached = true
+      return 'ads://studio/'
+    }
+    assertPermission(callbacks, fixture.contents, 'fullscreen', details, false, `${change} changed during URL lookup`)
+  }
+})
+
+test('should_deny_other_permissions_automatic_fullscreen_checks_and_devices_even_when_trusted', () => {
+  const callbacks = sessionHandlers()
+  const { contents } = studioWindow()
+  const details = { isMainFrame: true, requestingUrl: 'ads://studio/' }
+  const permissions = [
+    'automatic-fullscreen', 'clipboard-read', 'clipboard-sanitized-write', 'display-capture',
+    'geolocation', 'idle-detection', 'media', 'mediaKeySystem', 'midi', 'midiSysex',
+    'notifications', 'pointerLock', 'keyboardLock', 'openExternal', 'speaker-selection',
+    'storage-access', 'top-level-storage-access', 'window-management', 'unknown', 'fileSystem',
+    'hid', 'serial', 'usb', 'deprecated-sync-clipboard-read', '', null, undefined,
+  ]
+  for (const permission of permissions) assertPermission(callbacks, contents, permission, details, false, String(permission))
+  for (const candidate of [contents, studioWindow(false).contents, null, undefined]) {
+    for (const permission of ['fullscreen', ...permissions]) {
+      assert.equal(callbacks.check(candidate, permission, 'ads://studio/', details), false)
+    }
+  }
+  for (const deviceType of ['hid', 'serial', 'usb', 'unknown']) {
+    assert.equal(callbacks.device({ deviceType, origin: 'ads://studio/', device: {} }), false)
+  }
+  assert.equal(callbacks.device(), false)
+})
+
+test('should_not_retry_the_fullscreen_callback_when_the_callback_itself_throws', () => {
+  const callbacks = sessionHandlers()
+  const { contents } = studioWindow()
+  const failure = new Error('Callback failed')
+  const results = []
+  assert.throws(() => callbacks.permission(contents, 'fullscreen', result => {
+    results.push(result)
+    throw failure
+  }, { isMainFrame: true, requestingUrl: 'ads://studio/' }), error => error === failure)
+  assert.deepEqual(results, [true])
+})
+
+test('should_deny_permissions_and_remote_requests_in_the_electron_session', () => {
+  const callbacks = sessionHandlers()
   let allowed = true
   callbacks.permission({}, 'geolocation', result => { allowed = result })
   assert.equal(allowed, false)
