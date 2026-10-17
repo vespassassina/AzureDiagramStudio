@@ -1,0 +1,322 @@
+{
+  "schemaVersion": 1,
+  "id": "example-file-claim-check-v1",
+  "title": "File Processing With Claim Check",
+  "subtitle": "Simplified synthetic Learn adaptation. Not deployed.",
+  "synthetic": true,
+  "legendVisible": true,
+  "legend": [
+    {
+      "label": "Synthetic flow",
+      "color": "teal"
+    },
+    {
+      "label": "Optional / supporting dependency",
+      "color": "gray",
+      "dashed": true
+    }
+  ],
+  "revision": 1,
+  "direction": "RIGHT",
+  "entities": [
+    {
+      "id": "sender-owner",
+      "kind": "boundary",
+      "label": "Sender owner",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 61,
+      "y": 31.5,
+      "width": 641,
+      "height": 184.66666666666669,
+      "color": "azure"
+    },
+    {
+      "id": "sender",
+      "kind": "component",
+      "label": "File sender",
+      "parentId": "sender-owner",
+      "layer": "foreground",
+      "x": 24,
+      "y": 58,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "service",
+      "status": "synthetic"
+    },
+    {
+      "id": "blob",
+      "kind": "component",
+      "label": "Blob Storage",
+      "parentId": "sender-owner",
+      "layer": "foreground",
+      "x": 397,
+      "y": 72.66666666666667,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-storage",
+      "status": "synthetic"
+    },
+    {
+      "id": "message-owner",
+      "kind": "boundary",
+      "label": "Messaging owner",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 974,
+      "y": 24,
+      "width": 1032,
+      "height": 196,
+      "color": "teal"
+    },
+    {
+      "id": "events",
+      "kind": "component",
+      "label": "Event Grid",
+      "parentId": "message-owner",
+      "layer": "foreground",
+      "x": 24,
+      "y": 80.16666666666667,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-event-grid",
+      "status": "synthetic"
+    },
+    {
+      "id": "bus",
+      "kind": "component",
+      "label": "Service Bus",
+      "parentId": "message-owner",
+      "layer": "foreground",
+      "x": 400,
+      "y": 80.16666666666667,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-service-bus",
+      "status": "synthetic"
+    },
+    {
+      "id": "reference",
+      "kind": "component",
+      "label": "Payload reference",
+      "parentId": "message-owner",
+      "layer": "foreground",
+      "x": 788,
+      "y": 58,
+      "width": 220,
+      "height": 103,
+      "color": "azure",
+      "subtitle": "Logical artifact, not a service",
+      "icon": "service",
+      "status": "synthetic"
+    },
+    {
+      "id": "consumer-owner",
+      "kind": "boundary",
+      "label": "Processing owner",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 2350,
+      "y": 93,
+      "width": 268,
+      "height": 170,
+      "color": "amber"
+    },
+    {
+      "id": "consumer",
+      "kind": "component",
+      "label": "Functions consumer",
+      "parentId": "consumer-owner",
+      "layer": "foreground",
+      "x": 24,
+      "y": 58,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-function",
+      "status": "synthetic"
+    }
+  ],
+  "connections": [
+    {
+      "id": "skill-edge-1",
+      "from": "sender",
+      "to": "blob",
+      "label": "Upload payload",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 305,
+          "y": 133.5
+        },
+        {
+          "x": 458,
+          "y": 133.5
+        }
+      ],
+      "labelPosition": {
+        "x": 381.5,
+        "y": 118.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-2",
+      "from": "blob",
+      "to": "events",
+      "label": "Notify",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 678,
+          "y": 148.16666666666669
+        },
+        {
+          "x": 998,
+          "y": 148.16666666666669
+        }
+      ],
+      "labelPosition": {
+        "x": 838,
+        "y": 133.16666666666669
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-3",
+      "from": "events",
+      "to": "bus",
+      "label": "Forward event",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 1218,
+          "y": 148.16666666666669
+        },
+        {
+          "x": 1374,
+          "y": 148.16666666666669
+        }
+      ],
+      "labelPosition": {
+        "x": 1296,
+        "y": 163.16666666666669
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-4",
+      "from": "bus",
+      "to": "consumer",
+      "label": "Deliver reference",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 1594,
+          "y": 162.83333333333334
+        },
+        {
+          "x": 1604,
+          "y": 162.83333333333334
+        },
+        {
+          "x": 1604,
+          "y": 195
+        },
+        {
+          "x": 2374,
+          "y": 195
+        }
+      ],
+      "labelPosition": {
+        "x": 2178,
+        "y": 180
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-5",
+      "from": "consumer",
+      "to": "blob",
+      "label": "Fetch payload",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 2594,
+          "y": 195
+        },
+        {
+          "x": 2655,
+          "y": 195
+        },
+        {
+          "x": 2655,
+          "y": 273
+        },
+        {
+          "x": 24,
+          "y": 273
+        },
+        {
+          "x": 24,
+          "y": 187.5
+        },
+        {
+          "x": 448,
+          "y": 187.5
+        },
+        {
+          "x": 448,
+          "y": 162.83333333333331
+        },
+        {
+          "x": 458,
+          "y": 162.83333333333331
+        }
+      ],
+      "labelPosition": {
+        "x": 1490,
+        "y": 288
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-6",
+      "from": "bus",
+      "to": "reference",
+      "label": "Message content",
+      "style": "dashed",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 1594,
+          "y": 133.5
+        },
+        {
+          "x": 1762,
+          "y": 133.5
+        }
+      ],
+      "labelPosition": {
+        "x": 1678,
+        "y": 118.5
+      },
+      "routeRevision": 1
+    }
+  ],
+  "description": "## Overview\n\nThis simplified synthetic starter separates a large file from the small message that identifies it. It is not deployed or a complete file-processing platform. Owner boundaries describe responsibilities, not verified authorization, storage isolation, or configured event subscriptions.\n\n## Flow\n\nThe sender uploads a payload to Blob Storage. Event Grid notifications reach Service Bus and then a Functions consumer. The consumer separately fetches the payload from Blob Storage. The reference artifact is logical message content, not an additional Azure service.\n\n## Decisions\n\nA reference does not grant storage authorization. Define workload identity, permissions, message validation, and safe object naming independently. Plan for duplicate or delayed notifications, idempotent processing, expiry, retention, orphaned files, and failure recovery. Delivery and payload availability can occur at different times.\n\n## Start Editing\n\nRename the sender and processing owner, then specify which reference fields identify a file and version. Set retention according to processing and retry windows. Add outcome tracking only when its owner and consistency requirements are known; this starter intentionally avoids deployment instructions.\n\n## Reference\n\nhttps://learn.microsoft.com/en-us/azure/architecture/patterns/claim-check\n\nChecked 2026-10-17. Original simplified adaptation; synthetic and not deployed. Consult the reference for omitted implementation details."
+}

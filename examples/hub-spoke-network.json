@@ -1,0 +1,446 @@
+{
+  "schemaVersion": 1,
+  "id": "example-hub-spoke-network-v1",
+  "title": "Hub-Spoke Network",
+  "subtitle": "Simplified synthetic Learn adaptation. Not deployed.",
+  "synthetic": true,
+  "legendVisible": true,
+  "legend": [
+    {
+      "label": "Synthetic flow",
+      "color": "teal"
+    },
+    {
+      "label": "Optional / supporting dependency",
+      "color": "gray",
+      "dashed": true
+    }
+  ],
+  "revision": 1,
+  "direction": "RIGHT",
+  "entities": [
+    {
+      "id": "premises",
+      "kind": "component",
+      "label": "On-premises",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 109,
+      "y": 107,
+      "width": 220,
+      "height": 103,
+      "color": "azure",
+      "subtitle": "Optional hybrid network",
+      "icon": "server",
+      "status": "synthetic"
+    },
+    {
+      "id": "hub",
+      "kind": "boundary",
+      "label": "Platform hub owner",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 656,
+      "y": 34,
+      "width": 662,
+      "height": 386,
+      "color": "azure"
+    },
+    {
+      "id": "firewall",
+      "kind": "component",
+      "label": "Azure Firewall",
+      "parentId": "hub",
+      "layer": "foreground",
+      "x": 418,
+      "y": 58,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-10084-icon-service-firewalls",
+      "status": "synthetic"
+    },
+    {
+      "id": "bastion",
+      "kind": "component",
+      "label": "Bastion",
+      "parentId": "hub",
+      "layer": "foreground",
+      "x": 418,
+      "y": 274,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-02422-icon-service-bastions",
+      "status": "synthetic"
+    },
+    {
+      "id": "monitor",
+      "kind": "component",
+      "label": "Azure Monitor",
+      "parentId": "hub",
+      "layer": "foreground",
+      "x": 24,
+      "y": 199,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-monitor",
+      "status": "synthetic"
+    },
+    {
+      "id": "watcher",
+      "kind": "component",
+      "label": "Network Watcher",
+      "parentId": "hub",
+      "layer": "foreground",
+      "x": 418,
+      "y": 166,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-10066-icon-service-network-watcher",
+      "status": "synthetic"
+    },
+    {
+      "id": "vpn",
+      "kind": "component",
+      "label": "VPN Gateway",
+      "parentId": "hub",
+      "layer": "foreground",
+      "x": 24,
+      "y": 91,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "Optional hybrid path",
+      "icon": "shield",
+      "status": "synthetic"
+    },
+    {
+      "id": "spoke-a",
+      "kind": "boundary",
+      "label": "Spoke A owner",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 61,
+      "y": 250,
+      "width": 268,
+      "height": 170,
+      "color": "teal"
+    },
+    {
+      "id": "workload-a",
+      "kind": "component",
+      "label": "Workload A",
+      "parentId": "spoke-a",
+      "layer": "foreground",
+      "x": 24,
+      "y": 58,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-vm",
+      "status": "synthetic"
+    },
+    {
+      "id": "spoke-b",
+      "kind": "boundary",
+      "label": "Spoke B owner",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 1640,
+      "y": 220.6666666666667,
+      "width": 268,
+      "height": 170,
+      "color": "amber"
+    },
+    {
+      "id": "workload-b",
+      "kind": "component",
+      "label": "Workload B",
+      "parentId": "spoke-b",
+      "layer": "foreground",
+      "x": 24,
+      "y": 58,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-vm",
+      "status": "synthetic"
+    }
+  ],
+  "connections": [
+    {
+      "id": "skill-edge-1",
+      "from": "workload-a",
+      "to": "firewall",
+      "label": "Routed egress",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 305,
+          "y": 366.6666666666667
+        },
+        {
+          "x": 583,
+          "y": 366.66666666666663
+        },
+        {
+          "x": 583,
+          "y": 331
+        },
+        {
+          "x": 1064,
+          "y": 331
+        },
+        {
+          "x": 1064,
+          "y": 158
+        },
+        {
+          "x": 1074,
+          "y": 158
+        }
+      ],
+      "labelPosition": {
+        "x": 492.5,
+        "y": 381.66666666666663
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-2",
+      "from": "workload-b",
+      "to": "firewall",
+      "label": "Routed egress",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 1884,
+          "y": 322.66666666666674
+        },
+        {
+          "x": 1945,
+          "y": 322.66666666666674
+        },
+        {
+          "x": 1945,
+          "y": 24
+        },
+        {
+          "x": 583,
+          "y": 24
+        },
+        {
+          "x": 583,
+          "y": 114
+        },
+        {
+          "x": 1074,
+          "y": 114.00000000000003
+        }
+      ],
+      "labelPosition": {
+        "x": 1479,
+        "y": 39.00000000000003
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-3",
+      "from": "bastion",
+      "to": "workload-a",
+      "label": "Admin access",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 1294,
+          "y": 366.6666666666667
+        },
+        {
+          "x": 1355,
+          "y": 366.6666666666667
+        },
+        {
+          "x": 1355,
+          "y": 430
+        },
+        {
+          "x": 24,
+          "y": 430
+        },
+        {
+          "x": 24,
+          "y": 352
+        },
+        {
+          "x": 85,
+          "y": 352
+        }
+      ],
+      "labelPosition": {
+        "x": 492.5,
+        "y": 445
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-4",
+      "from": "bastion",
+      "to": "workload-b",
+      "label": "Admin access",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 1294,
+          "y": 337.33333333333337
+        },
+        {
+          "x": 1664,
+          "y": 337.33333333333337
+        }
+      ],
+      "labelPosition": {
+        "x": 1479,
+        "y": 352.33333333333337
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-5",
+      "from": "workload-a",
+      "to": "monitor",
+      "label": "Telemetry",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 305,
+          "y": 337.3333333333333
+        },
+        {
+          "x": 366,
+          "y": 337.3333333333333
+        },
+        {
+          "x": 366,
+          "y": 277
+        },
+        {
+          "x": 680,
+          "y": 277
+        }
+      ],
+      "labelPosition": {
+        "x": 492.5,
+        "y": 292
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-6",
+      "from": "watcher",
+      "to": "workload-b",
+      "label": "Diagnostics",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 1294,
+          "y": 244
+        },
+        {
+          "x": 1567,
+          "y": 244
+        },
+        {
+          "x": 1567,
+          "y": 308.00000000000006
+        },
+        {
+          "x": 1664,
+          "y": 308.0000000000001
+        }
+      ],
+      "labelPosition": {
+        "x": 1479,
+        "y": 259
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-7",
+      "from": "premises",
+      "to": "vpn",
+      "label": "Optional tunnel",
+      "style": "dashed",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 329,
+          "y": 158.5
+        },
+        {
+          "x": 583,
+          "y": 158.5
+        },
+        {
+          "x": 583,
+          "y": 169
+        },
+        {
+          "x": 680,
+          "y": 169
+        }
+      ],
+      "labelPosition": {
+        "x": 492.5,
+        "y": 173.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-8",
+      "from": "vpn",
+      "to": "firewall",
+      "label": "Optional routing",
+      "style": "dashed",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 900,
+          "y": 169
+        },
+        {
+          "x": 1054,
+          "y": 169
+        },
+        {
+          "x": 1054,
+          "y": 136
+        },
+        {
+          "x": 1074,
+          "y": 136
+        }
+      ],
+      "labelPosition": {
+        "x": 982,
+        "y": 184
+      },
+      "routeRevision": 1
+    }
+  ],
+  "description": "## Overview\n\nThis simplified synthetic starter separates shared network operations from two workload owners. It is not deployed and does not prove segmentation, secure connectivity, or a complete landing zone. Boundaries describe intended responsibility rather than configured subscriptions or policies.\n\n## Flow\n\nThe platform hub contains Azure Firewall, Bastion, Azure Monitor, and Network Watcher. Two separately owned spoke workloads connect to the shared hub services. A dashed VPN and on-premises branch illustrates an optional hybrid extension, not an established tunnel.\n\n## Decisions\n\nVirtual network peering is nontransitive. There is no default spoke-to-spoke connection in this drawing. Explicitly design route tables, firewall policy, DNS, permissions, and any required forwarding before adding east-west or hybrid paths. Monitoring arrows do not configure collection.\n\n## Start Editing\n\nRename each spoke for its application owner and identify the required traffic paths. Remove the optional VPN branch when unnecessary. Record address ranges, routing responsibilities, administrative access, resilience, and inspection requirements separately; this compact view intentionally omits implementation details.\n\n## Reference\n\nhttps://learn.microsoft.com/en-us/azure/architecture/networking/architecture/hub-spoke\n\nChecked 2026-10-17. Original simplified adaptation; synthetic and not deployed. Consult the reference for omitted implementation details."
+}

@@ -185,6 +185,7 @@ export function validateDocument(input: unknown): Result<Diagram> {
     entities: reader.array(source.entities, 'entities', 100).map((entity, index) => reader.entity(entity, `entities[${index}]`)),
     connections: reader.array(source.connections, 'connections', 150).map((connection, index) => reader.connection(connection, `connections[${index}]`, revision)),
   }
+  if (source.description !== undefined) diagram.description = reader.text(source.description, 'description', 20000)
   if (source.backgroundColor !== undefined) {
     if (isHexColor(source.backgroundColor)) diagram.backgroundColor = source.backgroundColor
     else reader.issue('backgroundColor', 'Expected #RGB or #RRGGBB')

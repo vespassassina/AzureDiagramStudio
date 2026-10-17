@@ -1,0 +1,475 @@
+{
+  "schemaVersion": 1,
+  "id": "example-container-apps-microservices-v1",
+  "title": "Container Apps Microservices",
+  "subtitle": "Simplified synthetic Learn adaptation. Not deployed.",
+  "synthetic": true,
+  "legendVisible": true,
+  "legend": [
+    {
+      "label": "Synthetic flow",
+      "color": "teal"
+    },
+    {
+      "label": "Optional / supporting dependency",
+      "color": "gray",
+      "dashed": true
+    }
+  ],
+  "revision": 1,
+  "direction": "RIGHT",
+  "entities": [
+    {
+      "id": "registry",
+      "kind": "component",
+      "label": "Container Registry",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 405,
+      "y": 36,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-10105-icon-service-container-registries",
+      "status": "synthetic"
+    },
+    {
+      "id": "vault",
+      "kind": "component",
+      "label": "Key Vault",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 1877,
+      "y": 362,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-key-vault",
+      "status": "synthetic"
+    },
+    {
+      "id": "monitor",
+      "kind": "component",
+      "label": "Azure Monitor",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 1877,
+      "y": 24,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-monitor",
+      "status": "synthetic"
+    },
+    {
+      "id": "ingestion-owner",
+      "kind": "boundary",
+      "label": "Ingestion owner",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 24,
+      "y": 164,
+      "width": 601,
+      "height": 170,
+      "color": "azure"
+    },
+    {
+      "id": "ingestion",
+      "kind": "component",
+      "label": "Ingestion service",
+      "parentId": "ingestion-owner",
+      "layer": "foreground",
+      "x": 24,
+      "y": 58,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-container-apps",
+      "status": "synthetic"
+    },
+    {
+      "id": "bus",
+      "kind": "component",
+      "label": "Service Bus",
+      "parentId": "ingestion-owner",
+      "layer": "foreground",
+      "x": 357,
+      "y": 58,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-service-bus",
+      "status": "synthetic"
+    },
+    {
+      "id": "workflow-owner",
+      "kind": "boundary",
+      "label": "Workflow owner",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 912,
+      "y": 120,
+      "width": 667,
+      "height": 311,
+      "color": "teal"
+    },
+    {
+      "id": "workflow",
+      "kind": "component",
+      "label": "Workflow service",
+      "parentId": "workflow-owner",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87.33333333333333,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-container-apps",
+      "status": "synthetic"
+    },
+    {
+      "id": "scheduler",
+      "kind": "component",
+      "label": "Scheduler service",
+      "parentId": "workflow-owner",
+      "layer": "foreground",
+      "x": 423,
+      "y": 166,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-container-apps",
+      "status": "synthetic"
+    },
+    {
+      "id": "cosmos",
+      "kind": "component",
+      "label": "Cosmos DB",
+      "parentId": "workflow-owner",
+      "layer": "foreground",
+      "x": 423,
+      "y": 58,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "Workflow-owned state",
+      "icon": "azure-cosmos",
+      "status": "synthetic"
+    },
+    {
+      "id": "delivery-owner",
+      "kind": "boundary",
+      "label": "Delivery owner",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 1877,
+      "y": 152,
+      "width": 626,
+      "height": 170,
+      "color": "amber"
+    },
+    {
+      "id": "delivery",
+      "kind": "component",
+      "label": "Delivery service",
+      "parentId": "delivery-owner",
+      "layer": "foreground",
+      "x": 24,
+      "y": 58,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-container-apps",
+      "status": "synthetic"
+    },
+    {
+      "id": "redis",
+      "kind": "component",
+      "label": "Managed Redis",
+      "parentId": "delivery-owner",
+      "layer": "foreground",
+      "x": 382,
+      "y": 58,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "Delivery-owned state",
+      "icon": "database",
+      "status": "synthetic"
+    }
+  ],
+  "connections": [
+    {
+      "id": "skill-edge-1",
+      "from": "ingestion",
+      "to": "bus",
+      "label": "Enqueue",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 268,
+          "y": 266
+        },
+        {
+          "x": 381,
+          "y": 266
+        }
+      ],
+      "labelPosition": {
+        "x": 324.5,
+        "y": 281
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-2",
+      "from": "bus",
+      "to": "workflow",
+      "label": "Consume",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 601,
+          "y": 266
+        },
+        {
+          "x": 936,
+          "y": 266
+        }
+      ],
+      "labelPosition": {
+        "x": 768.5,
+        "y": 281
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-3",
+      "from": "workflow",
+      "to": "scheduler",
+      "label": "Schedule",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 1156,
+          "y": 236.66666666666669
+        },
+        {
+          "x": 1196,
+          "y": 236.66666666666669
+        },
+        {
+          "x": 1196,
+          "y": 330
+        },
+        {
+          "x": 1335,
+          "y": 330
+        }
+      ],
+      "labelPosition": {
+        "x": 1260.5,
+        "y": 345
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-4",
+      "from": "workflow",
+      "to": "delivery",
+      "label": "Dispatch",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 1156,
+          "y": 266
+        },
+        {
+          "x": 1176,
+          "y": 266
+        },
+        {
+          "x": 1176,
+          "y": 395
+        },
+        {
+          "x": 1626,
+          "y": 395
+        },
+        {
+          "x": 1626,
+          "y": 254
+        },
+        {
+          "x": 1901,
+          "y": 254
+        }
+      ],
+      "labelPosition": {
+        "x": 1728,
+        "y": 269
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-5",
+      "from": "workflow",
+      "to": "cosmos",
+      "label": "Persist state",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 1156,
+          "y": 222
+        },
+        {
+          "x": 1335,
+          "y": 222
+        }
+      ],
+      "labelPosition": {
+        "x": 1260.5,
+        "y": 237
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-6",
+      "from": "delivery",
+      "to": "redis",
+      "label": "Cache state",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 2121,
+          "y": 254
+        },
+        {
+          "x": 2259,
+          "y": 254
+        }
+      ],
+      "labelPosition": {
+        "x": 2190,
+        "y": 269
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-7",
+      "from": "registry",
+      "to": "workflow",
+      "label": "Images",
+      "style": "dashed",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 625,
+          "y": 80
+        },
+        {
+          "x": 839,
+          "y": 80
+        },
+        {
+          "x": 839,
+          "y": 236.66666666666666
+        },
+        {
+          "x": 936,
+          "y": 236.66666666666666
+        }
+      ],
+      "labelPosition": {
+        "x": 768.5,
+        "y": 65
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-8",
+      "from": "workflow",
+      "to": "vault",
+      "label": "Secrets",
+      "style": "dashed",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 1156,
+          "y": 280.6666666666667
+        },
+        {
+          "x": 1166,
+          "y": 280.6666666666667
+        },
+        {
+          "x": 1166,
+          "y": 406
+        },
+        {
+          "x": 1877,
+          "y": 406
+        }
+      ],
+      "labelPosition": {
+        "x": 1728,
+        "y": 421
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-9",
+      "from": "workflow",
+      "to": "monitor",
+      "label": "Telemetry",
+      "style": "dashed",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 1156,
+          "y": 251.33333333333331
+        },
+        {
+          "x": 1186,
+          "y": 251.33333333333331
+        },
+        {
+          "x": 1186,
+          "y": 384
+        },
+        {
+          "x": 1616,
+          "y": 384
+        },
+        {
+          "x": 1616,
+          "y": 68
+        },
+        {
+          "x": 1877,
+          "y": 68
+        }
+      ],
+      "labelPosition": {
+        "x": 1728,
+        "y": 83
+      },
+      "routeRevision": 1
+    }
+  ],
+  "description": "## Overview\n\nThis simplified synthetic adaptation sketches a brownfield delivery workflow using Container Apps. It is not deployed or a universal application baseline. Ownership boundaries describe team responsibilities, not proven isolation or configured networking.\n\n## Flow\n\nIngestion places work on Service Bus. A workflow service coordinates scheduling and delivery, with Cosmos DB owned by the workflow and Managed Redis owned by delivery. Registry, Key Vault, and Azure Monitor supply supporting platform capabilities.\n\n## Decisions\n\nDefine message contracts, retries, duplicate handling, state ownership, and recovery before connecting real systems. Initial ingestion does not imply a WAF. The package-service branch is deliberately omitted because the reference describes conflicting database choices for that branch.\n\n## Start Editing\n\nReplace the example services with your bounded contexts and record which team owns each state store. Add ingress authentication, workload identity, scaling limits, and observability requirements after reviewing the actual deployment environment. Supporting arrows are dependencies, not evidence of running integrations.\n\n## Reference\n\nhttps://learn.microsoft.com/en-us/azure/architecture/example-scenario/serverless/microservices-with-container-apps\n\nChecked 2026-10-17. Original simplified adaptation; synthetic and not deployed. Consult the reference for omitted implementation details."
+}

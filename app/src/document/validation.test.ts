@@ -11,6 +11,39 @@ import enterpriseSource from '../../../examples/enterprise-integration.json?raw'
 
 const grid115 = { visible: true, style: 'dots' as const, spacing: 8, snap: true, present: false, export: false }
 
+test('should_round_trip_literal_markdown_description_and_legacy_omission_DGM122', () => {
+  const legacy = createDocument('description')
+  assert.equal(Object.hasOwn(legacy, 'description'), false)
+  assert.deepEqual(parseDocument(JSON.stringify(legacy)), { ok: true, value: legacy })
+  for (const description of ['', '  # Architecture\r\n\r\n- **API**\n\t\u6f22\u5b57 \ud83d\ude00 [link](javascript:alert(1))\r\n<img src="https://invalid.example/remote" onerror="alert(1)">  ', '\ud83d\ude00'.repeat(10000)]) {
+    const document = { ...legacy, description }
+    assert.deepEqual(validateDocument(document), { ok: true, value: document })
+    assert.deepEqual(parseDocument(JSON.stringify(document)), { ok: true, value: document })
+  }
+})
+
+test.each([null, 1, true, [], {}, 'x'.repeat(20001), '\ud83d\ude00'.repeat(10001)])('should_reject_invalid_description_atomically_DGM122_%j', description => {
+  const document = { ...createDocument('description'), description }
+  const before = JSON.stringify(document)
+  const result = validateDocument(document)
+  assert.equal(result.ok, false)
+  if (!result.ok) assert.ok(result.errors.some(error => error.path === 'description'))
+  assert.equal(JSON.stringify(document), before)
+  assert.equal(parseDocument(before).ok, false)
+})
+
+test('should_keep_whole_document_byte_bound_with_description_DGM122', () => {
+  const document = { ...createDocument('description-bytes'), description: '\u6f22'.repeat(20000), ignored: '' }
+  document.ignored = 'x'.repeat(MAX_BYTES - Buffer.byteLength(JSON.stringify(document)))
+  const result = validateDocument(document)
+  assert.ok(result.ok)
+  assert.equal((result.value as unknown as { description: string }).description, document.description)
+  assert.equal(parseDocument(JSON.stringify(document)).ok, true)
+  document.ignored += 'x'
+  assert.equal(validateDocument(document).ok, false)
+  assert.equal(parseDocument(JSON.stringify(document)).ok, false)
+})
+
 test.each([
   ['web-api', webApiSource], ['event-driven', eventSource],
   ['fabric', fabricSource], ['enterprise', enterpriseSource],

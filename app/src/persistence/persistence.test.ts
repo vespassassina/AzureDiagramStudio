@@ -91,6 +91,34 @@ class FakeLocks {
 async function flush() { for (let index = 0; index < 20; index++) await Promise.resolve() }
 afterEach(() => vi.unstubAllGlobals())
 
+test('should_preserve_literal_description_when_storage_closes_and_reopens_DGM122', async () => {
+  const fake = new FakeIndexedDb()
+  vi.stubGlobal('indexedDB', fake)
+  const document = { ...createDocument('description-storage'), description: '  # Architecture\r\n\r\n- **API**\n\t\u6f22\u5b57 \ud83d\ude00  ' }
+  const storage = createStorage()
+  await storage.save(document)
+  assert.deepEqual(fake.snapshot, document)
+  storage.close()
+  const reopened = createStorage()
+  assert.deepEqual(await reopened.load(), document)
+  await reopened.save(createDocument('legacy-storage'))
+  assert.equal(Object.hasOwn((await reopened.load())!, 'description'), false)
+  reopened.close()
+})
+
+test('should_keep_saved_description_when_invalid_writes_fail_DGM122', async () => {
+  const fake = new FakeIndexedDb()
+  vi.stubGlobal('indexedDB', fake)
+  const storage = createStorage()
+  const document = { ...createDocument('description-atomic'), description: '# Stored' }
+  await storage.save(document)
+  for (const description of [null, 42, {}, 'x'.repeat(20001)]) {
+    await assert.rejects(storage.save({ ...document, description } as unknown as typeof document), /description/)
+    assert.deepEqual(await storage.load(), document)
+  }
+  storage.close()
+})
+
 test('should_round_trip_latest_snapshot_when_indexeddb_transactions_complete', async () => {
   const fake = new FakeIndexedDb()
   vi.stubGlobal('indexedDB', fake)

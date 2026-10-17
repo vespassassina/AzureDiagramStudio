@@ -5,7 +5,7 @@ import { ReactFlow, Background, BackgroundVariant, ConnectionMode, Handle, Posit
 import type { Node, NodeProps, Edge, EdgeProps, NodeChange, Connection as FlowConnection } from '@xyflow/react'
 import { Moon, Sun, Scan, Pin, PinOff, MousePointer2, Hand, Boxes, Cable, Frame, Type, Square, Trash2, Copy, ClipboardPaste, Scissors, CopyPlus, Undo2, Redo2, Download, ChevronDown, X, Plus, Minus, Maximize2, PanelRight, PanelLeftClose, LayoutGrid, FilePlus2, FolderOpen, FileInput, Save, ArrowRight, ArrowDown, ArrowUp, SlidersHorizontal, CircleCheck, LoaderCircle, Group, Ungroup, BringToFront, SendToBack, ImagePlus, Command as CommandIcon } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import type { ClipboardFragment, DocumentCommand, EditorProps, EntityPatch, ConnectionPatch, MetadataPatch, StarterKey } from '../contracts.ts'
+import type { ClipboardFragment, DocumentCommand, EditorProps, EntityPatch, ConnectionPatch, MetadataPatch } from '../contracts.ts'
 import type { ConnectionSide, Diagram, Entity, Point } from '../model.ts'
 import { buildScene, buildExportScene, pngDimensions, entityMarkup, connectionMarkup, connectionMarkers, MARKERS } from '../scene.ts'
 import { entityTextGeometry } from '../model.ts'
@@ -29,10 +29,16 @@ import { painterOrder } from '../order.ts'
 import { applyCommand } from '../document/index.ts'
 import { Presentation, Expand, Crosshair, ArrowLeft } from 'lucide-react'
 import { starterDocument } from '../app/session.ts'
+import { starterCatalog } from '../app/starters.ts'
+import type { StarterChoice } from '../app/starters.ts'
 import { CircleHelp } from 'lucide-react'
 import { HelpGuide } from './HelpGuide.tsx'
 import { ContextMenu } from './ContextMenu.tsx'
 import { PresentationMarkup } from './PresentationMarkup.tsx'
+import { FileText } from 'lucide-react'
+import { MarkdownDescription } from './MarkdownDescription.tsx'
+import type { MarkdownMode } from './MarkdownDescription.tsx'
+import { MarkdownSidebarResize } from './MarkdownSidebarResize.tsx'
 
 type ArchitectureNode = Node<{ entity: Entity; backgroundColor: string; minWidth: number; minHeight: number; writable: boolean; presenting: boolean; startResize(): void; quickAddSourceId: string | null; onQuickAdd(side: AddSide): void; onDeleteComponent(): void }, 'architecture'>
 type ArchitectureEdge = Edge<{ connection: SceneConnection; backgroundColor: string }, 'architecture'>
@@ -42,14 +48,9 @@ type ConnectedPicker = { document: Diagram; revision: number; selection: string;
 type InlineEdit = { document: Diagram; revision: number; id: string; kind: 'entity' | 'connection'; value: string; multiline: boolean; error: string }
 type Viewport = { x: number; y: number; zoom: number }
 type CanvasContext = { document: Diagram; revision: number; writable: boolean; kind: 'pane' | 'entity' | 'connection'; id?: string; point: Point; screen: Point; origin: HTMLElement | null }
-type PresentationSnapshot = { document: Diagram; viewport: { x: number; y: number; zoom: number }; libraryRequested: boolean; inspectorRequested: boolean; libraryPinned: boolean; preferredPanel: 'library' | 'inspector'; inspectorIntent: boolean | null; tool: Tool; selectedIds: string[]; selectedEdges: string[]; focus: HTMLElement | null; focusLabel: string | null }
-type StarterChoice = { key: StarterKey; label: string }
+type PresentationSnapshot = { document: Diagram; viewport: { x: number; y: number; zoom: number }; libraryRequested: boolean; inspectorRequested: boolean; libraryPinned: boolean; preferredPanel: 'library' | 'inspector'; inspectorIntent: boolean | null; sidebarView: 'properties' | 'markdown'; markdownMode: MarkdownMode; sidebarWidth: number; tool: Tool; selectedIds: string[]; selectedEdges: string[]; focus: HTMLElement | null; focusLabel: string | null }
 const SAVE_LABELS = { loading: 'Loading local work', saving: 'Saving locally', saved: 'Saved on this device', error: 'Local save failed', 'read-only': 'Read-only' }
 const entersStarterChooser = (target: EventTarget | null) => target instanceof HTMLElement && target.getAttribute('aria-label') === 'New diagram'
-const starterChoices: readonly StarterChoice[] = [
-  { key: 'web-api', label: 'Web/API' }, { key: 'event-driven', label: 'Event-driven' },
-  { key: 'fabric', label: 'Fabric' }, { key: 'enterprise', label: 'Enterprise' },
-]
 const tools: { tool: Tool; icon: LucideIcon; label: string }[] = [{ tool: 'select', icon: MousePointer2, label: 'Select tool' }, { tool: 'pan', icon: Hand, label: 'Pan tool' }, { tool: 'component', icon: Boxes, label: 'Add component' }, { tool: 'connector', icon: Cable, label: 'Connect components' }, { tool: 'boundary', icon: Frame, label: 'Add boundary' }, { tool: 'text', icon: Type, label: 'Add text' }, { tool: 'rectangle', icon: Square, label: 'Add rectangle' }]
 const positions = { top: Position.Top, right: Position.Right, bottom: Position.Bottom, left: Position.Left }
 const addDirections: { side: AddSide; icon: LucideIcon }[] = [{ side: 'left', icon: ArrowLeft }, { side: 'right', icon: ArrowRight }, { side: 'top', icon: ArrowUp }, { side: 'bottom', icon: ArrowDown }]
@@ -116,7 +117,13 @@ const nodeTypes = { architecture: ArchitectureTile }
 const edgeTypes = { architecture: ArchitectureLink }
 function Property({ label, children }: { label: string; children: ReactNode }) { return <label className="property"><span>{label}</span>{children}</label> }
 function DraftField({ label, value, maxLength, disabled, multiline, onDraft, onFinish, onCancel, deferFinish }: { label: string; value: string; maxLength: number; disabled: boolean; multiline?: boolean; onDraft(value: string): void; onFinish(): void; onCancel(): void; deferFinish(): boolean }) {
-  const props = { 'aria-label': label, value, maxLength, disabled, onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onDraft(event.target.value), onBlur: (event: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => { if (!deferFinish() && !entersStarterChooser(event.relatedTarget)) onFinish() }, onKeyDown: (event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const composing = useRef(false)
+  const blurred = useRef(false)
+  const props = { 'aria-label': label, value, maxLength, disabled, onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onDraft(event.target.value),
+    onCompositionStart: () => { composing.current = true },
+    onCompositionEnd: () => { composing.current = false; if (blurred.current) { blurred.current = false; queueMicrotask(onFinish) } },
+    onBlur: (event: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => { if (deferFinish() || entersStarterChooser(event.relatedTarget)) return; if (composing.current) blurred.current = true; else onFinish() }, onKeyDown: (event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    if (composing.current || event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) return
     if (event.key === 'Escape') { event.stopPropagation(); onCancel(); event.currentTarget.blur() }
     if (event.key === 'Enter' && !multiline && !event.nativeEvent.isComposing) event.currentTarget.blur()
   } }
@@ -145,19 +152,34 @@ function StarterPreview({ choice }: { choice: StarterChoice }) {
   const document = starterDocument(choice.key)
   const scene = buildScene(document)
   return <svg className="starter-preview" viewBox={`${scene.contentBounds.x} ${scene.contentBounds.y} ${Math.max(1, scene.contentBounds.width)} ${Math.max(1, scene.contentBounds.height)}`} aria-hidden="true">
-    {scene.entities.map(entity => <g key={entity.id} transform={`translate(${entity.absolute.x} ${entity.absolute.y})`} dangerouslySetInnerHTML={{ __html: entityMarkup(entity, visualAssets, scene.entityBackgrounds[entity.id]) }} />)}
+    <defs dangerouslySetInnerHTML={{ __html: MARKERS }} />
+    {scene.entities.filter(entity => entity.kind === 'boundary').map(entity => <g key={entity.id} transform={`translate(${entity.absolute.x} ${entity.absolute.y})`} dangerouslySetInnerHTML={{ __html: entityMarkup(entity, visualAssets, scene.entityBackgrounds[entity.id]) }} />)}
+    {scene.connections.map(connection => <g key={connection.id} data-preview-connection={connection.id} dangerouslySetInnerHTML={{ __html: connectionMarkup(connection, scene.connectionBackgrounds[connection.id]) }} />)}
+    {scene.entities.filter(entity => entity.kind !== 'boundary').map(entity => <g key={entity.id} transform={`translate(${entity.absolute.x} ${entity.absolute.y})`} dangerouslySetInnerHTML={{ __html: entityMarkup(entity, visualAssets, scene.entityBackgrounds[entity.id]) }} />)}
   </svg>
 }
 function StarterChooser({ onChoose, onCancel }: { onChoose(choice: StarterChoice | null): void; onCancel(): void }) {
   const titleId = useId()
   return <div className="starter-overlay" onKeyDown={event => {
     event.stopPropagation()
+    if (event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) return
     if (event.key === 'Escape') { event.preventDefault(); onCancel() }
+    if (event.ctrlKey || event.metaKey || event.altKey) return
+    const buttons = [...event.currentTarget.querySelectorAll<HTMLButtonElement>('.starter-dialog button:not(:disabled)')]
+    const index = buttons.indexOf(document.activeElement as HTMLButtonElement)
+    const backward = event.key === 'ArrowLeft' || event.key === 'ArrowUp'
+    const forward = event.key === 'ArrowRight' || event.key === 'ArrowDown'
+    if (backward || forward || (event.key === 'Tab' && (event.shiftKey ? index <= 0 : index === buttons.length - 1))) {
+      event.preventDefault()
+      const next = buttons[(index + (backward || (event.key === 'Tab' && event.shiftKey) ? -1 : 1) + buttons.length) % buttons.length]
+      next?.focus()
+      next?.scrollIntoView?.({ block: 'nearest' })
+    }
   }}>
     <button type="button" className="starter-backdrop" tabIndex={-1} aria-label="Dismiss new diagram choices" onClick={onCancel} />
     <section className="starter-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId}>
       <header><h2 id={titleId}>New diagram</h2><button type="button" autoFocus aria-label="Close new diagram" title="Close new diagram" onClick={onCancel}><X size={18} /></button></header>
-      <div className="starter-choices"><button type="button" aria-label="Blank" className="starter-choice blank" onClick={() => onChoose(null)}><span>Blank</span><small>Empty diagram</small></button>{starterChoices.map(choice => <button type="button" key={choice.key} aria-label={choice.label} className="starter-choice" onClick={() => onChoose(choice)}><StarterPreview choice={choice} /><span>{choice.label}</span><small>Synthetic example</small></button>)}</div>
+      <div className="starter-choices"><button type="button" aria-label="Blank" className="starter-choice blank" onClick={() => onChoose(null)}><span>Blank</span><small>Empty diagram</small></button>{starterCatalog.map(choice => <button type="button" key={choice.key} aria-label={choice.label} className="starter-choice" onClick={() => onChoose(choice)}><StarterPreview choice={choice} /><span>{choice.label}</span><small>{choice.sourceCue}</small></button>)}</div>
     </section>
   </div>
 }
@@ -283,6 +305,12 @@ export default function EditorSurface(props: EditorProps) {
   const [windowWidth, setWindowWidth] = useState(() => window.innerWidth)
   const [libraryRequested, setLibraryRequested] = useState(() => window.innerWidth > 640)
   const [inspectorRequested, setInspectorRequested] = useState(false)
+  const [sidebarView, setSidebarView] = useState<'properties' | 'markdown'>('properties')
+  const [markdownMode, setMarkdownMode] = useState<MarkdownMode>('edit')
+  const [sidebarWidth, setSidebarWidth] = useState(320)
+  const [presentationMarkdownOpen, setPresentationMarkdownOpen] = useState(false)
+  const sidebarMaximum = Math.max(240, Math.min(640, windowWidth - 56))
+  const visibleSidebarWidth = Math.min(sidebarMaximum, Math.max(240, sidebarWidth))
   const [libraryPinned, setLibraryPinned] = useState(false)
   const [preferredPanel, setPreferredPanel] = useState<'library' | 'inspector'>('library')
   const inspectorIntent = useRef<boolean | null>(null)
@@ -312,6 +340,8 @@ export default function EditorSurface(props: EditorProps) {
     const { getViewport, setViewport, screenToFlowPosition, zoomIn, zoomOut } = useReactFlow<ArchitectureNode, ArchitectureEdge>()
   const [viewport, setCamera] = useState<Viewport>(() => ({ ...getViewport() }))
   const [canvasBounds, setCanvasBounds] = useState({ width: 0, height: 0, left: 0, top: 0 })
+  const currentFitCanvas = useRef(fitCanvas)
+  currentFitCanvas.current = fitCanvas
   const updateCamera = useCallback((_event: unknown, next: Viewport) => {
     setZoom(next.zoom)
     setCamera(current => current.x === next.x && current.y === next.y && current.zoom === next.zoom ? current : { ...next })
@@ -587,6 +617,7 @@ export default function EditorSurface(props: EditorProps) {
   }
   function openInspector(explicit = true) {
     if (!explicit && (windowWidth <= 900 || inspectorIntent.current === false)) return
+    setSidebarView('properties')
     finish(); setInspectorRequested(true); setPreferredPanel('inspector')
     if (explicit) inspectorIntent.current = true
     if (!bothPanels) setLibraryRequested(false)
@@ -600,6 +631,22 @@ export default function EditorSurface(props: EditorProps) {
     if (open) { openInspector(); return }
     finish(); setInspectorRequested(false); inspectorIntent.current = false
     if (document.activeElement?.closest('.inspector')) canvasElement.current?.querySelector<HTMLButtonElement>('[aria-label="Open properties"]')?.focus()
+  }
+  function showSidebar(view: 'properties' | 'markdown') {
+    if (presentationActive.current) { setPresentationMarkdownOpen(true); return }
+    if (composing.current || inlineComposing.current) return
+    setSidebarView(view); setInspectorRequested(true); setPreferredPanel('inspector'); inspectorIntent.current = true
+    if (!bothPanels) setLibraryRequested(false)
+  }
+  function closeSidebar() {
+    const pending = transaction.current?.command
+    const pendingDescription = pending?.type === 'metadata' && Object.hasOwn(pending.patch, 'description')
+    if (!presentationActive.current && !pendingDescription && !finish()) return
+    const label = presenting || sidebarView === 'markdown' ? 'Open Markdown' : 'Open properties'
+    const scope = presenting ? '.presentation-controls' : '.canvas-navigation'
+    editorElement.current?.querySelector<HTMLButtonElement>(`${scope} [aria-label="${label}"]`)?.focus({ preventScroll: true })
+    if (presentationActive.current) setPresentationMarkdownOpen(false)
+    else { setInspectorRequested(false); inspectorIntent.current = false }
   }
   function toggleLibraryPin() {
     finish(); setLibraryPinned(!libraryPinned)
@@ -849,7 +896,7 @@ export default function EditorSurface(props: EditorProps) {
     catch (error) { setNotice(error instanceof Error ? error.message : 'Edit could not be committed.'); return }
     if (!finishInline() || !finish()) return
     const focus = entryFocus.current ?? lastCommit.current?.focus ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null)
-    snapshot.current = { document: props.document, viewport: { ...getViewport() }, libraryRequested, inspectorRequested, libraryPinned, preferredPanel, inspectorIntent: inspectorIntent.current, tool, selectedIds: [...selectedIds], selectedEdges: [...selectedEdges], focus, focusLabel: focus?.getAttribute('aria-label') ?? null }
+    snapshot.current = { document: props.document, viewport: { ...getViewport() }, libraryRequested, inspectorRequested, libraryPinned, preferredPanel, inspectorIntent: inspectorIntent.current, sidebarView, markdownMode, sidebarWidth, tool, selectedIds: [...selectedIds], selectedEdges: [...selectedEdges], focus, focusLabel: focus?.getAttribute('aria-label') ?? null }
     entryFocus.current = null
     if (expected) { entryCommit.current = expected; setNotice('Edit has not yet been accepted.'); return }
     activatePresentation()
@@ -860,6 +907,7 @@ export default function EditorSurface(props: EditorProps) {
     setIsImportingIcon(false); selectionAfterCommit.current = null
     gestureCancelled.current = true
     setExportOpen(false); setConnectedPicker(null); setNotice(''); setPresenting(true)
+    setPresentationMarkdownOpen(Boolean(props.document.description))
     cancelInline(false); setCommandsOpen(false)
   }
   // Restore the exact camera and intent only for the same document; never restore storage writability.
@@ -872,14 +920,15 @@ export default function EditorSurface(props: EditorProps) {
     ownsFullscreen.current = false
     if (!restore || !saved) return
     setLibraryRequested(saved.libraryRequested); setInspectorRequested(saved.inspectorRequested); setLibraryPinned(saved.libraryPinned); setPreferredPanel(saved.preferredPanel); inspectorIntent.current = saved.inspectorIntent
+    setSidebarView(saved.sidebarView); setMarkdownMode(saved.markdownMode); setSidebarWidth(saved.sidebarWidth)
     setTool(storageWritable ? saved.tool : saved.tool === 'pan' ? 'pan' : 'select'); setSelectedIds(saved.selectedIds); setSelectedEdges(saved.selectedEdges)
     setZoom(saved.viewport.zoom); void setViewport(saved.viewport, { duration: 0 })
     restoreFocus.current = saved.focus
     restoreFocusLabel.current = saved.focusLabel
   }
   async function fullscreen() {
-    if (!presentationActive.current || !canvasElement.current) return
-    const canvas = canvasElement.current
+    if (!presentationActive.current || !editorElement.current) return
+    const canvas = editorElement.current
     try {
       if (!canvas.requestFullscreen) throw new Error('Fullscreen is unavailable.')
       await canvas.requestFullscreen()
@@ -900,8 +949,8 @@ export default function EditorSurface(props: EditorProps) {
     if (presenting) {
       const canvas = canvasElement.current
       let active = true
-      const reframe = () => { if (active && presentationActive.current) fitCanvas(selectedIds.length > 0) }
-      reframe(); exitButton.current?.focus()
+      const reframe = () => { if (active && presentationActive.current) currentFitCanvas.current(selectedIds.length > 0) }
+      exitButton.current?.focus()
       const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(reframe)
       if (canvas) {
         observer?.observe(canvas)
@@ -916,10 +965,13 @@ export default function EditorSurface(props: EditorProps) {
       if (target && !target.closest('[inert]') && !target.matches(':disabled')) target.focus(); else canvasElement.current?.focus()
     }
   }, [presenting])
+  useLayoutEffect(() => {
+    if (presenting) currentFitCanvas.current(selectedIds.length > 0)
+  }, [presenting, presentationMarkdownOpen, visibleSidebarWidth, windowWidth])
   useEffect(() => {
     const changed = () => {
       if (!presentationActive.current) return
-      if (document.fullscreenElement === canvasElement.current) ownsFullscreen.current = true
+      if (document.fullscreenElement === editorElement.current) ownsFullscreen.current = true
       else if (ownsFullscreen.current) exitPresentation()
     }
     document.addEventListener('fullscreenchange', changed)
@@ -938,7 +990,10 @@ export default function EditorSurface(props: EditorProps) {
       if (overlay.dataset.fitChrome === 'top') top = Math.max(top, bounds.bottom - rect.top + 24)
       else bottom = Math.min(bottom, bounds.top - rect.top - 24)
     }
-    if (!presenting && windowWidth <= 900 && inspectorOpen) right = Math.min(right, canvas.parentElement!.querySelector('.inspector')!.getBoundingClientRect().left - rect.left - 24)
+    if (windowWidth <= 900 && (presenting ? presentationMarkdownOpen : inspectorOpen)) {
+      const availableRight = canvas.parentElement!.querySelector('.inspector')!.getBoundingClientRect().left - rect.left - 24
+      if (availableRight - left >= 240) right = Math.min(right, availableRight)
+    }
     if (!presenting && windowWidth <= 640 && libraryOpen) left = Math.max(left, canvas.parentElement!.querySelector('.library')!.getBoundingClientRect().right - rect.left + 24)
     if (right <= left || bottom <= top) return
     const included = selectionOnly ? new Set(captureFragment(diagram, selectedIds).entities.map(entity => entity.id)) : null
@@ -985,9 +1040,11 @@ export default function EditorSurface(props: EditorProps) {
       if ((key === 'f2' || (modifier && key === 'k')) && !ownsFocus) return
       if (presentationActive.current) {
         if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); exitPresentation(); return }
+        if ((event.target as HTMLElement)?.closest?.('[data-markdown-preview]')) return
         if (event.ctrlKey || event.metaKey || event.altKey || ['Delete', 'Backspace', 'F2'].includes(event.key)) event.preventDefault()
         return
       }
+      if (event.key !== 'Escape' && (event.target as HTMLElement)?.closest?.('[data-markdown-preview], [data-markdown-ui]')) return
       if ((event.target as HTMLElement)?.closest?.('input, textarea, select, [contenteditable="true"]')) return
       if (starterOpen) { if (event.key === 'Escape') { event.preventDefault(); closeStarterChooser() }; return }
       if (commandsOpen) return
@@ -1028,6 +1085,8 @@ export default function EditorSurface(props: EditorProps) {
   const customBackground = !isWhiteBackground(scene.backgroundColor)
   const panelTitle = multiSelection ? 'Selection' : selected ? ({ component: 'Component', boundary: 'Boundary', text: 'Text', rectangle: 'Rectangle' })[selected.kind] : connection ? 'Connection' : 'Document'
   const field = (label: string, value: string, maxLength: number, onDraft: (value: string) => void, multiline = false) => <DraftField label={label} value={value} maxLength={maxLength} disabled={!writable} multiline={multiline} onDraft={onDraft} onFinish={() => finish()} onCancel={clearPreview} deferFinish={() => starterOpening.current} />
+  const descriptionEditor = <MarkdownDescription value={diagram.description ?? ''} mode={markdownMode} writable={writable} presenting={presenting} onModeChange={setMarkdownMode} onDraft={value => editMetadata({ description: value === '' ? undefined : value }, true)} onFinish={() => finish()} onCancel={clearPreview} deferFinish={() => starterOpening.current} />
+  const descriptionDraft = transaction.current?.command.type === 'metadata' && Object.hasOwn(transaction.current.command.patch, 'description')
   const alignmentAction = (action: AlignmentAction, icon: LucideIcon, label: string) => {
     const eligible = !selectedEdges.length && !!alignmentPositions(props.document, selectedIds, action)
     const reason = selectedEdges.length ? 'Alignment requires only entities.' : alignmentRoots.length < (action.startsWith('distribute') ? 3 : 2) ? 'Select more top-level objects.' : 'Selection cannot be aligned without changing containment.'
@@ -1126,7 +1185,7 @@ export default function EditorSurface(props: EditorProps) {
       <button type="button" className="present-button" aria-label="Present" title="Present" disabled={props.saveState === 'loading' || props.isArranging} onPointerDown={() => { entryFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null }} onMouseDown={event => event.preventDefault()} onClick={enterPresentation}><Presentation size={18} /><span>Present</span></button>
     </header>}
     <div className="workspace" inert={commandsOpen}>
-      {!presenting && <nav className="tool-rail" aria-label="Drawing tools"><IconButton icon={CircleHelp} label="Help" className="help-trigger" disabled={guideBlocked} onPointerDown={() => { if (!guideBlocked && !composing.current && !inlineComposing.current) guideOpening.current = true }} onMouseDown={event => event.preventDefault()} onClick={openGuide} />{tools.map(item => <IconButton key={item.tool} icon={item.icon} label={item.label} active={tool === item.tool} disabled={!writable && item.tool !== 'select' && item.tool !== 'pan'} onClick={() => chooseTool(item.tool)} />)}<IconButton icon={isImportingIcon ? LoaderCircle : ImagePlus} label="Import custom icon" disabled={!writable || isImportingIcon} onClick={openIconPicker} /><IconButton icon={CommandIcon} label="Commands" className="commands-trigger" onMouseDown={event => event.preventDefault()} onClick={openCommands} /><span className="rail-spacer" /><EditorThemeToggle /><IconButton icon={ClipboardPaste} label="Paste selection" disabled={!writable || !hasClipboard} onClick={() => paste()} /><IconButton icon={PanelRight} label="Document properties" onClick={() => documentProperties()} /></nav>}
+      {!presenting && <nav className="tool-rail" aria-label="Drawing tools"><IconButton icon={CircleHelp} label="Help" className="help-trigger" disabled={guideBlocked} onPointerDown={() => { if (!guideBlocked && !composing.current && !inlineComposing.current) guideOpening.current = true }} onMouseDown={event => event.preventDefault()} onClick={openGuide} />{tools.map(item => <IconButton key={item.tool} icon={item.icon} label={item.label} active={tool === item.tool} disabled={!writable && item.tool !== 'select' && item.tool !== 'pan'} onClick={() => chooseTool(item.tool)} />)}<IconButton icon={isImportingIcon ? LoaderCircle : ImagePlus} label="Import custom icon" disabled={!writable || isImportingIcon} onClick={openIconPicker} /><IconButton icon={CommandIcon} label="Commands" className="commands-trigger" onMouseDown={event => event.preventDefault()} onClick={openCommands} /><span className="rail-spacer" /><EditorThemeToggle /><IconButton icon={ClipboardPaste} label="Paste selection" disabled={!writable || !hasClipboard} onClick={() => paste()} /><IconButton icon={PanelRight} label="Document properties" data-markdown-ui onMouseDown={event => event.preventDefault()} onClick={() => sidebarView === 'markdown' || descriptionDraft ? showSidebar('properties') : documentProperties()} /><IconButton icon={FileText} label="Open Markdown" active={inspectorOpen && sidebarView === 'markdown'} data-markdown-ui onMouseDown={event => event.preventDefault()} onClick={() => showSidebar('markdown')} /></nav>}
       <aside className={`library ${!presenting && libraryOpen ? 'open' : ''}`} aria-label="Component library" inert={presenting || !libraryOpen}>
         <div className="panel-heading"><h2>Components</h2><div className="panel-actions">{windowWidth > 900 && <IconButton icon={libraryPinned ? PinOff : Pin} label={libraryPinned ? 'Unpin component library' : 'Pin component library'} active={libraryPinned} onClick={toggleLibraryPin} />}<IconButton icon={PanelLeftClose} label="Close component library" onClick={() => setLibraryOpen(false)} /></div></div>
         <CatalogAccordion writable={writable} selectedIcon={tool === 'component' ? template.icon : null} favoriteIcons={favoriteIcons} onToggleFavorite={toggleFavorite} onClearFavorites={clearFavorites} recentIcons={recentIcons} onClearRecents={clearRecents} onChoose={chooseComponent} />
@@ -1152,18 +1211,20 @@ export default function EditorSurface(props: EditorProps) {
         {!presenting && (selectedIds.length > 0 || selectedEdges.length > 0) && <div className="canvas-selection-toolbar" data-fit-chrome="bottom" aria-label="Selection actions">{entityActions}<IconButton icon={ClipboardPaste} label="Paste clipboard" disabled={!writable || !hasClipboard} onClick={() => paste()} /><span className="separator" /><IconButton icon={Group} label="Group selection" disabled={!writable || !selectedIds.length} onClick={groupSelection} /><IconButton icon={Ungroup} label="Ungroup selection" disabled={!writable || !boundaries.length} onClick={ungroupSelection} />{connection && <IconButton icon={Plus} label={`Insert ${template.label} on connection`} disabled={!writable} onClick={() => insertComponent(template)} />}</div>}
         <div className="canvas-navigation">
         {presenting && <div className="presentation-status" data-fit-chrome="bottom" role="status" aria-live="polite">{notice || props.message || (props.readOnly ? 'Read-only' : '')}</div>}
-        {!presenting && <div className="mobile-controls" data-fit-chrome="bottom"><IconButton icon={Boxes} label="Open component library" active={libraryOpen} onClick={() => libraryOpen ? setLibraryOpen(false) : openLibrary()} /><IconButton icon={PanelRight} label="Open properties" active={inspectorOpen} onClick={() => inspectorOpen ? setInspectorOpen(false) : openInspector()} /></div>}
+        {!presenting && <div className="mobile-controls" data-fit-chrome="bottom"><IconButton icon={Boxes} label="Open component library" active={libraryOpen} onClick={() => libraryOpen ? setLibraryOpen(false) : openLibrary()} /><IconButton icon={PanelRight} label="Open properties" active={inspectorOpen && sidebarView === 'properties'} data-markdown-ui onMouseDown={event => event.preventDefault()} onClick={() => inspectorOpen && sidebarView === 'properties' ? closeSidebar() : showSidebar('properties')} /><IconButton icon={FileText} label="Open Markdown" active={inspectorOpen && sidebarView === 'markdown'} data-markdown-ui onMouseDown={event => event.preventDefault()} onClick={() => showSidebar('markdown')} /></div>}
         <div className="zoom-controls" data-fit-chrome="bottom"><IconButton icon={Minus} label="Zoom out" onClick={() => void zoomOut({ duration: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 0 : 150 })} /><span>{Math.round(zoom * 100)}%</span><IconButton icon={Plus} label="Zoom in" onClick={() => void zoomIn({ duration: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 0 : 150 })} /><span className="separator" /><IconButton icon={Maximize2} label="Fit diagram" disabled={!scene.entities.length} onClick={() => fitCanvas()} /><IconButton icon={Scan} label="Fit selection" disabled={!selectedIds.length} onClick={() => fitCanvas(true)} /></div>
         </div></div>
         {presenting && <>
           <PresentationMarkup />
-          <div className="presentation-controls" data-fit-chrome="top" role="group" aria-label="Presentation controls"><button ref={exitButton} type="button" className="present-button" aria-label="Exit presentation" title="Exit presentation" onClick={() => exitPresentation()}><X size={18} /><span>Exit</span></button><IconButton icon={Crosshair} label="Presentation pointer" active={pointerEnabled} onClick={() => { const bounds = canvasElement.current?.getBoundingClientRect(); setPointer({ x: (bounds?.width ?? 0) / 2, y: (bounds?.height ?? 0) / 2 }); setPointerEnabled(!pointerEnabled); if (!pointerEnabled) requestAnimationFrame(() => pointerElement.current?.focus()) }} /><IconButton icon={Expand} label="Fullscreen presentation" onClick={() => void fullscreen()} /></div>
+          <div className="presentation-controls" data-fit-chrome="top" role="group" aria-label="Presentation controls"><button ref={exitButton} type="button" className="present-button" aria-label="Exit presentation" title="Exit presentation" onClick={() => exitPresentation()}><X size={18} /><span>Exit</span></button><IconButton icon={Crosshair} label="Presentation pointer" active={pointerEnabled} onClick={() => { const bounds = canvasElement.current?.getBoundingClientRect(); setPointer({ x: (bounds?.width ?? 0) / 2, y: (bounds?.height ?? 0) / 2 }); setPointerEnabled(!pointerEnabled); if (!pointerEnabled) requestAnimationFrame(() => pointerElement.current?.focus()) }} /><IconButton icon={FileText} label="Open Markdown" active={presentationMarkdownOpen} data-markdown-ui onClick={() => setPresentationMarkdownOpen(!presentationMarkdownOpen)} /><IconButton icon={Expand} label="Fullscreen presentation" onClick={() => void fullscreen()} /></div>
           {pointerEnabled && <div ref={pointerElement} tabIndex={0} role="img" aria-label="Presentation pointer position" className="presentation-pointer" style={{ left: pointer.x, top: pointer.y }} onKeyDown={event => { const delta: Record<string, Point> = { ArrowLeft: { x: -1, y: 0 }, ArrowRight: { x: 1, y: 0 }, ArrowUp: { x: 0, y: -1 }, ArrowDown: { x: 0, y: 1 } }; if (event.ctrlKey || event.metaKey || event.altKey || !delta[event.key]) return; event.preventDefault(); const bounds = canvasElement.current?.getBoundingClientRect(); const step = event.shiftKey ? 40 : 10; const direction = delta[event.key]; setPointer(current => ({ x: Math.max(12, Math.min((bounds?.width ?? 24) - 12, current.x + direction.x * step)), y: Math.max(12, Math.min((bounds?.height ?? 24) - 12, current.y + direction.y * step)) })) }} />}
         </>}
       </main>
-      <aside className={`inspector ${!presenting && inspectorOpen ? 'open' : ''}`} aria-label="Properties" inert={presenting || !inspectorOpen}>
-        <div className="panel-heading"><h2><SlidersHorizontal size={15} />Properties</h2><IconButton icon={X} label="Close properties" onClick={() => setInspectorOpen(false)} /></div>
-        <div className="inspector-content"><div className="inspector-kind">{panelTitle}{multiSelection && <span>{selectedIds.length}</span>}</div>
+      <aside className={`inspector shared-sidebar ${presenting || sidebarView === 'markdown' ? 'markdown-sidebar' : ''} ${(presenting ? presentationMarkdownOpen : inspectorOpen) ? 'open' : ''}`} style={{ '--sidebar-width': `${visibleSidebarWidth}px` } as CSSProperties} aria-label={presenting || sidebarView === 'markdown' ? 'Markdown' : 'Properties'} inert={presenting ? !presentationMarkdownOpen : !inspectorOpen}>
+        {(presenting ? presentationMarkdownOpen : inspectorOpen) && <MarkdownSidebarResize width={visibleSidebarWidth} minimum={240} maximum={sidebarMaximum} onChange={setSidebarWidth} />}
+        <div className="panel-heading"><h2>{presenting || sidebarView === 'markdown' ? <FileText size={15} /> : <SlidersHorizontal size={15} />}{presenting || sidebarView === 'markdown' ? 'Markdown' : 'Properties'}</h2><div className="panel-actions" data-markdown-ui>{!presenting && <><IconButton icon={PanelRight} label="Show properties" active={sidebarView === 'properties'} onMouseDown={event => event.preventDefault()} onClick={() => showSidebar('properties')} /><IconButton icon={FileText} label="Show Markdown" active={sidebarView === 'markdown'} onMouseDown={event => event.preventDefault()} onClick={() => showSidebar('markdown')} /></>}<IconButton icon={X} label={presenting || sidebarView === 'markdown' ? 'Close Markdown' : 'Close properties'} onMouseDown={event => event.preventDefault()} onClick={closeSidebar} /></div></div>
+        {(presenting || sidebarView === 'markdown') && <div className="markdown-sidebar-content">{(!presenting || presentationMarkdownOpen) && descriptionEditor}</div>}
+        <div className="inspector-content" hidden={presenting || sidebarView !== 'properties'} inert={presenting || sidebarView !== 'properties'}><div className="inspector-kind">{panelTitle}{multiSelection && <span>{selectedIds.length}</span>}</div>
           {selected && <>
             {!multiSelection && <>
               {visibleInline?.id !== selected.id && <Property label={selected.kind === 'text' ? 'Text' : 'Label'}>{field(selected.kind === 'text' ? 'Note text' : 'Component label', selected.label, selected.kind === 'text' ? 2000 : 120, value => editEntity({ label: value }, true), selected.kind === 'text')}</Property>}
@@ -1196,6 +1257,7 @@ export default function EditorSurface(props: EditorProps) {
           </>}
           {!selected && !connection && <>
             <Property label="Subtitle">{field('Document subtitle', diagram.subtitle, 200, value => editMetadata({ subtitle: value }, true))}</Property>
+            <div className="property"><span>Architecture description (Markdown)</span>{!presenting && sidebarView === 'properties' && descriptionEditor}</div>
             <div className="property"><span>Background</span><div className="background-controls"><input type="color" aria-label="Diagram background color" value={fullHex(scene.backgroundColor).toLowerCase()} disabled={!writable} onChange={event => { if (isHexColor(event.target.value)) editMetadata({ backgroundColor: event.target.value }, true); else { clearPreview(); setNotice('backgroundColor: Use #RGB or #RRGGBB.') } }} onBlur={() => finish()} onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); clearPreview() } if (event.key === 'Enter') event.currentTarget.blur() }} /><IconButton icon={Undo2} label="Reset diagram background" disabled={!writable} onMouseDown={event => event.preventDefault()} onClick={() => { clearPreview(); setBackgroundReset(value => value + 1); editMetadata({ backgroundColor: undefined }) }} /></div></div>
             <Property label="Background hex color"><HexField key={`${props.document.id}:${backgroundReset}`} label="Background hex color" color={props.document.backgroundColor ?? '#ffffff'} disabled={!writable} onDraft={backgroundColor => editMetadata({ backgroundColor }, true)} onFinish={() => finish()} onCancel={clearPreview} /></Property>
             <div className="grid-controls" role="group" aria-label="Grid settings">
@@ -1215,7 +1277,7 @@ export default function EditorSurface(props: EditorProps) {
             <label className="property-toggle"><input aria-label="Synthetic diagram" type="checkbox" checked={diagram.synthetic} disabled={!writable} onChange={event => editMetadata({ synthetic: event.target.checked })} />Synthetic</label><label className="property-toggle"><input aria-label="Show legend" type="checkbox" checked={diagram.legendVisible} disabled={!writable} onChange={event => editMetadata({ legendVisible: event.target.checked })} />Show legend</label>
             <div className="readout"><span>Objects</span><strong>{diagram.entities.length}</strong></div><div className="readout"><span>Connections</span><strong>{diagram.connections.length}</strong></div>
           </>}
-        </div><div className="inspector-footer"><span className={`status-dot state-${props.saveState}`} />{props.readOnly ? 'Read-only' : SAVE_LABELS[props.saveState]}</div>
+        </div>{!presenting && <div className="inspector-footer"><span className={`status-dot state-${props.saveState}`} />{props.readOnly ? 'Read-only' : SAVE_LABELS[props.saveState]}</div>}
       </aside>
     </div>
     {!presenting && <footer className="statusbar"><span><span className={`status-dot state-${props.saveState}`} /><span className="save-label">{SAVE_LABELS[props.saveState]}</span><span className="footer-divider" /><span className="backup-state">{props.backupDirty ? 'Editable JSON copy needed' : 'No newer JSON changes'}</span><span className="object-count"><span className="footer-divider" />{diagram.entities.length} objects</span></span><span role="status" title={notice || props.message}>{notice || props.message || (connectionStart ? 'Connection source selected' : tool === 'component' ? template.label : '')}</span><span className="status-right">{Math.round(zoom * 100)}%{diagram.synthetic && <><span className="footer-divider" />Synthetic</>}</span></footer>}

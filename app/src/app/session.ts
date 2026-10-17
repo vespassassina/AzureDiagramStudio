@@ -3,18 +3,13 @@ import { createDocument, historyCommit, historyRedo, historyUndo, sampleDiagram 
 import type { Diagram, Direction, History } from '../model.ts'
 import type { DocumentCommand, DocumentStorage, ExportOptions, ExportSceneOptions, SaveState, StarterKey } from '../contracts.ts'
 import type { LayoutResult } from '../layout.ts'
-import webApiSource from '../../../examples/azure-web-app.json?raw'
-import eventSource from '../../../examples/event-driven.json?raw'
-import fabricSource from '../../../examples/fabric-onelake.json?raw'
-import enterpriseSource from '../../../examples/enterprise-integration.json?raw'
+import { starterCatalog } from './starters.ts'
 
-const starterSources: Record<StarterKey, string> = {
-  'web-api': webApiSource, 'event-driven': eventSource, fabric: fabricSource, enterprise: enterpriseSource,
-}
-export const starterKeys: readonly StarterKey[] = ['web-api', 'event-driven', 'fabric', 'enterprise']
+export const starterKeys: readonly StarterKey[] = starterCatalog.map(choice => choice.key)
 export function starterDocument(key: StarterKey): Diagram {
-  if (!Object.hasOwn(starterSources, key)) throw new Error('Choose an available starting diagram')
-  const parsed = parseDocument(starterSources[key])
+  const choice = starterCatalog.find(candidate => candidate.key === key)
+  if (!choice) throw new Error('Choose an available starting diagram')
+  const parsed = parseDocument(choice.source)
   if (!parsed.ok) throw new Error(parsed.errors.map(issue => `${issue.path}: ${issue.message}`).join('; '))
   return parsed.value
 }
