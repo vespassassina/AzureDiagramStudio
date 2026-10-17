@@ -140,3 +140,26 @@ Evidence: [independent native report](verification/DGM-113-windows-arm64.md).
 	this x86 NSIS bootstrap carries ARM64 Electron, verified natively after launch.
 	CDP offline and a local unsigned launch are bounded evidence, not physical
 	disconnection or downloaded-file SmartScreen/policy acceptance.
+
+## 2026-10-17: DGM-125 Fullscreen And Release Verification
+
+Evidence: [final release closeout](verification/DGM-125.md#final-stable-publication---2026-10-17).
+
+- Browser fullscreen acceptance does not prove packaged Electron permission
+	behavior. Trace the actual trusted request before changing policy; keep a
+	narrow registered-live-main-frame exception, deny automatic fullscreen and
+	all unrelated permissions, and verify both actual target portables.
+- Validate effective runtime paths, not just outer environment settings. The
+	desktop driver deliberately sets TEMP/TMP to profileRoot. Separate nested
+	reports from short fresh owned profiles; bound both extracted payload paths
+	and Chromium IndexedDB paths before launch. Shortening only outer TEMP or
+	guessing a helper's imported output root did not repair the real paths.
+- Test actual controls and their owning handlers. Exit presentation leaves
+	both Present and fullscreen; a nonexistent Exit fullscreen selector cannot
+	establish a product defect. Preserve the failure, correct the adapter only,
+	and retain exact restoration/history checks plus a separate idle-Escape case.
+- Distinguish artifact hashes from historical filesystem metadata. Complete
+	anonymous download hashes and old-release fingerprints passed while seven
+	local text-file modification times drifted with unchanged bytes. Retain and
+	disclose the failed metadata check; do not restore timestamps or claim an
+	unqualified historical-preservation pass to close the release.

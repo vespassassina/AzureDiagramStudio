@@ -1,29 +1,28 @@
 # Azure Diagram Studio: Short Manual
 
-This manual describes the Sprint 4 source controls, [first-use UI guide](verification/DGM-117.md) and [editor/markup improvements](verification/DGM-118.md). See [Sprint 4 verification](verification/sprint-4-review.md) for the historical passing integration gate (5,488 tests), retained failures and remaining manual checks. The [public 0.2.0 ARM64 prerelease](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/arm64-v0.2.0) is unchanged. The latest [local DGM-121 package](verification/DGM-121.md) includes Help, quick delete, larger handles, corrected Escape gestures/tooltips, context actions and presentation markup, with bounded native automated acceptance. No general platform or human acceptance is inferred. The separate v0.1.0 links below identify the historical stable release.
+This manual describes the [final Windows 0.2.0 release](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/windows-v0.2.0), including the [first-use UI guide](verification/DGM-117.md), [editor/markup improvements](verification/DGM-118.md), guided starters and Markdown sidebar. The [DGM-125 verification report](verification/DGM-125.md#final-stable-publication---2026-10-17) identifies exact source `7783b384e5a46160bdd340112c924f019e0c7830`, both tested packages, retained failures and public download hashes. Earlier releases and local packages remain unchanged historical artifacts, not the current downloads. Stable publication is not general platform or human certification.
 
 The newer [guided starters and saved descriptions](verification/DGM-122.md),
 plus [Markdown Edit/Preview and the shared presentation sidebar](verification/DGM-124.md),
-are available in the source preview at http://127.0.0.1:5224/. They are not in
-those previously built/published executables; no new packaging or publication
-was performed for these additions.
+are included in both final Windows packages and remain available in the source
+preview at http://127.0.0.1:5224/. They are not retroactively added to older EXEs.
 
 ## Install and Launch
 
-Download from the verified [v0.1.0 release](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/v0.1.0), or use the [README download links](../README.md#release-downloads). The source repository is public. Both portable files bundle the runtime and work without Node.js, a local server or a cloud account.
+Download from the verified [final Windows 0.2.0 release](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/windows-v0.2.0), or use the [README download links](../README.md#release-downloads). The source repository is public. Both portable files bundle the runtime and work without Node.js, a local server or a cloud account.
 
 For the published Windows ARM64 prerelease, use [arm64-v0.2.0](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/arm64-v0.2.0) and its own checksum manifest. There is no 0.2.0 x64/Mac asset in that release. Its attached source candidate ZIP, not GitHub's automatic tag archives, contains that older verified candidate; at its publication no source branch was pushed. The later source milestone and local guide package do not replace those release assets.
 
 1. In Windows **Settings > System > About**, check **System type**. Choose **ARM64** for Windows on ARM/Snapdragon, or **x64** for Intel/AMD Windows PCs.
-2. Choose the matching `Azure-Diagram-Studio-0.1.0-win-{arch}-portable.exe` and [SHA256SUMS.txt](https://github.com/vespassassina/AzureDiagramStudio/releases/download/v0.1.0/SHA256SUMS.txt) from the same release. Downloads are approximately 403-404 MB.
+2. Choose the matching `Azure-Diagram-Studio-0.2.0-win-{arch}-portable.exe` and [SHA256SUMS.txt](https://github.com/vespassassina/AzureDiagramStudio/releases/download/windows-v0.2.0/SHA256SUMS.txt) from the same release. Downloads are approximately 403-404 MB.
 3. Compare `Get-FileHash '.\your-downloaded-file.exe' -Algorithm SHA256` with the matching manifest entry. A mismatch means do not run the file.
 4. Launch the portable executable. No separate Node.js installation or cloud sign-in is needed for the packaged runtime. Unsigned executables can trigger SmartScreen: follow your organization's policy, and do not disable security protections.
 
 Source/browser setup is in the [README](../README.md#build-from-source). Packaged offline launch, workers, image import, exports, themes and autosave/relaunch were tested. ARM64 ran natively; x64 ran under Windows ARM64 emulation rather than native Intel/AMD hardware. SmartScreen behavior and native save-dialog appearance remain manual checks. Browser diagrams do not automatically appear in desktop: Save JSON in the browser and Open JSON in the executable.
 
-The current **published 0.2.0 ARM64 candidate** passed independent automated portable-runtime checks: layout/undo, custom images, JSON/SVG/PNG output, themes and autosave after moving/relaunching the executable. See the [ARM64 runtime report](verification/DGM-113-windows-arm64.md) and [publication report](verification/release-0.2.0-arm64.md) for the exact artifact, hashes and retained failures. It remains unsigned and prerelease. Network-offline emulation is not physical-disconnection, SmartScreen, native-dialog or Teams/Office acceptance.
+Both **final Windows 0.2.0 packages** passed independent general desktop checks and targeted latest-feature checks. Native/DOM fullscreen, preview-only sidebar and ink, exit/restoration, Escape and next-edit Undo passed after the approved trusted-main-frame-only permission repair; automatic fullscreen and all other permissions remain denied. Complete anonymous downloads matched all four asset hashes. See [DGM-125](verification/DGM-125.md#final-stable-publication---2026-10-17). Packages remain unsigned. Network-offline emulation is not physical-disconnection, SmartScreen, native-dialog or Teams/Office acceptance. No profile migration or automatic update occurs; retain JSON backups, especially before resaving newer documents with older versions.
 
-## Latest Local Editor And Markup ARM64 Package
+## Historical Local Editor And Markup ARM64 Package
 
 [Open the rebuilt local portable](../app/test-results/platform/windows-arm64/20261016T165838092Z/candidate/app/release/Azure-Diagram-Studio-0.2.0-win-arm64-portable.exe).
 This unsigned 0.2.0 package is **403,360,240 bytes** and contains the accepted
@@ -53,7 +52,7 @@ identifies its earlier executable-input merge separately. Physical offline,
 downloaded-file policy, human dialogs/IME/clipboard, Teams/Office, novice and
 other-platform acceptance remain separate.
 
-## Local Current-Guide ARM64 Candidate
+## Historical Local Current-Guide ARM64 Candidate
 
 This preceding Help-only candidate remains unchanged; the later DGM-121 package
 above adds the editor gestures, context menu and presentation markup.

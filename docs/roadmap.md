@@ -1,6 +1,6 @@
 # Diagrammer Roadmap and Delegation Plan
 
-Updated: 2026-10-17. Status: DGM-122/123/124 SOURCE ACCEPTED AND DELIVERED; DIRECT SOURCE MILESTONE source-v0.2.0-dgm124; PRIOR PACKAGES/RELEASES UNCHANGED.
+Updated: 2026-10-17. Status: DGM-125 FINAL WINDOWS ARM64/x64 RELEASE PUBLISHED STABLE/LATEST; ALL FOUR PUBLIC DOWNLOAD HASHES VERIFIED; LOCAL TIMESTAMP-ONLY EVIDENCE WARNING RETAINED.
 
 ## Current Execution Policy
 
@@ -66,6 +66,13 @@ existing default branch. The annotated source-only milestone
 desktop rebuild, binary upload, old-tag replacement or release publication is
 part of that request; normal existing branch CI may run without policy changes.
 
+The PO subsequently requested final ARM64 and x64 releases, explicitly not RC.
+[DGM-125](specs/DGM-125.md) authorizes fresh two-target Windows packaging,
+independent actual-runtime checks and stable/latest GitHub publication under
+`windows-v0.2.0` at source `69d89cc`. Prior releases remain intact; native ARM64,
+x64-under-ARM64-emulation and unsigned/human qualification limits stay explicit.
+This is not permission for a Mac release, signing or security/CI changes.
+
 ## Execution Queue
 
 Execute in order; skip only blocked dependencies, not acceptance criteria.
@@ -93,6 +100,7 @@ they are not fresh independent test results.
 | 16 | [DGM-123](specs/DGM-123.md): AUTOMATED COMPLETE / visual review PASS | [Independent report](verification/DGM-122.md): seven Learn adaptations plus original four, 72 starter/Blank selections across six viewport/theme cells, eleven previews, seven detailed exports, literal guides/references/fresh copies/keyboard and geometry pass. Owner 695/8-file test slice is dated, not repeated independently. Parent inspected all seven diagrams, mobile chooser and description. | Approved source queue complete; preview http://127.0.0.1:5224/. Manual and source limitations reconciled; detailed evidence/first failures retained. Existing normal app/profile, packages, tags and public releases unchanged. New commit/push/tag, native rebuild or publication needs separate authorization; human/platform cells remain separate. |
 | 17 | [DGM-124](specs/DGM-124.md): AUTOMATED COMPLETE / parent visual review PASS | [Independent report](verification/DGM-124.md): 52 focused tests, both typechecks, one isolated build, 51 accepted browser groups across desktop/mobile/short light/dark; hostile/no-network preview, shared draft/Undo and selected context, pointer/keyboard resize/cancel/collapse/reopen, Present/fullscreen/ink/restoration and exact JSON/SVG/PNG checks pass. Owner 418+37 gates retained as dated evidence. Only marked18.1.0 with license/notice added; no old dependency drift/security-policy change. | Approved source queue complete; preview http://127.0.0.1:5224/. Parent inspected editing/Present/fullscreen/mobile/hostile screenshots and reconciled manual/specs. Preserve existing normal app/profile, packages and tags. New Git delivery, native rebuild or publication needs separate authorization; no platform/human acceptance implied. |
 | 18 | DGM-122/123/124 authorized direct source delivery: DELIVERED SOURCE SNAPSHOT | Feature `97efbb8` and source merge `58448ff` contain the exact 33 accepted source/example/dependency/license inputs and seven accepted documents. Source merge and feature branch are pushed; source milestone [source-v0.2.0-dgm124](https://github.com/vespassassina/AzureDiagramStudio/tree/source-v0.2.0-dgm124) additionally identifies this documentation-only closeout. [Retained operation recorder](../app/test-results/source-publication/20261017T121719646Z/git.mjs) preserves first command outputs/input identity. | Verify final origin default and peeled annotated tag agree and worktree/index are clean, then stop approved work. Existing binaries and older tags/assets are unchanged. Native rebuild, public binary delivery, signing and human/platform qualification remain separate explicit tasks. No PR. |
+| 19 | [DGM-125](specs/DGM-125.md): FINAL WINDOWS RELEASE PUBLISHED / PUBLIC DOWNLOAD VERIFICATION PASS | [Stable/latest release](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/windows-v0.2.0), ID416002142, is not draft/prerelease. Annotated tag peels to exact repair source `7783b384e5a46160bdd340112c924f019e0c7830`. Independent [public verification](../app/test-results/releases/windows-v0.2.0/20261017T125954543Z/repair-cycle1/public-verification/20261017T191118217Z/public-verification-final-handoff.json) fully downloaded all four assets (807,858,504 bytes), matching sealed SHA256; older releases/assets/refs unchanged. Both native/emulated runtime gates pass, cycle1 closed, historical failures retained. | Requested release delivered; do not rebuild, retag, republish or repeat passing gates. README/manual/report identify final assets and unsigned/native-ARM64/emulated-x64 limits. Seven retained local text files have unexplained modification-time drift with identical bytes/hashes; failed metadata check remains visible, not PASS, and timestamps are not restored. No artifact/source/remote integrity mismatch or new product blocker; human/other-platform qualification remains separate. |
 
 DGM-109 and DGM-111 already have independent reports; they are not new
 implementation tasks. DGM-112's desk investigation is complete, not an invitation
