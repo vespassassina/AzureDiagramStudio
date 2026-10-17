@@ -2,6 +2,12 @@
 
 This manual describes the Sprint 4 source controls, [first-use UI guide](verification/DGM-117.md) and [editor/markup improvements](verification/DGM-118.md). See [Sprint 4 verification](verification/sprint-4-review.md) for the historical passing integration gate (5,488 tests), retained failures and remaining manual checks. The [public 0.2.0 ARM64 prerelease](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/arm64-v0.2.0) is unchanged. The latest [local DGM-121 package](verification/DGM-121.md) includes Help, quick delete, larger handles, corrected Escape gestures/tooltips, context actions and presentation markup, with bounded native automated acceptance. No general platform or human acceptance is inferred. The separate v0.1.0 links below identify the historical stable release.
 
+The newer [guided starters and saved descriptions](verification/DGM-122.md),
+plus [Markdown Edit/Preview and the shared presentation sidebar](verification/DGM-124.md),
+are available in the source preview at http://127.0.0.1:5224/. They are not in
+those previously built/published executables; no new packaging or publication
+was performed for these additions.
+
 ## Install and Launch
 
 Download from the verified [v0.1.0 release](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/v0.1.0), or use the [README download links](../README.md#release-downloads). The source repository is public. Both portable files bundle the runtime and work without Node.js, a local server or a cloud account.
@@ -92,7 +98,76 @@ start automatically and can be replayed from Help at any time while editing.
 
 Use **Open JSON** and select [Azure web/API](../examples/azure-web-app.json), [Fabric/OneLake](../examples/fabric-onelake.json), [event-driven integration](../examples/event-driven.json) or [Microsoft/enterprise integration](../examples/enterprise-integration.json). These are native schema-1 documents, not skill-import files. All components are synthetic illustrations; none asserts a real deployment or verified integration.
 
-Choose **New diagram**, then **Blank** or one of the four bundled synthetic starters. Escape or Close cancels the chooser without replacing work; opening or canceling it preserves an active label/property draft. An explicit choice uses the existing replacement confirmation and draft-validation rules. A starter is a fresh editable copy and needs its own JSON backup; it is not a deployed architecture. Save a JSON backup before replacing work. Edit the document title in the top bar; use **Document properties** for its subtitle.
+Choose **New diagram**, then **Blank** or one of eleven bundled starters. The
+original Web/API, Event-driven, Fabric and Enterprise examples are retained.
+Seven additional choices are labelled **Learn adaptation**:
+
+| Starter | Microsoft Learn reference |
+| --- | --- |
+| AKS Baseline | [AKS baseline](https://learn.microsoft.com/en-us/azure/architecture/reference-architectures/containers/aks/baseline-aks) |
+| Container Apps Microservices | [Microservices on Container Apps](https://learn.microsoft.com/en-us/azure/architecture/example-scenario/serverless/microservices-with-container-apps) |
+| Web Queue Worker | [Web-Queue-Worker style](https://learn.microsoft.com/en-us/azure/architecture/guide/architecture-styles/web-queue-worker) |
+| Hub-Spoke Network | [Hub-spoke topology](https://learn.microsoft.com/en-us/azure/architecture/networking/architecture/hub-spoke) |
+| SaaS Deployment Stamps | [Deployment stamps](https://learn.microsoft.com/en-us/azure/architecture/patterns/deployment-stamp) |
+| File Processing With Claim Check | [Claim Check pattern](https://learn.microsoft.com/en-us/azure/architecture/patterns/claim-check) |
+| Azure Data Warehouse | [Data warehousing and analytics](https://learn.microsoft.com/en-us/azure/architecture/example-scenario/data/data-warehouse) |
+
+These are original simplified synthetic diagrams informed by the linked
+references, checked 2026-10-17, not copied Microsoft diagrams, deployments or
+production-ready blueprints. Their short guides record relevant source limits,
+including nontransitive peering, non-atomic queue/data writes, no automatic
+cross-stamp failover, separate payload authorization and the warehouse's
+Analysis Services-based design. The chooser scrolls on smaller screens; arrow
+keys and Tab reach all choices. Every starter includes an editable guide in
+document Properties, including the original four generic examples.
+
+Escape or Close cancels the chooser without replacing work; opening/canceling
+preserves an active description/title/label draft. An explicit choice uses the
+existing replacement confirmation and draft-validation rules. Each starter is
+a fresh copy and needs its own JSON backup. Save a JSON backup before replacing
+work. Edit the document title in the top bar; use **Document properties** for
+its subtitle and long description.
+
+## Architecture Description
+
+Open **Document properties**, then **Architecture description (Markdown)**.
+This multiline field stores up to **20,000 characters** of Markdown source.
+Headings, lists, code fences, links, Unicode and line breaks are preserved as
+source. Use **Edit** and **Preview** immediately above the box to switch between
+the source text and its rendered headings, lists, emphasis, code, quotes, tables
+and safe links. Preview uses the current valid draft without changing saved text.
+Raw HTML, scripts, embeds and all images are excluded; preview makes no automatic
+external requests. Safe HTTP(S) links are displayed with no-opener new-tab
+behavior, subject to the existing desktop navigation policy.
+
+Choose **Open Markdown** (document icon) beside **Properties** in the drawing
+rail or canvas panel controls for the full-height Markdown view in the same
+right bar. Its Edit/Preview switch uses the same description and current mode,
+not a second document field. Properties returns to the selected object or
+document context without clearing the selection or moving the camera.
+
+Drag the bar's left separator to resize it, or focus **Resize right sidebar**
+and use Left/Right arrows (Shift for larger steps), Home or End. Width is kept
+for the editor session and clamped to the viewport, not saved in diagram JSON.
+Escape during an active separator drag restores its previous width. Close
+collapses the bar; Properties/Open Markdown reopens it. Long prose scrolls
+vertically; code and wide tables scroll inside the bar, not across the page.
+
+Template guides use Overview, Flow, Decisions, Start Editing and Reference
+sections. Adapt them to your architecture without changing the bundled starter.
+Enter inserts a newline. Leaving the field commits one accepted edit; one Undo
+restores it, and Redo reapplies it. Switching Edit/Preview or Markdown/Properties
+does not commit or discard the active description draft. Escape cancels it;
+clearing removes the optional field. Read-only sessions can select source and
+use Preview but cannot edit. Loading and Present also block document mutation.
+
+The description is included in native Save JSON, Open JSON and local recovery,
+not in SVG/PNG pictures or diagram artwork. Present may display the same text
+in its reading sidebar, separately from the picture. Description-only
+edits retain layout and route geometry. The schema remains version 1 with an
+optional field: older documents still open, but older binaries may discard this
+metadata when resaving. Keep backups and use the current source client to edit
+descriptions. The separate strict skill-spec import format was not extended.
 
 ## Add and Find Components
 
@@ -179,7 +254,16 @@ The inspector starts closed. On constrained screens, opening Properties or the l
 
 Choose **Present** to hide editing controls, handles and selection outlines. Grid is hidden unless **Show grid in Present** is enabled. With objects selected, entry frames their content; with nothing selected, it frames the whole diagram. Use **Fit diagram** to return to the full architecture or **Fit selection** for the retained selection. Content outside a focused selection can still be visible when panning: this is focus, not redaction.
 
-Pan and zoom remain available in **Navigate**, the initial markup mode. **Presentation pointer** shows a temporary pointer; it follows pointer movement and supports arrow keys when focused. It is not saved or included in exports. **Fullscreen presentation** is optional; if denied, presentation continues in the window. **Exit**, or Escape when no drawing stroke is active, restores the previous camera, panel preferences, selection and tool. A storage-lock change still applies after exit.
+Pan and zoom remain available in **Navigate**, the initial markup mode. **Presentation pointer** shows a temporary pointer; it follows pointer movement and supports arrow keys when focused. It is not saved or included in exports. **Fullscreen presentation** is optional; if denied, presentation continues in the window. **Exit**, or Escape when no drawing stroke or sidebar resize is active, restores the previous camera, panel preferences, selection and tool. A storage-lock change still applies after exit.
+
+Present shows the Markdown preview bar automatically when the diagram has a
+description. Use the document icon beside the presentation controls to collapse
+or reopen it; an empty description can still open the bar. The same left-edge
+pointer/keyboard resize works, including fullscreen, but Present has no Edit
+mode or editing properties. Preview text is selectable and scrollable. On narrow
+screens the bar overlays part of the canvas: collapse it to expose drawing and
+navigation controls, then reopen it without losing temporary ink. Exit restores
+the pre-presentation panel view, Edit/Preview mode, width and open/closed intent.
 
 Choose **Draw** (pencil) for temporary whiteboard markup. Pick red, blue, green,
 yellow or black; red is initially selected. Primary click+drag draws a thick
@@ -214,7 +298,7 @@ Component **Status** can be **Unset**, **Live**, **Planned**, **Not connected** 
 - **Import skill JSON** is separate: it accepts architecture-skill specifications and reports import warnings. Check labels, grouping, unsupported icons and connection meanings after importing.
 - If the session shows **Read-only**, another session may own editing. You can still save a JSON backup; close the other editing session and let the app reacquire ownership. Do not clear storage to force ownership.
 
-The schema stays at version 1 with optional custom-icon, numeric-order, background and grid fields. Older documents still open, but a pre-feature client is not a safe way to edit and resave a document containing these fields: it may reject or lose fields it does not support. Keep the original backup and use a current client.
+The schema stays at version 1 with optional custom-icon, numeric-order, background, grid and Markdown-description fields. Older documents still open, but a pre-feature client is not a safe way to edit and resave a document containing these fields: it may reject or lose fields it does not support. Keep the original backup and use a current client.
 
 ## Export Pictures
 

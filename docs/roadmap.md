@@ -1,6 +1,6 @@
 # Diagrammer Roadmap and Delegation Plan
 
-Updated: 2026-10-16. Status: DGM-121 SOURCE DELIVERY FINALIZED; CURRENT LOCAL ARM64 EDITOR/MARKUP PACKAGE NATIVE ACCEPTANCE PASS AND OPEN; PRIOR RELEASES UNCHANGED; MANUAL/OTHER-PLATFORM GATES REMAIN SEPARATE.
+Updated: 2026-10-17. Status: DGM-124 MARKDOWN PREVIEW/SHARED RESIZABLE PRESENTATION BAR AUTOMATED SOURCE ACCEPTANCE COMPLETE / VISUAL REVIEW PASS; PRIOR PACKAGES/TAGS UNCHANGED.
 
 ## Current Execution Policy
 
@@ -45,6 +45,20 @@ PRs, an isolated current ARM64 package/native check and normal launch in a fresh
 persistent profile while preserving the old live window. Existing release
 assets remain unchanged; no public binary publication or signing is inferred.
 
+The PO's 2026-10-17 request authorizes [DGM-122](specs/DGM-122.md), an additive
+saved Markdown-source diagram description in Properties, and [DGM-123](specs/DGM-123.md),
+seven curated Azure Architecture Center adaptations with original short guides.
+No Markdown parser dependency was approved while the PO was unavailable, so the
+description remains an inert source editor. Preserve earlier binaries/live
+profiles; this source feature request does not authorize packaging or Git delivery.
+
+The PO subsequently explicitly requested rendered Edit/Preview, a Markdown
+sidebar button beside Properties, and a resizable/collapsible preview bar in
+Present. [DGM-124](specs/DGM-124.md) supersedes SOURCE-only display for this new
+request. Following the delegated parser decision it pins only marked 18.1.0,
+reuses DOMPurify and changes no Electron policy. Prior field/storage/guide
+acceptance stays; no Git, packaging or release operation is inferred.
+
 ## Execution Queue
 
 Execute in order; skip only blocked dependencies, not acceptance criteria.
@@ -68,6 +82,9 @@ they are not fresh independent test results.
 | 12 | [DGM-119](specs/DGM-119.md): AUTOMATED COMPLETE / attempt 1, repair cycle 1 | [Independent report](verification/DGM-118.md) closes DGM119-VER-001/002/003 with exact physical Escape/release document/geometry/history recovery, active reconnection/library drag and next-gesture/Undo checks. [Final receipt](../app/test-results/editor-interactions/20261016T152504281Z/verifier-recheck-cycle1/final-verification.json): 167 selected tests, both typechecks, fresh isolated build, nine affected browser groups PASS. Original failures and passing menu/handle/tooltip checks retained with dated coverage boundaries. | Complete; no unchanged full-matrix rerun. Parent inspected post-cancel, active reconnect and context-menu screenshots. Human/native/touch/OS-zoom acceptance remains separate; prior package/release unchanged. |
 | 13 | [DGM-120](specs/DGM-120.md): AUTOMATED COMPLETE / visual review PASS | [Integrated report](verification/DGM-118.md) records five-color freehand/Shift rectangle/Alt ellipse/Ctrl arrow pixels, local history/cancel, exact document/export invariants, pan/zoom, read-only, fullscreen and responsive controls. Owner full 417 checks predate capture-only repair; final 167 checks/rechecks are stated separately. | Complete in source and the separately approved local DGM-121 package; markup remains temporary. No extra feature, rebuild or publication follows automatically. |
 | 14 | [DGM-121](specs/DGM-121.md): LOCAL PACKAGE ACCEPTED / NORMAL APP OPEN / FINAL SOURCE MILESTONE | Source merge `15a3438` is pushed; harness-only follow-up `9b99e9b` does not change packaged inputs. [Report](verification/DGM-121.md): exact 403,360,240-byte EXE SHA256 `94e6cf183dd36e4577b99ab55957b7f8a7c9b0fbb61021a6e0fc2bab22c2baeb`; 10 general groups (nine dated + one fresh), 10 fresh targeted groups, cycle-2 driver observation/cleanup PASS with original failures retained. New normal window PID30304 has the accepted ASAR and fresh persistent profile. | Deliver final documentation and annotated `source-v0.2.0-dgm120` directly, without PR; verify remote refs/clean tree and leave new PO app running. Thereafter stop approved work. Old PID31104 exit/unsaved state remains UNKNOWN; no old-profile access/reopen, binary upload, signing or human/platform acceptance claim. |
+| 15 | [DGM-122](specs/DGM-122.md): AUTOMATED COMPLETE / visual review PASS | [Independent combined report](verification/DGM-122.md): 51 selected tests, both typechecks, isolated build, 25 description browser groups; 20,000-character inert Markdown source/native JSON/storage/history/guards pass, with exact SVG/PNG parity and legacy omission. Owner foundation evidence remains dated. | Complete; Document properties -> Architecture description (Markdown) in http://127.0.0.1:5224/. DGM-124 subsequently adds sanitized Preview and shared sidebar without changing the saved-field contract; no strict skill-format extension, migration or old-package update. |
+| 16 | [DGM-123](specs/DGM-123.md): AUTOMATED COMPLETE / visual review PASS | [Independent report](verification/DGM-122.md): seven Learn adaptations plus original four, 72 starter/Blank selections across six viewport/theme cells, eleven previews, seven detailed exports, literal guides/references/fresh copies/keyboard and geometry pass. Owner 695/8-file test slice is dated, not repeated independently. Parent inspected all seven diagrams, mobile chooser and description. | Approved source queue complete; preview http://127.0.0.1:5224/. Manual and source limitations reconciled; detailed evidence/first failures retained. Existing normal app/profile, packages, tags and public releases unchanged. New commit/push/tag, native rebuild or publication needs separate authorization; human/platform cells remain separate. |
+| 17 | [DGM-124](specs/DGM-124.md): AUTOMATED COMPLETE / parent visual review PASS | [Independent report](verification/DGM-124.md): 52 focused tests, both typechecks, one isolated build, 51 accepted browser groups across desktop/mobile/short light/dark; hostile/no-network preview, shared draft/Undo and selected context, pointer/keyboard resize/cancel/collapse/reopen, Present/fullscreen/ink/restoration and exact JSON/SVG/PNG checks pass. Owner 418+37 gates retained as dated evidence. Only marked18.1.0 with license/notice added; no old dependency drift/security-policy change. | Approved source queue complete; preview http://127.0.0.1:5224/. Parent inspected editing/Present/fullscreen/mobile/hostile screenshots and reconciled manual/specs. Preserve existing normal app/profile, packages and tags. New Git delivery, native rebuild or publication needs separate authorization; no platform/human acceptance implied. |
 
 DGM-109 and DGM-111 already have independent reports; they are not new
 implementation tasks. DGM-112's desk investigation is complete, not an invitation

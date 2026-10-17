@@ -314,7 +314,7 @@ export function applyCommand(document: Diagram, command: DocumentCommand): Diagr
       grow = paste(draft, command.fragment, command.idMap, command.offset)
       break
     case 'metadata':
-      patchFields(command.patch, ['title', 'subtitle', 'backgroundColor', 'grid', 'direction', 'synthetic', 'legendVisible', 'legend'])
+      patchFields(command.patch, ['title', 'subtitle', 'description', 'backgroundColor', 'grid', 'direction', 'synthetic', 'legendVisible', 'legend'])
       Object.assign(draft, command.patch)
       break
     case 'order': {

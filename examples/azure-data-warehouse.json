@@ -1,0 +1,359 @@
+{
+  "schemaVersion": 1,
+  "id": "example-azure-data-warehouse-v1",
+  "title": "Azure Data Warehouse",
+  "subtitle": "Simplified synthetic Learn adaptation. Not deployed.",
+  "synthetic": true,
+  "legendVisible": true,
+  "legend": [
+    {
+      "label": "Synthetic flow",
+      "color": "teal"
+    },
+    {
+      "label": "Optional / supporting dependency",
+      "color": "gray",
+      "dashed": true
+    }
+  ],
+  "revision": 1,
+  "direction": "RIGHT",
+  "entities": [
+    {
+      "id": "sources",
+      "kind": "boundary",
+      "label": "Source owners",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 24,
+      "y": 24,
+      "width": 268,
+      "height": 386,
+      "color": "azure"
+    },
+    {
+      "id": "sql-server",
+      "kind": "component",
+      "label": "SQL Server",
+      "parentId": "sources",
+      "layer": "foreground",
+      "x": 24,
+      "y": 274,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "database",
+      "status": "synthetic"
+    },
+    {
+      "id": "oracle",
+      "kind": "component",
+      "label": "Oracle",
+      "parentId": "sources",
+      "layer": "foreground",
+      "x": 24,
+      "y": 166,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "vendor-oracle",
+      "status": "synthetic"
+    },
+    {
+      "id": "azure-sql",
+      "kind": "component",
+      "label": "Azure SQL",
+      "parentId": "sources",
+      "layer": "foreground",
+      "x": 24,
+      "y": 58,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-sql",
+      "status": "synthetic"
+    },
+    {
+      "id": "engineering",
+      "kind": "boundary",
+      "label": "Engineering owner",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 622,
+      "y": 132,
+      "width": 623,
+      "height": 170,
+      "color": "teal"
+    },
+    {
+      "id": "lake",
+      "kind": "component",
+      "label": "Data Lake Storage",
+      "parentId": "engineering",
+      "layer": "foreground",
+      "x": 24,
+      "y": 58,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "lake",
+      "status": "synthetic"
+    },
+    {
+      "id": "factory",
+      "kind": "component",
+      "label": "Data Factory",
+      "parentId": "engineering",
+      "layer": "foreground",
+      "x": 379,
+      "y": 58,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "Batch orchestration",
+      "icon": "service",
+      "status": "synthetic"
+    },
+    {
+      "id": "analytics",
+      "kind": "boundary",
+      "label": "Analytics owner",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 1589,
+      "y": 132,
+      "width": 943,
+      "height": 170,
+      "color": "amber"
+    },
+    {
+      "id": "synapse",
+      "kind": "component",
+      "label": "Synapse Analytics",
+      "parentId": "analytics",
+      "layer": "foreground",
+      "x": 24,
+      "y": 58,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-00606-icon-service-azure-synapse-analytics",
+      "status": "synthetic"
+    },
+    {
+      "id": "analysis",
+      "kind": "component",
+      "label": "Azure Analysis Services",
+      "parentId": "analytics",
+      "layer": "foreground",
+      "x": 373,
+      "y": 58,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "model",
+      "status": "synthetic"
+    },
+    {
+      "id": "powerbi",
+      "kind": "component",
+      "label": "Power BI",
+      "parentId": "analytics",
+      "layer": "foreground",
+      "x": 699,
+      "y": 58,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "fabric-power-bi-20-color",
+      "status": "synthetic"
+    }
+  ],
+  "connections": [
+    {
+      "id": "skill-edge-1",
+      "from": "sql-server",
+      "to": "lake",
+      "label": "Periodic export",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 268,
+          "y": 342
+        },
+        {
+          "x": 549,
+          "y": 342
+        },
+        {
+          "x": 549,
+          "y": 256
+        },
+        {
+          "x": 646,
+          "y": 256
+        }
+      ],
+      "labelPosition": {
+        "x": 457,
+        "y": 357
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-2",
+      "from": "oracle",
+      "to": "lake",
+      "label": "Periodic export",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 268,
+          "y": 234
+        },
+        {
+          "x": 646,
+          "y": 234
+        }
+      ],
+      "labelPosition": {
+        "x": 457,
+        "y": 249
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-3",
+      "from": "azure-sql",
+      "to": "lake",
+      "label": "Periodic export",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 268,
+          "y": 126
+        },
+        {
+          "x": 549,
+          "y": 126
+        },
+        {
+          "x": 549,
+          "y": 212
+        },
+        {
+          "x": 646,
+          "y": 212
+        }
+      ],
+      "labelPosition": {
+        "x": 457,
+        "y": 141
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-4",
+      "from": "lake",
+      "to": "factory",
+      "label": "Batch input",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 866,
+          "y": 234
+        },
+        {
+          "x": 1001,
+          "y": 234
+        }
+      ],
+      "labelPosition": {
+        "x": 933.5,
+        "y": 249
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-5",
+      "from": "factory",
+      "to": "synapse",
+      "label": "Load / transform",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 1221,
+          "y": 234
+        },
+        {
+          "x": 1613,
+          "y": 234
+        }
+      ],
+      "labelPosition": {
+        "x": 1417,
+        "y": 249
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-6",
+      "from": "synapse",
+      "to": "analysis",
+      "label": "Model data",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 1833,
+          "y": 234
+        },
+        {
+          "x": 1962,
+          "y": 234
+        }
+      ],
+      "labelPosition": {
+        "x": 1897.5,
+        "y": 249
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-7",
+      "from": "analysis",
+      "to": "powerbi",
+      "label": "Report",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 2182,
+          "y": 234
+        },
+        {
+          "x": 2288,
+          "y": 234
+        }
+      ],
+      "labelPosition": {
+        "x": 2235,
+        "y": 249
+      },
+      "routeRevision": 1
+    }
+  ],
+  "description": "## Overview\n\nThis simplified synthetic starter outlines periodic enterprise analytics ingestion. It is not deployed, newly authored guidance, or a Fabric migration recommendation. The reference retains a 2022 authored date despite a 2026 update; review current service choices for your environment.\n\n## Flow\n\nSQL Server, Oracle, and Azure SQL provide periodic exports to Data Lake Storage. Data Factory orchestrates loading into Synapse. Azure Analysis Services supplies the analytical model consumed by Power BI. The three boundaries separate source, engineering, and analytics ownership.\n\n## Decisions\n\nChoose extraction windows, reconciliation, schema evolution, access controls, and recovery requirements before implementing pipelines. Arrows represent intended data movement, not working connections, freshness guarantees, or automatic governance. Analysis Services remains Analysis Services here; no Fabric relabelling or Datamart is implied.\n\n## Start Editing\n\nRename source systems and datasets, identify batch cadence, and assign responsibility for quality checks and semantic measures. Adjust transformation and serving choices only after reviewing workload constraints. This small view omits detailed modeling, incremental-load design, capacity planning, and production operational controls.\n\n## Reference\n\nhttps://learn.microsoft.com/en-us/azure/architecture/example-scenario/data/data-warehouse\n\nChecked 2026-10-17. Original simplified adaptation; synthetic and not deployed. Consult the reference for omitted implementation details."
+}

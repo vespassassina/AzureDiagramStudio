@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "example-azure-web-app-v1",
   "title": "Azure web & API",
+  "description": "## Overview\n\nThis original synthetic example explores web and API ownership. It is not deployed and is not a direct Microsoft Learn adaptation. Boundaries express intended responsibilities, not verified security or connectivity.\n\n## Flow\n\nCustomers enter through Front Door and API Management. Application-owned web, API, and asynchronous processing connect to the illustrated data stores. Platform identity, secrets, and telemetry remain supporting dependencies rather than proof of configured services.\n\n## Decisions\n\nChoose request authentication, data ownership, failure handling, and recovery explicitly. An arrow is an intended interaction, not evidence of authorization, availability, or transactional consistency.\n\n## Start Editing\n\nRename the application team and data stores. Remove unnecessary components, label your actual request and background-work paths, and record operational assumptions before adding implementation detail. This guide is editable document metadata and does not change canvas artwork.\n\n## Reference\n\nOriginal bundled Web/API illustration, not copied from a specific Learn architecture. Review service documentation for your actual environment; this synthetic diagram is not production guidance.",
   "subtitle": "Illustrative request path, application ownership and supporting services. No deployment is implied.",
   "synthetic": true,
   "legendVisible": true,

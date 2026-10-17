@@ -1,0 +1,367 @@
+{
+  "schemaVersion": 1,
+  "id": "example-saas-deployment-stamps-v1",
+  "title": "SaaS Deployment Stamps",
+  "subtitle": "Simplified synthetic Learn adaptation. Not deployed.",
+  "synthetic": true,
+  "legendVisible": true,
+  "legend": [
+    {
+      "label": "Synthetic flow",
+      "color": "teal"
+    },
+    {
+      "label": "Optional / supporting dependency",
+      "color": "gray",
+      "dashed": true
+    }
+  ],
+  "revision": 1,
+  "direction": "RIGHT",
+  "entities": [
+    {
+      "id": "tenants",
+      "kind": "component",
+      "label": "Tenant clients",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 24,
+      "y": 240.5,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "people",
+      "status": "synthetic"
+    },
+    {
+      "id": "routing",
+      "kind": "boundary",
+      "label": "Shared routing owner",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 529,
+      "y": 152,
+      "width": 988,
+      "height": 209,
+      "color": "azure"
+    },
+    {
+      "id": "front",
+      "kind": "component",
+      "label": "Front Door",
+      "parentId": "routing",
+      "layer": "foreground",
+      "x": 24,
+      "y": 88.5,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-front-door",
+      "status": "synthetic"
+    },
+    {
+      "id": "apim",
+      "kind": "component",
+      "label": "API Management",
+      "parentId": "routing",
+      "layer": "foreground",
+      "x": 361,
+      "y": 88.5,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-api",
+      "status": "synthetic"
+    },
+    {
+      "id": "map",
+      "kind": "component",
+      "label": "Tenant / stamp map",
+      "parentId": "routing",
+      "layer": "foreground",
+      "x": 744,
+      "y": 58,
+      "width": 220,
+      "height": 105,
+      "color": "azure",
+      "subtitle": "Placement metadata",
+      "icon": "database",
+      "status": "synthetic"
+    },
+    {
+      "id": "stamp-a",
+      "kind": "boundary",
+      "label": "Stamp A owner",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 1802,
+      "y": 24,
+      "width": 608,
+      "height": 170,
+      "color": "teal"
+    },
+    {
+      "id": "app-a",
+      "kind": "component",
+      "label": "App Service A",
+      "parentId": "stamp-a",
+      "layer": "foreground",
+      "x": 24,
+      "y": 58,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-app",
+      "status": "synthetic"
+    },
+    {
+      "id": "sql-a",
+      "kind": "component",
+      "label": "SQL A",
+      "parentId": "stamp-a",
+      "layer": "foreground",
+      "x": 364,
+      "y": 58,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-sql",
+      "status": "synthetic"
+    },
+    {
+      "id": "stamp-b",
+      "kind": "boundary",
+      "label": "Stamp B owner",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 1802,
+      "y": 234,
+      "width": 608,
+      "height": 170,
+      "color": "amber"
+    },
+    {
+      "id": "app-b",
+      "kind": "component",
+      "label": "App Service B",
+      "parentId": "stamp-b",
+      "layer": "foreground",
+      "x": 24,
+      "y": 58,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-app",
+      "status": "synthetic"
+    },
+    {
+      "id": "sql-b",
+      "kind": "component",
+      "label": "SQL B",
+      "parentId": "stamp-b",
+      "layer": "foreground",
+      "x": 364,
+      "y": 58,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-sql",
+      "status": "synthetic"
+    }
+  ],
+  "connections": [
+    {
+      "id": "skill-edge-1",
+      "from": "tenants",
+      "to": "front",
+      "label": "Requests",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 244,
+          "y": 284.5
+        },
+        {
+          "x": 553,
+          "y": 284.5
+        }
+      ],
+      "labelPosition": {
+        "x": 384,
+        "y": 299.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-2",
+      "from": "front",
+      "to": "apim",
+      "label": "Forward",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 773,
+          "y": 284.5
+        },
+        {
+          "x": 890,
+          "y": 284.5
+        }
+      ],
+      "labelPosition": {
+        "x": 831.5,
+        "y": 299.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-3",
+      "from": "apim",
+      "to": "map",
+      "label": "Resolve stamp",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 1110,
+          "y": 262.5
+        },
+        {
+          "x": 1273,
+          "y": 262.5
+        }
+      ],
+      "labelPosition": {
+        "x": 1196.5,
+        "y": 247.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-4",
+      "from": "apim",
+      "to": "app-a",
+      "label": "Stamp A",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 1110,
+          "y": 284.5
+        },
+        {
+          "x": 1130,
+          "y": 284.5
+        },
+        {
+          "x": 1130,
+          "y": 325
+        },
+        {
+          "x": 1554,
+          "y": 325
+        },
+        {
+          "x": 1554,
+          "y": 126
+        },
+        {
+          "x": 1826,
+          "y": 126
+        }
+      ],
+      "labelPosition": {
+        "x": 1659.5,
+        "y": 111
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-5",
+      "from": "apim",
+      "to": "app-b",
+      "label": "Stamp B",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 1110,
+          "y": 306.5
+        },
+        {
+          "x": 1120,
+          "y": 306.5
+        },
+        {
+          "x": 1120,
+          "y": 336
+        },
+        {
+          "x": 1826,
+          "y": 336
+        }
+      ],
+      "labelPosition": {
+        "x": 1659.5,
+        "y": 351
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-6",
+      "from": "app-a",
+      "to": "sql-a",
+      "label": "Own data",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 2046,
+          "y": 126
+        },
+        {
+          "x": 2166,
+          "y": 126
+        }
+      ],
+      "labelPosition": {
+        "x": 2106,
+        "y": 141
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-7",
+      "from": "app-b",
+      "to": "sql-b",
+      "label": "Own data",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 2046,
+          "y": 336
+        },
+        {
+          "x": 2166,
+          "y": 336
+        }
+      ],
+      "labelPosition": {
+        "x": 2106,
+        "y": 351
+      },
+      "routeRevision": 1
+    }
+  ],
+  "description": "## Overview\n\nThis simplified synthetic starter explores repeatable deployment units for a SaaS application. It is not deployed or a guarantee of tenant isolation, regional recovery, or capacity. The boundaries show a shared routing owner and two independently operated stamp units.\n\n## Flow\n\nTenant clients reach Front Door and API Management. A tenant-to-stamp map supplies the placement decision used to route requests to the appropriate App Service. Each stamp owns its SQL database; the drawing deliberately includes no cross-stamp replication path.\n\n## Decisions\n\nChoose tenant placement, routing consistency, onboarding, and capacity rules explicitly. Independent units do not provide automatic failover, data replication, or guaranteed security isolation. Moving a tenant requires a deliberate data and routing plan rather than simply changing an arrow.\n\n## Start Editing\n\nRename the stamps, specify placement metadata, and assign an owner to each application and database pair. Document scaling limits, deployment versions, backup and recovery needs, and tenant-move procedures before extending this view. Keep shared routing dependencies visible when assessing failure impact.\n\n## Reference\n\nhttps://learn.microsoft.com/en-us/azure/architecture/patterns/deployment-stamp\n\nChecked 2026-10-17. Original simplified adaptation; synthetic and not deployed. Consult the reference for omitted implementation details."
+}

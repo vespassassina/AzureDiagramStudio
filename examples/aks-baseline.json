@@ -1,0 +1,497 @@
+{
+  "schemaVersion": 1,
+  "id": "example-aks-baseline-v1",
+  "title": "AKS Baseline",
+  "subtitle": "Simplified synthetic Learn adaptation. Not deployed.",
+  "synthetic": true,
+  "legendVisible": true,
+  "legend": [
+    {
+      "label": "Synthetic flow",
+      "color": "teal"
+    },
+    {
+      "label": "Optional / supporting dependency",
+      "color": "gray",
+      "dashed": true
+    }
+  ],
+  "revision": 1,
+  "direction": "RIGHT",
+  "entities": [
+    {
+      "id": "clients",
+      "kind": "component",
+      "label": "Clients",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 24,
+      "y": 178.66666666666669,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "user",
+      "status": "synthetic"
+    },
+    {
+      "id": "outbound",
+      "kind": "component",
+      "label": "External services",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 3282,
+      "y": 312.6666666666667,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "api",
+      "status": "synthetic"
+    },
+    {
+      "id": "ingress",
+      "kind": "boundary",
+      "label": "Ingress owner",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 529,
+      "y": 120.66666666666669,
+      "width": 268,
+      "height": 170,
+      "color": "azure"
+    },
+    {
+      "id": "gateway",
+      "kind": "component",
+      "label": "Application Gateway",
+      "parentId": "ingress",
+      "layer": "foreground",
+      "x": 24,
+      "y": 58,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-application-gateway",
+      "status": "synthetic"
+    },
+    {
+      "id": "cluster",
+      "kind": "boundary",
+      "label": "Cluster owner",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 1084,
+      "y": 120.66666666666669,
+      "width": 913,
+      "height": 170,
+      "color": "teal"
+    },
+    {
+      "id": "load-balancer",
+      "kind": "component",
+      "label": "Internal load balancer",
+      "parentId": "cluster",
+      "layer": "foreground",
+      "x": 24,
+      "y": 58,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-load-balancer",
+      "status": "synthetic"
+    },
+    {
+      "id": "envoy",
+      "kind": "component",
+      "label": "Envoy",
+      "parentId": "cluster",
+      "layer": "foreground",
+      "x": 351,
+      "y": 58,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "Ingress proxy",
+      "icon": "service",
+      "status": "synthetic"
+    },
+    {
+      "id": "workloads",
+      "kind": "component",
+      "label": "Stateless workloads",
+      "parentId": "cluster",
+      "layer": "foreground",
+      "x": 669,
+      "y": 58,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-aks",
+      "status": "synthetic"
+    },
+    {
+      "id": "platform",
+      "kind": "boundary",
+      "label": "Platform owner",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 2323,
+      "y": 24,
+      "width": 633,
+      "height": 400.6666666666667,
+      "color": "amber"
+    },
+    {
+      "id": "endpoints",
+      "kind": "component",
+      "label": "Private endpoints",
+      "parentId": "platform",
+      "layer": "foreground",
+      "x": 24,
+      "y": 72.66666666666667,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-private-endpoint",
+      "status": "synthetic"
+    },
+    {
+      "id": "registry",
+      "kind": "component",
+      "label": "Container Registry",
+      "parentId": "platform",
+      "layer": "foreground",
+      "x": 389,
+      "y": 166,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-10105-icon-service-container-registries",
+      "status": "synthetic"
+    },
+    {
+      "id": "vault",
+      "kind": "component",
+      "label": "Key Vault",
+      "parentId": "platform",
+      "layer": "foreground",
+      "x": 389,
+      "y": 58,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-key-vault",
+      "status": "synthetic"
+    },
+    {
+      "id": "firewall",
+      "kind": "component",
+      "label": "Azure Firewall",
+      "parentId": "platform",
+      "layer": "foreground",
+      "x": 24,
+      "y": 288.6666666666667,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-10084-icon-service-firewalls",
+      "status": "synthetic"
+    },
+    {
+      "id": "monitor",
+      "kind": "component",
+      "label": "Azure Monitor",
+      "parentId": "platform",
+      "layer": "foreground",
+      "x": 24,
+      "y": 180.66666666666669,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-monitor",
+      "status": "synthetic"
+    }
+  ],
+  "connections": [
+    {
+      "id": "skill-edge-1",
+      "from": "clients",
+      "to": "gateway",
+      "label": "Requests",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 244,
+          "y": 222.66666666666669
+        },
+        {
+          "x": 553,
+          "y": 222.66666666666669
+        }
+      ],
+      "labelPosition": {
+        "x": 384,
+        "y": 237.66666666666669
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-2",
+      "from": "gateway",
+      "to": "load-balancer",
+      "label": "Forward",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 773,
+          "y": 222.66666666666669
+        },
+        {
+          "x": 1108,
+          "y": 222.66666666666669
+        }
+      ],
+      "labelPosition": {
+        "x": 940.5,
+        "y": 237.66666666666669
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-3",
+      "from": "load-balancer",
+      "to": "envoy",
+      "label": "Ingress",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 1328,
+          "y": 222.66666666666669
+        },
+        {
+          "x": 1435,
+          "y": 222.66666666666669
+        }
+      ],
+      "labelPosition": {
+        "x": 1381.5,
+        "y": 237.66666666666669
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-4",
+      "from": "envoy",
+      "to": "workloads",
+      "label": "Route",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 1655,
+          "y": 222.66666666666669
+        },
+        {
+          "x": 1753,
+          "y": 222.66666666666669
+        }
+      ],
+      "labelPosition": {
+        "x": 1704,
+        "y": 237.66666666666669
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-5",
+      "from": "workloads",
+      "to": "endpoints",
+      "label": "Private access",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 1973,
+          "y": 200.66666666666669
+        },
+        {
+          "x": 2250,
+          "y": 200.66666666666669
+        },
+        {
+          "x": 2250,
+          "y": 140.66666666666669
+        },
+        {
+          "x": 2347,
+          "y": 140.66666666666669
+        }
+      ],
+      "labelPosition": {
+        "x": 2160,
+        "y": 215.66666666666669
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-6",
+      "from": "endpoints",
+      "to": "registry",
+      "label": "Pull images",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 2567,
+          "y": 155.33333333333334
+        },
+        {
+          "x": 2577,
+          "y": 155.33333333333334
+        },
+        {
+          "x": 2577,
+          "y": 234
+        },
+        {
+          "x": 2712,
+          "y": 234
+        }
+      ],
+      "labelPosition": {
+        "x": 2639.5,
+        "y": 249
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-7",
+      "from": "endpoints",
+      "to": "vault",
+      "label": "Read secrets",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 2567,
+          "y": 126
+        },
+        {
+          "x": 2712,
+          "y": 126
+        }
+      ],
+      "labelPosition": {
+        "x": 2639.5,
+        "y": 141
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-8",
+      "from": "workloads",
+      "to": "firewall",
+      "label": "Egress",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 1973,
+          "y": 244.66666666666669
+        },
+        {
+          "x": 2034,
+          "y": 244.66666666666669
+        },
+        {
+          "x": 2034,
+          "y": 296.6666666666667
+        },
+        {
+          "x": 2250,
+          "y": 296.6666666666667
+        },
+        {
+          "x": 2250,
+          "y": 356.6666666666667
+        },
+        {
+          "x": 2347,
+          "y": 356.6666666666667
+        }
+      ],
+      "labelPosition": {
+        "x": 2160,
+        "y": 311.6666666666667
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-9",
+      "from": "firewall",
+      "to": "outbound",
+      "label": "Allowed traffic",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 2567,
+          "y": 356.6666666666667
+        },
+        {
+          "x": 3282,
+          "y": 356.6666666666667
+        }
+      ],
+      "labelPosition": {
+        "x": 3121.5,
+        "y": 371.6666666666667
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-10",
+      "from": "workloads",
+      "to": "monitor",
+      "label": "Telemetry",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 1973,
+          "y": 222.66666666666669
+        },
+        {
+          "x": 2044,
+          "y": 222.66666666666669
+        },
+        {
+          "x": 2044,
+          "y": 248.66666666666669
+        },
+        {
+          "x": 2347,
+          "y": 248.66666666666669
+        }
+      ],
+      "labelPosition": {
+        "x": 2160,
+        "y": 263.6666666666667
+      },
+      "routeRevision": 1
+    }
+  ],
+  "description": "## Overview\n\nThis simplified synthetic starter explores infrastructure ownership around an AKS cluster. It is not deployed, tested infrastructure, or a complete microservice domain design. Boundaries express intended responsibility rather than verified security controls.\n\n## Flow\n\nClients enter Application Gateway, then an internal load balancer and Envoy before reaching stateless workloads. Workloads reach registry and secrets through private endpoints. A separate firewall path represents outbound access; Azure Monitor receives workload telemetry.\n\n## Decisions\n\nChoose ingress termination, certificate handling, identity, network policy, and outbound destinations explicitly. The arrows do not promise TLS on every workload hop. Private endpoints alone do not configure DNS, permissions, or image-pull access.\n\n## Start Editing\n\nRename the workload and owner boundaries first. Replace sample egress destinations, confirm registry and vault access paths, and add your availability, scaling, backup, and operational requirements. Keep business-service decomposition separate from this infrastructure view.\n\n## Reference\n\nhttps://learn.microsoft.com/en-us/azure/architecture/reference-architectures/containers/aks/baseline-aks\n\nChecked 2026-10-17. Original simplified adaptation; synthetic and not deployed. Consult the reference for omitted implementation details."
+}

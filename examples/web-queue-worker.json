@@ -1,0 +1,422 @@
+{
+  "schemaVersion": 1,
+  "id": "example-web-queue-worker-v1",
+  "title": "Web Queue Worker",
+  "subtitle": "Simplified synthetic Learn adaptation. Not deployed.",
+  "synthetic": true,
+  "legendVisible": true,
+  "legend": [
+    {
+      "label": "Synthetic flow",
+      "color": "teal"
+    },
+    {
+      "label": "Optional / supporting dependency",
+      "color": "gray",
+      "dashed": true
+    }
+  ],
+  "revision": 1,
+  "direction": "RIGHT",
+  "entities": [
+    {
+      "id": "clients",
+      "kind": "component",
+      "label": "Clients",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 24,
+      "y": 129,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "user",
+      "status": "synthetic"
+    },
+    {
+      "id": "web-owner",
+      "kind": "boundary",
+      "label": "Web owner",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 529,
+      "y": 49,
+      "width": 651,
+      "height": 192,
+      "color": "azure"
+    },
+    {
+      "id": "web",
+      "kind": "component",
+      "label": "App Service",
+      "parentId": "web-owner",
+      "layer": "foreground",
+      "x": 24,
+      "y": 80,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-app",
+      "status": "synthetic"
+    },
+    {
+      "id": "cache",
+      "kind": "component",
+      "label": "Optional cache",
+      "parentId": "web-owner",
+      "layer": "foreground",
+      "x": 407,
+      "y": 58,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "database",
+      "status": "synthetic"
+    },
+    {
+      "id": "worker-owner",
+      "kind": "boundary",
+      "label": "Processing owner",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 1499,
+      "y": 92,
+      "width": 974,
+      "height": 192,
+      "color": "teal"
+    },
+    {
+      "id": "queue",
+      "kind": "component",
+      "label": "Storage queue",
+      "parentId": "worker-owner",
+      "layer": "foreground",
+      "x": 24,
+      "y": 80,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "queue",
+      "status": "synthetic"
+    },
+    {
+      "id": "worker",
+      "kind": "component",
+      "label": "Functions worker",
+      "parentId": "worker-owner",
+      "layer": "foreground",
+      "x": 361,
+      "y": 80,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-function",
+      "status": "synthetic"
+    },
+    {
+      "id": "remote",
+      "kind": "component",
+      "label": "Remote services",
+      "parentId": "worker-owner",
+      "layer": "foreground",
+      "x": 730,
+      "y": 58,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "api",
+      "status": "synthetic"
+    },
+    {
+      "id": "data-owner",
+      "kind": "boundary",
+      "label": "Data owner",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 2789,
+      "y": 49,
+      "width": 268,
+      "height": 278,
+      "color": "amber"
+    },
+    {
+      "id": "sql",
+      "kind": "component",
+      "label": "SQL results / status",
+      "parentId": "data-owner",
+      "layer": "foreground",
+      "x": 24,
+      "y": 58,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-sql",
+      "status": "synthetic"
+    },
+    {
+      "id": "cosmos",
+      "kind": "component",
+      "label": "Optional Cosmos DB",
+      "parentId": "data-owner",
+      "layer": "foreground",
+      "x": 24,
+      "y": 166,
+      "width": 220,
+      "height": 88,
+      "color": "azure",
+      "subtitle": "",
+      "icon": "azure-cosmos",
+      "status": "synthetic"
+    }
+  ],
+  "connections": [
+    {
+      "id": "skill-edge-1",
+      "from": "clients",
+      "to": "web",
+      "label": "Requests",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 244,
+          "y": 173
+        },
+        {
+          "x": 553,
+          "y": 173
+        }
+      ],
+      "labelPosition": {
+        "x": 384,
+        "y": 188
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-2",
+      "from": "web",
+      "to": "queue",
+      "label": "Enqueue work",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 773,
+          "y": 195
+        },
+        {
+          "x": 783,
+          "y": 195
+        },
+        {
+          "x": 783,
+          "y": 216
+        },
+        {
+          "x": 1523,
+          "y": 216
+        }
+      ],
+      "labelPosition": {
+        "x": 1339.5,
+        "y": 231
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-3",
+      "from": "queue",
+      "to": "worker",
+      "label": "Consume",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 1743,
+          "y": 216
+        },
+        {
+          "x": 1860,
+          "y": 216
+        }
+      ],
+      "labelPosition": {
+        "x": 1801.5,
+        "y": 231
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-4",
+      "from": "worker",
+      "to": "sql",
+      "label": "Write result",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 2080,
+          "y": 216
+        },
+        {
+          "x": 2100,
+          "y": 216
+        },
+        {
+          "x": 2100,
+          "y": 248
+        },
+        {
+          "x": 2510,
+          "y": 248
+        },
+        {
+          "x": 2510,
+          "y": 165.66666666666666
+        },
+        {
+          "x": 2813,
+          "y": 165.66666666666666
+        }
+      ],
+      "labelPosition": {
+        "x": 2631,
+        "y": 150.66666666666666
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-5",
+      "from": "web",
+      "to": "sql",
+      "label": "Read status",
+      "style": "solid",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 773,
+          "y": 173
+        },
+        {
+          "x": 793,
+          "y": 173
+        },
+        {
+          "x": 793,
+          "y": 205
+        },
+        {
+          "x": 1217,
+          "y": 205
+        },
+        {
+          "x": 1217,
+          "y": 51
+        },
+        {
+          "x": 2716,
+          "y": 51
+        },
+        {
+          "x": 2716,
+          "y": 136.33333333333331
+        },
+        {
+          "x": 2813,
+          "y": 136.33333333333334
+        }
+      ],
+      "labelPosition": {
+        "x": 1986,
+        "y": 36
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-6",
+      "from": "web",
+      "to": "cache",
+      "label": "Optional cache",
+      "style": "dashed",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 773,
+          "y": 151
+        },
+        {
+          "x": 936,
+          "y": 151
+        }
+      ],
+      "labelPosition": {
+        "x": 859.5,
+        "y": 136
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-7",
+      "from": "worker",
+      "to": "cosmos",
+      "label": "Optional data",
+      "style": "dashed",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 2080,
+          "y": 238
+        },
+        {
+          "x": 2090,
+          "y": 238
+        },
+        {
+          "x": 2090,
+          "y": 259
+        },
+        {
+          "x": 2813,
+          "y": 259
+        }
+      ],
+      "labelPosition": {
+        "x": 2631,
+        "y": 274
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "skill-edge-8",
+      "from": "worker",
+      "to": "remote",
+      "label": "Optional call",
+      "style": "dashed",
+      "arrow": "forward",
+      "points": [
+        {
+          "x": 2080,
+          "y": 194
+        },
+        {
+          "x": 2229,
+          "y": 194
+        }
+      ],
+      "labelPosition": {
+        "x": 2159.5,
+        "y": 179
+      },
+      "routeRevision": 1
+    }
+  ],
+  "description": "## Overview\n\nThis simplified synthetic starter separates interactive requests from asynchronous processing. It is not deployed or production-ready. The three owner boundaries communicate responsibilities, not verified access controls, network isolation, or availability guarantees.\n\n## Flow\n\nAn App Service front end accepts requests and adds work to a Storage queue. A Functions worker consumes messages and stores results or status in SQL. The front end can read SQL directly. Dashed branches show optional cache, Cosmos DB, and remote-service extensions.\n\n## Decisions\n\nQueue insertion and database updates are not automatically atomic. Plan retry-safe handlers, duplicate detection, visibility timeouts, poison-message handling, and status reconciliation. Do not interpret the flow as exactly-once delivery or as a requirement to use every optional component.\n\n## Start Editing\n\nRename the work item and decide where status lives. Remove unused dashed branches, describe expected processing time, and assign operational ownership. Replace sample identities and data contracts only after reviewing your application requirements and the reference architecture style.\n\n## Reference\n\nhttps://learn.microsoft.com/en-us/azure/architecture/guide/architecture-styles/web-queue-worker\n\nChecked 2026-10-17. Original simplified adaptation; synthetic and not deployed. Consult the reference for omitted implementation details."
+}

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { createDocument, sampleDiagram } from '../model.ts'
 import type { Diagram } from '../model.ts'
 import type { DocumentStorage } from '../contracts.ts'
-import { createSession } from './session.ts'
+import { createSession, starterDocument, starterKeys } from './session.ts'
 import type { SessionDependencies } from './session.ts'
 import webApiSource from '../../../examples/azure-web-app.json?raw'
 import eventSource from '../../../examples/event-driven.json?raw'
@@ -42,6 +42,113 @@ function harness(initial: Diagram | null = null) {
 async function ready(initial: Diagram | null = null) { const host = harness(initial); host.writable(true); await settle(); return host }
 
 describe('DGM-040 integrated session', () => {
+  it.each(starterKeys)('should_preserve_detached_guide_through_edit_undo_save_reload_and_reselection_DGM123_%s', async key => {
+    vi.useFakeTimers()
+    try {
+      const host = await ready(sampleDiagram())
+      let sequence = 0
+      host.dependencies.newId = () => `guided-copy-${++sequence}`
+      const bundled = starterDocument(key)
+      expect(host.session.openStarter(key)).toBe(true)
+      const first = host.session.getSnapshot().document
+      expect(first).toEqual({ ...bundled, id: 'guided-copy-1' })
+      expect(host.session.getSnapshot().canUndo).toBe(false)
+      host.session.command({ type: 'metadata', patch: { description: '# Original user edit\n\nLiteral Markdown' } })
+      const accepted = host.session.getSnapshot().document
+      expect(accepted.entities).toEqual(first.entities)
+      expect(accepted.connections.map(({ routeRevision: _revision, ...connection }) => connection)).toEqual(first.connections.map(({ routeRevision: _revision, ...connection }) => connection))
+      expect(accepted.connections.every(connection => connection.routeRevision === undefined || connection.routeRevision === accepted.revision)).toBe(true)
+      host.session.undo()
+      expect(host.session.getSnapshot().document).toEqual(first)
+      host.session.redo()
+      expect(host.session.getSnapshot().document).toEqual(accepted)
+      await vi.advanceTimersByTimeAsync(500)
+      expect(host.storage.save).toHaveBeenCalledExactlyOnceWith(accepted)
+      await host.session.saveJson()
+      const [blob] = host.downloads.mock.calls[0]
+      expect(JSON.parse(await blob.text())).toEqual(accepted)
+      await host.session.openFile({ name: 'guided.json', size: blob.size, text: () => blob.text() }, 'open')
+      expect(host.session.getSnapshot().document).toEqual(accepted)
+      const reloaded = await ready(JSON.parse(await blob.text()) as Diagram)
+      expect(reloaded.session.getSnapshot().document.description).toBe(accepted.description)
+      await reloaded.session.stop()
+      expect(host.session.openStarter(key)).toBe(true)
+      const second = host.session.getSnapshot().document
+      expect(second).toEqual({ ...bundled, id: 'guided-copy-2' })
+      first.entities[0].label = 'Mutation of first copy only'
+      first.description = '# Changed old copy'
+      expect(second.entities).toEqual(bundled.entities)
+      expect(starterDocument(key)).toEqual(bundled)
+      expect(second.entities).not.toBe(first.entities)
+      expect(second.connections).not.toBe(first.connections)
+      expect(host.dependencies.layout).not.toHaveBeenCalled()
+      await host.session.stop()
+    } finally { vi.useRealTimers() }
+  })
+  it('should_save_open_reload_and_undo_redo_literal_description_DGM122', async () => {
+    vi.useFakeTimers()
+    try {
+      const initial = sampleDiagram()
+      const host = await ready(initial)
+      const description = '  # Architecture\r\n\r\n- **API**\n\t\u6f22\u5b57 \ud83d\ude00  '.repeat(300)
+      host.session.preview({ ...initial, description: 'Uncommitted draft' })
+      expect(host.session.getSnapshot().document).toBe(initial)
+      host.session.command({ type: 'metadata', patch: { description } })
+      const accepted = host.session.getSnapshot().document
+      expect(accepted.description).toBe(description)
+      expect(accepted.entities).toEqual(initial.entities)
+      host.session.undo()
+      expect(host.session.getSnapshot().document).toEqual(initial)
+      expect(host.session.getSnapshot().canUndo).toBe(false)
+      host.session.redo()
+      expect(host.session.getSnapshot().document).toEqual(accepted)
+      await vi.advanceTimersByTimeAsync(500)
+      expect(host.storage.save).toHaveBeenCalledExactlyOnceWith(accepted)
+      await host.session.saveJson()
+      const [blob] = host.downloads.mock.calls[0]
+      expect(JSON.parse(await blob.text())).toEqual(accepted)
+      expect(host.session.getSnapshot().backupDirty).toBe(false)
+      host.session.command({ type: 'metadata', patch: { description: 'Replace me' } })
+      await host.session.openFile({ name: 'description.json', size: blob.size, text: () => blob.text() }, 'open')
+      expect(host.session.getSnapshot().document).toEqual(accepted)
+      expect(host.session.getSnapshot().canUndo).toBe(false)
+      const reopened = await ready(JSON.parse(JSON.stringify(accepted)) as Diagram)
+      expect(reopened.session.getSnapshot().document).toEqual(accepted)
+      await reopened.session.stop()
+      host.session.command({ type: 'metadata', patch: { description: undefined } })
+      expect(Object.hasOwn(host.session.getSnapshot().document, 'description')).toBe(false)
+      host.session.undo()
+      expect(host.session.getSnapshot().document.description).toBe(description)
+      await host.session.stop()
+    } finally { vi.useRealTimers() }
+  })
+  it('should_reject_invalid_description_commands_and_native_files_atomically_DGM122', async () => {
+    const initial = { ...sampleDiagram(), description: '# Stored' }
+    const host = await ready(initial)
+    for (const description of [null, 1, {}, 'x'.repeat(20001)]) {
+      host.session.command({ type: 'metadata', patch: { description } } as unknown as import('../contracts.ts').DocumentCommand)
+      expect(host.session.getSnapshot().document).toBe(initial)
+      expect(host.session.getSnapshot().message).toContain('description')
+      await host.session.openFile({ name: 'invalid.json', size: 1, text: async () => JSON.stringify({ ...initial, description }) }, 'open')
+      expect(host.session.getSnapshot().document).toBe(initial)
+      expect(host.session.getSnapshot().canUndo).toBe(false)
+      expect(host.session.getSnapshot().message).toContain('description')
+    }
+    expect(host.storage.save).not.toHaveBeenCalled()
+    await host.session.stop()
+  })
+  it.each(['loading', 'read-only', 'Present'])('should_block_description_mutation_when_session_is_%s_DGM122', async mode => {
+    const initial = { ...sampleDiagram(), description: '# Stored' }
+    const host = mode === 'loading' ? harness(initial) : await ready(initial)
+    if (mode === 'read-only') host.writable(false)
+    if (mode === 'Present') host.session.presentation(true)
+    const before = host.session.getSnapshot().document
+    host.session.command({ type: 'metadata', patch: { description: '# Forbidden' } })
+    expect(host.session.getSnapshot().document).toBe(before)
+    expect(host.session.getSnapshot().canUndo).toBe(false)
+    expect(host.storage.save).not.toHaveBeenCalled()
+    await host.session.stop()
+  })
   it('should_commit_one_alignment_move_and_restore_exact_routes_by_undo_redo_DGM110', async () => {
     const document = {
       ...createDocument('alignment-session'),

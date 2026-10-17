@@ -30,6 +30,31 @@ function rejects(document: Diagram, command: DocumentCommand, code?: string) {
   assert.equal(JSON.stringify(document), before)
 }
 
+test('should_commit_clear_undo_and_redo_description_without_artwork_changes_DGM122', () => {
+  const document = sampleDiagram()
+  document.connections[0] = { ...document.connections[0], points: [{ x: 10, y: 20 }, { x: 300, y: 90 }], labelPosition: { x: 150, y: 40 }, routeRevision: document.revision }
+  const before = JSON.stringify(document)
+  const description = '  # Architecture\r\n\r\n\u6f22\u5b57 \ud83d\ude00\n<script>alert(1)</script>\n![image](https://invalid.example/remote)  '
+  const edited = applyCommand(document, { type: 'metadata', patch: { description } } as unknown as DocumentCommand)
+  assert.equal((edited as unknown as { description: string }).description, description)
+  assert.deepEqual(edited.entities, document.entities)
+  assert.deepEqual(edited.connections, document.connections.map(connection => connection.routeRevision === document.revision ? { ...connection, routeRevision: edited.revision } : connection))
+  assert.equal(renderSvg(buildScene(edited)), renderSvg(buildScene(document)))
+  assert.deepEqual(captureSelection(edited, ['app']), captureSelection(document, ['app']))
+  assert.deepEqual(parseDocument(JSON.stringify(edited)), { ok: true, value: edited })
+  const history = historyCommit({ past: [], present: document, future: [] }, edited)
+  assert.equal(history.past.length, 1)
+  assert.deepEqual(historyUndo(history).present, document)
+  assert.deepEqual(historyRedo(historyUndo(history)).present, edited)
+  const cleared = applyCommand(edited, { type: 'metadata', patch: { description: undefined } } as unknown as DocumentCommand)
+  assert.equal(Object.hasOwn(cleared, 'description'), false)
+  assert.equal(JSON.stringify(document), before)
+})
+
+test.each([null, 1, true, [], {}, 'x'.repeat(20001)])('should_reject_invalid_metadata_description_without_mutation_DGM122_%j', description => {
+  rejects(sampleDiagram(), { type: 'metadata', patch: { description } } as unknown as DocumentCommand, 'invalid-command')
+})
+
 function connected(sourceId = 'child', parentId: string | null = 'inner') {
   return { type: 'addConnected', sourceId, entity: { ...entity('added', 'component', parentId), x: -300, y: -160 }, connection: { id: 'added-link', from: sourceId, to: 'added', label: 'New call', style: 'dashed', arrow: 'both', sourceSide: 'left', targetSide: 'right' } } as unknown as DocumentCommand
 }

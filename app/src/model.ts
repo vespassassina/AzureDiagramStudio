@@ -43,6 +43,7 @@ export type Diagram = {
   id: string
   title: string
   subtitle: string
+  description?: string
   backgroundColor?: string
   grid?: Grid
   synthetic: boolean

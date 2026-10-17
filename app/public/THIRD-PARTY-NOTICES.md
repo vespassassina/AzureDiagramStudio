@@ -11,6 +11,7 @@ Inventory checked 2026-10-09. Assets are bundled for the local architecture-diag
 | React Flow core | 12.12.0 | MIT | [React Flow notice](licenses/xyflow-react-LICENSE) |
 | ELK.js | 0.12.0 | EPL-2.0 | [ELK notice](licenses/elkjs-LICENSE.md) |
 | Lucide React | 1.49.0 | ISC | [Lucide notice](licenses/lucide-react-LICENSE) |
+| Marked | 18.1.0 | MIT | [Marked notice](licenses/marked-LICENSE) |
 
 ELK source: https://github.com/kieler/elkjs/tree/v0.12.0. Installed package and upstream worker retain their notices. Applicable EPL source/notice obligations remain a distribution review requirement; this local foundation does not certify external distribution compliance.
 
