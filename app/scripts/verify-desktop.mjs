@@ -7,6 +7,7 @@ import { promisify } from 'node:util'
 import os from 'node:os'
 import path from 'node:path'
 import { launchDesktop, closePreservingFailure } from './desktop-driver.mjs'
+import { ensureStartupSample } from './startup-fixture.mjs'
 import { listPackage, extractFile } from '@electron/asar'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
@@ -76,7 +77,7 @@ async function launch(executable, appData, target) {
   page.on('console', message => { if (message.type() === 'error') application.diagnostics.renderer.consoleErrors.push(message.text()) })
   page.on('dialog', dialog => dialog.accept())
   await page.waitForLoadState('domcontentloaded')
-  await page.locator('.react-flow__node').first().waitFor()
+  await ensureStartupSample(page)
   await saved(page)
   await page.evaluate(() => document.fonts.ready)
   const identity = await application.evaluate(({ app, BrowserWindow }) => ({

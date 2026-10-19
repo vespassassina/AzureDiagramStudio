@@ -163,3 +163,33 @@ Evidence: [final release closeout](verification/DGM-125.md#final-stable-publicat
 	local text-file modification times drifted with unchanged bytes. Retain and
 	disclose the failed metadata check; do not restore timestamps or claim an
 	unqualified historical-preservation pass to close the release.
+
+## 2026-10-19: DGM-126/127 Source UI Follow-Ups
+
+Evidence: [About verification](verification/DGM-126.md) and
+[startup/recovery verification](verification/DGM-127.md).
+
+- Empty loading UI changes component lifecycle timing. Initial camera fitting
+  must wait for the first real document, not consume its one-shot on a loading
+  placeholder. Cover narrow recovered content before Fit and preserve a later
+  user pan across informational dialogs and canceled New actions.
+- A fixture helper must not hide a product regression. An explicit Fit made
+  startup-dependent harnesses pass while recovered work was initially offscreen.
+  Retain the browser failure, repair the lifecycle under RED/GREEN, and remove
+  the helper's Fit before accepting recovery.
+- Changing the default startup document also changes browser-test preconditions.
+  Seed samples explicitly for sample-workflow checks; test fresh empty startup
+  separately. Preserve unrelated baseline failures rather than claiming the
+  full suite passed or repairing outside the approved task.
+
+## 2026-10-19: DGM-128 Catalog Browser Harness
+
+Evidence: [independent verification](verification/DGM-128.md).
+
+- An edge can be obscured by a selected component's contextual toolbar even
+  when its canonical route is valid. Restore the required selection state with
+  a real hit-tested canvas click, then choose a supported label/stroke target
+  and assert the exact selected edge. Never force the click or hide controls.
+- A regression fixture must reproduce the previous selection state, not only
+  its document geometry. Retain missing/offscreen-target rejection checks and
+  preserve historical evidence through task-specific output directories.

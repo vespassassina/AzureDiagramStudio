@@ -15,6 +15,28 @@ A local architecture editor for Azure, Microsoft Fabric, Microsoft applications 
 
 ![The same native example in the dark editor theme](docs/images/studio-dark.png)
 
+## Current Source: New Document, About And Help
+
+A fresh workspace starts with an **empty canvas** and the unified **New diagram**
+picker. **Blank** is the default; choose it to stay empty or explicitly choose
+one of eleven templates. Escape or Close also leaves the fresh canvas empty.
+The same New diagram button and Commands action reopen that picker for existing
+work. Autosaved diagrams recover unchanged without an automatic picker, including
+saved empty diagrams.
+
+The current source adds **About** beside the question-mark **Help** button in
+the left tool rail. About shows the product version from package metadata,
+plain-text project/documentation references, identity and artwork-rights information, and
+the reminder to keep editable JSON backups. Close it or press Escape to return
+to the same diagram; it is also available in read-only sessions.
+
+The ten-step Help guide now describes fresh empty startup, all eleven starters,
+Markdown Edit/Preview and temporary presentation markup. See the [short manual](docs/manual.md#about-source-only)
+for About and [first-use guidance](docs/manual.md#first-use-ui-guide).
+These are **source-only changes**: the existing Windows downloads below have
+not been rebuilt with the new startup flow, About or the revised guide. The version number alone
+does not distinguish a source build from those published executables.
+
 ## Windows 0.2.0
 
 [Azure Diagram Studio 0.2.0 for Windows](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/windows-v0.2.0)
@@ -40,6 +62,13 @@ do not disable protections. Source and automatic tag archives identify commit
 `7783b384e5a46160bdd340112c924f019e0c7830`. There is no automatic updater or
 profile migration: keep **Save JSON** backups and use **Open JSON** to transfer
 diagrams. Older versions may discard newer description metadata when resaving.
+
+For signing options and how to obtain a publisher identity, see
+[Windows signing and certificates](docs/manual.md#windows-signing-and-certificates).
+Nothing in the current About screen changes the signature of a downloaded EXE.
+The PO is collecting informal colleague feedback; no recruited participant or
+timed novice trial is required. Report the version, architecture and reproduction
+steps when sharing a problem; platform evidence limits above still apply.
 
 ## Historical Windows ARM64 Prerelease
 
@@ -76,7 +105,7 @@ Local autosave is not a transferable backup. Use **Save JSON** before moving com
 
 ## Examples
 
-All four architectures are synthetic illustrations, not deployed systems, security guarantees or live integrations. Every component is marked **Synthetic**. Open the native JSON with **Open JSON** to edit; SVG and PNG are reusable pictures, not editable document backups.
+The four illustrated examples below are synthetic illustrations, not deployed systems, security guarantees or live integrations. Every component is marked **Synthetic**. The app's **New diagram** chooser also includes seven Microsoft Learn adaptations, for eleven bundled starters in total; see the [starter guide](docs/manual.md#start-with-an-example). Open the native JSON with **Open JSON** to edit; SVG and PNG are reusable pictures, not editable document backups.
 
 [View all four examples together](docs/images/examples-contact-sheet.png).
 
@@ -128,7 +157,7 @@ Azure Diagram Studio is independent, not a Microsoft product and not endorsed by
 
 Named badges do not establish logo permission, affiliation or tested compatibility. Import only artwork you own or are authorized to use; responsibility for uploaded content remains with its contributor. No open-source license has been selected for this project: a public repository is not itself a license grant.
 
-PowerPoint insertion fidelity and uncoached novice usability have not been manually accepted; the example pictures do not establish those results.
+PowerPoint insertion fidelity and uncoached novice usability have not been manually accepted; the example pictures do not establish those results. Formal participant trials were removed from the active plan by the PO; optional colleague feedback is not a certification pass.
 
 ## Release Downloads
 

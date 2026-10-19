@@ -239,3 +239,24 @@ Decision: sign ad-hoc by default, Developer ID with hardened runtime and notariz
 Consequences: until a Developer ID certificate exists, users open the app once via Open Anyway. The two Windows-only unit test files (PowerShell, Edge) still fail on macOS and are not in the macOS gate.
 
 Who: Diego requested; implemented by Claude.
+
+## 2026-10-19: Replace Formal Participant Trials With Optional Colleague Feedback
+
+Context: the post-release plan proposed recruiting participants for observed
+Windows/Teams/Office use and an uncoached timed novice scenario. The PO directed:
+"remove the participants trial. i will share this with my colleagues and see
+where it goes".
+
+Decision: remove formal participant recruitment, observed Teams/Office trials,
+timed novice testing and PO scoring from the active continuation. The PO will
+share the existing release independently; colleague feedback is optional and
+does not gate release completion or other approved work.
+
+Consequences: update the [queue](roadmap.md#post-release-acceptance-continuation---2026-10-19)
+and [DGM-113 continuation](specs/DGM-113.md#acceptance-continuation---2026-10-19).
+Preserve historical manual criteria/results as unverified, not passed; this is
+a scope decision, not new test evidence. Native Intel/AMD and other technical
+qualification/policy gaps remain separate. No messages, file sharing, rebuild,
+release mutation or support expansion is authorized.
+
+Who: Product Owner changes acceptance scope; Orchestrator records the decision.

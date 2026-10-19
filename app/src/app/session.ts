@@ -1,5 +1,5 @@
 import { applyCommand, importSkillSpec, parseDocument, validateDocument } from '../document/index.ts'
-import { createDocument, historyCommit, historyRedo, historyUndo, sampleDiagram } from '../model.ts'
+import { createDocument, historyCommit, historyRedo, historyUndo } from '../model.ts'
 import type { Diagram, Direction, History } from '../model.ts'
 import type { DocumentCommand, DocumentStorage, ExportOptions, ExportSceneOptions, SaveState, StarterKey } from '../contracts.ts'
 import type { LayoutResult } from '../layout.ts'
@@ -29,15 +29,18 @@ export type SessionDependencies = {
 export type SessionSnapshot = {
   document: Diagram; canUndo: boolean; canRedo: boolean; readOnly: boolean
   saveState: SaveState; backupDirty: boolean; message: string; isArranging: boolean; isExporting: boolean
-}
-type Runtime = { storage: DocumentStorage; release?: () => void; queue: Promise<void>; stopped: boolean; owns: boolean; load: number }
+    // Session-only UI intent: the first owned load found no saved diagram. Never persisted.
+    starterOffer: boolean
+  }
+  type Runtime = { storage: DocumentStorage; release?: () => void; queue: Promise<void>; stopped: boolean; owns: boolean; load: number }
 type InputFile = { name: string; size: number; text(): Promise<string> }
 const canonical = (document: Diagram) => JSON.stringify(document)
 const describe = (error: unknown) => error instanceof Error ? error.message : String(error)
 const filename = (document: Diagram) => (document.title.trim().replace(/[^a-zA-Z0-9_-]+/g, '-').slice(0, 80) || 'architecture')
 
 export function createSession(dependencies: SessionDependencies) {
-  let history: History = { past: [], present: sampleDiagram(), future: [] }
+  // Non-mutating empty canvas while recovery runs; never the commerce sample.
+  let history: History = { past: [], present: createDocument('loading'), future: [] }
   let backup: string | null = null
   let generation = 0
   let request = 0
@@ -46,7 +49,9 @@ export function createSession(dependencies: SessionDependencies) {
   let preview: Diagram | null = null
   let layoutJob: LayoutJob | undefined
   let presenting = false
-  let snapshot: SessionSnapshot = { document: history.present, canUndo: false, canRedo: false, readOnly: true, saveState: 'loading', backupDirty: true, message: '', isArranging: false, isExporting: false }
+  // The startup picker is decided once, by the first successful owned load.
+  let freshDecided = false
+  let snapshot: SessionSnapshot = { document: history.present, canUndo: false, canRedo: false, readOnly: true, saveState: 'loading', backupDirty: true, message: '', isArranging: false, isExporting: false, starterOffer: false }
   let serializedDocument = history.present
   let serialized = canonical(serializedDocument)
   const listeners = new Set<() => void>()
@@ -94,7 +99,7 @@ export function createSession(dependencies: SessionDependencies) {
   function accept(next: History) {
     if (next === history) return
     history = next; generation++; preview = null
-    invalidate(); publish({ message: '' }); scheduleSave()
+    invalidate(); publish({ message: '', starterOffer: false }); scheduleSave()
   }
   function command(command: DocumentCommand) {
     if (!canMutate()) return
@@ -106,19 +111,28 @@ export function createSession(dependencies: SessionDependencies) {
     invalidate(); generation++; preview = null
     history = { past: [], present: document, future: [] }
     backup = backedUp ? canonical(document) : null
-    publish({ message }); scheduleSave()
+    publish({ message, starterOffer: false }); scheduleSave()
   }
 
   // Initial read-only load is superseded by a fresh read under ownership before enabling any mutation.
+  // Pseudocode:
+  //   1. read storage; ignore the result when stopped, superseded or another runtime is current
+  //   2. saved diagram (empty or not) -> recover it exactly, never offer the picker
+  //   3. nothing saved -> new empty document; under ownership, decide once to offer the picker
+  //      and treat the pristine blank as backed up so a first template choice needs no discard prompt
   async function load(active: Runtime, owns: boolean) {
     const sequence = ++active.load
-    publish({ readOnly: true, saveState: owns ? 'loading' : 'read-only' })
+    publish({ readOnly: true, saveState: owns ? 'loading' : 'read-only', starterOffer: false })
     try {
       const document = await active.storage.load()
       if (active.stopped || runtime !== active || active.load !== sequence) return
-      history = { past: [], present: document ?? sampleDiagram(), future: [] }
-      generation++; backup = null; preview = null
-      publish({ readOnly: !owns, saveState: owns ? document ? 'saved' : 'saving' : 'read-only', message: owns ? '' : 'Another tab owns this workspace. Close it to edit here.' })
+      const fresh = document ?? createDocument(dependencies.newId())
+      history = { past: [], present: fresh, future: [] }
+      generation++; preview = null
+      backup = owns && !document ? canonical(fresh) : null
+      const offer = owns && !document && !freshDecided
+      if (owns) freshDecided = true
+      publish({ readOnly: !owns, saveState: owns ? document ? 'saved' : 'saving' : 'read-only', message: owns ? '' : 'Another tab owns this workspace. Close it to edit here.', starterOffer: offer })
       if (owns && !document) scheduleSave()
     } catch (error) {
       if (active.stopped || runtime !== active || active.load !== sequence) return
@@ -137,7 +151,7 @@ export function createSession(dependencies: SessionDependencies) {
         if (owns) { invalidate(); void load(active, true) }
         else {
           invalidate(); preview = null
-          publish({ readOnly: true, saveState: 'read-only' })
+          publish({ readOnly: true, saveState: 'read-only', starterOffer: false })
         }
       })
       if (!active.owns) void load(active, false)
@@ -147,14 +161,14 @@ export function createSession(dependencies: SessionDependencies) {
     if (runtime) { runtime.owns = false; runtime.load++ }
     if (debounce) { clearTimeout(debounce); debounce = undefined }
     invalidate(); preview = null
-    publish({ readOnly: true, saveState: 'error', message: `Workspace lock failed: ${describe(error)}. Download JSON and reopen this tab in Edge; close other Diagrammer tabs.` })
+    publish({ readOnly: true, saveState: 'error', starterOffer: false, message: `Workspace lock failed: ${describe(error)}. Download JSON and reopen this tab in Edge; close other Diagrammer tabs.` })
   }
   async function stop() {
     const active = runtime
     if (!active || active.stopped) return
     active.stopped = true; invalidate(); preview = null
     if (debounce) { clearTimeout(debounce); debounce = undefined }
-    publish({ readOnly: true })
+    publish({ readOnly: true, starterOffer: false })
     try { await active.queue }
     finally {
       try { active.release?.() }
@@ -287,6 +301,8 @@ export function createSession(dependencies: SessionDependencies) {
     getSnapshot: () => snapshot,
     subscribe: (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener) } },
     start, stop, command, newDocument, openStarter, openFile, saveJson, arrange, exportImage, copyImage, lockError, presentation, canMutate,
+    // The editor acknowledges the offer once it shows the picker, so remounts never reopen it.
+    starterOffered: () => { publish({ starterOffer: false }) },
     undo: () => { if (canMutate()) accept(historyUndo(history)) },
     redo: () => { if (canMutate()) accept(historyRedo(history)) },
     preview: (document: Diagram | null) => { if (presenting) return; invalidate(); preview = canMutate() ? document : null },

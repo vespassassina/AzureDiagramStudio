@@ -3,10 +3,12 @@ import { StrictMode } from 'react'
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { EditorProps } from '../contracts.ts'
-import { createDocument } from '../model.ts'
+import { createDocument, sampleDiagram, type Diagram } from '../model.ts'
 import App from '../App.tsx'
+import { starterCatalog } from './starters.ts'
+import { starterDocument } from './session.ts'
 
-const host = vi.hoisted(() => ({ realEditor: false, props: undefined as EditorProps | undefined, leases: [] as ((owns: boolean) => void)[], release: vi.fn(), close: vi.fn(), save: vi.fn(async () => {}), load: vi.fn(async () => null), download: vi.fn(), confirmReplace: vi.fn(() => true), layout: vi.fn(), exportPng: vi.fn(async () => new Blob(['png'], { type: 'image/png' })), copyImage: vi.fn(async (_png: Promise<Blob>) => {}) }))
+const host = vi.hoisted(() => ({ realEditor: false, props: undefined as EditorProps | undefined, leases: [] as ((owns: boolean) => void)[], release: vi.fn(), close: vi.fn(), save: vi.fn(async () => {}), load: vi.fn(async (): Promise<Diagram | null> => null), download: vi.fn(), confirmReplace: vi.fn(() => true), layout: vi.fn(), exportPng: vi.fn(async () => new Blob(['png'], { type: 'image/png' })), copyImage: vi.fn(async (_png: Promise<Blob>) => {}) }))
 vi.mock('../editor/Editor.tsx', async importOriginal => {
   const { default: Editor } = await importOriginal<typeof import('../editor/Editor.tsx')>()
   return { default: (props: EditorProps) => { host.props = props; return host.realEditor ? <Editor {...props} /> : <div>{props.document?.title}</div> } }
@@ -17,6 +19,8 @@ vi.mock('@xyflow/react', async importOriginal => ({
   ReactFlow: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   Background: () => null,
   useReactFlow: () => ({ getViewport: () => ({ x: 17, y: 23, zoom: .75 }), setViewport: vi.fn(async () => true), screenToFlowPosition: (point: { x: number; y: number }) => point, zoomIn: vi.fn(), zoomOut: vi.fn() }),
+  useViewport: () => ({ x: 17, y: 23, zoom: .75 }),
+  useStoreApi: () => ({ getState: () => ({ cancelConnection: vi.fn() }) }),
 }))
 vi.mock('./browser.ts', () => ({ browserDependencies: {
   createStorage: () => ({ load: host.load, save: host.save, close: host.close }),
@@ -24,13 +28,15 @@ vi.mock('./browser.ts', () => ({ browserDependencies: {
   download: host.download, confirmReplace: host.confirmReplace, newId: () => 'new-document', layout: host.layout,
   exportPng: host.exportPng, copyImage: host.copyImage,
 } }))
-afterEach(() => { cleanup(); vi.clearAllMocks(); host.leases.length = 0; host.realEditor = false })
+afterEach(() => { cleanup(); vi.clearAllMocks(); host.load.mockImplementation(async () => null); host.leases.length = 0; host.realEditor = false })
 
 describe('DGM-040 root integration', () => {
   it.each([false, true])('should_distinguish_local_save_and_keep_json_available_when_storage_rejects_%s_DGM111', async rejects => {
     vi.useFakeTimers()
     try {
       host.realEditor = true
+      // Explicit recovered-work fixture (DGM-127): production no longer defaults to the sample.
+      host.load.mockImplementation(async () => sampleDiagram())
       if (rejects) host.save.mockRejectedValueOnce(new Error('QuotaExceededError'))
       const view = render(<App />)
       await act(async () => { host.leases.at(-1)!(true) })
@@ -178,9 +184,10 @@ describe('DGM-040 root integration', () => {
     expect(host.props!.document.title).toBe('Recovered')
   })
   it('should_render_controlled_editor_and_wait_for_lock_under_strictmode', async () => {
+    host.load.mockImplementation(async () => sampleDiagram())
     render(<StrictMode><App /></StrictMode>)
     await waitFor(() => expect(host.leases).toHaveLength(2))
-    expect(host.props?.document.title).toBe('Commerce platform')
+    await waitFor(() => expect(host.props?.document.title).toBe('Commerce platform'))
     expect(host.props?.readOnly).toBe(true)
     await act(async () => { host.leases[1](true) })
     expect(host.props?.readOnly).toBe(false)
@@ -212,6 +219,7 @@ describe('DGM-040 root integration', () => {
     expect(host.confirmReplace).toHaveBeenCalledOnce()
   })
   it('should_surface_async_lock_failure_and_disable_all_mutation_callbacks', async () => {
+    host.load.mockImplementation(async () => sampleDiagram())
     render(<App />)
     await act(async () => { host.leases.at(-1)!(true) })
     const error = Object.assign(new Error('Ownership rejected'), { name: 'PersistenceError', operation: 'Web Locks ownership' })
@@ -221,5 +229,83 @@ describe('DGM-040 root integration', () => {
     act(() => host.props?.onNew())
     expect(host.props?.document.title).toBe('Commerce platform')
     expect(host.confirmReplace).not.toHaveBeenCalled()
+  })
+})
+
+describe('DGM-127 fresh startup picker', () => {
+  async function fresh(strict = false) {
+    host.realEditor = true
+    const view = render(strict ? <StrictMode><App /></StrictMode> : <App />)
+    await waitFor(() => expect(host.leases.length).toBeGreaterThan(0))
+    expect(host.props!.document.entities).toEqual([])
+    expect(host.props!.document.title).not.toBe('Commerce platform')
+    expect(view.queryByRole('dialog')).toBeNull()
+    await act(async () => { host.leases.at(-1)!(true) })
+    return view
+  }
+  it.each([false, true])('should_open_shared_picker_once_over_empty_canvas_with_Blank_focused_strict_%s_DGM127', async strict => {
+    const view = await fresh(strict)
+    const dialogs = view.getAllByRole('dialog', { name: 'New diagram' })
+    expect(dialogs).toHaveLength(1)
+    expect(dialogs[0].querySelectorAll('.starter-choice')).toHaveLength(12)
+    expect(document.activeElement).toBe(view.getByRole('button', { name: 'Blank' }))
+    expect(host.props!.document.entities).toEqual([])
+    expect(host.props!.document.connections).toEqual([])
+    expect(host.props!.readOnly).toBe(false)
+    expect(host.props!.starterOffer).toBe(false)
+  })
+  it.each(['Blank', 'Escape', 'Close', 'backdrop'] as const)('should_close_onto_empty_writable_canvas_without_prompt_when_%s_DGM127', async action => {
+    const view = await fresh()
+    const before = host.props!.document
+    const dialog = view.getByRole('dialog', { name: 'New diagram' })
+    if (action === 'Blank') fireEvent.click(view.getByRole('button', { name: 'Blank' }))
+    if (action === 'Escape') fireEvent.keyDown(dialog, { key: 'Escape' })
+    if (action === 'Close') fireEvent.click(view.getByRole('button', { name: 'Close new diagram' }))
+    if (action === 'backdrop') fireEvent.click(view.getByRole('button', { name: 'Dismiss new diagram choices' }))
+    expect(view.queryByRole('dialog')).toBeNull()
+    expect(host.props!.document.entities).toEqual([])
+    expect(host.props!.document.connections).toEqual([])
+    expect(host.props!.document.title).toBe(before.title)
+    expect(host.props!.readOnly).toBe(false)
+    expect(host.confirmReplace).not.toHaveBeenCalled()
+    act(() => host.props!.onCommand({ type: 'metadata', patch: { title: 'Usable' } }))
+    expect(host.props!.document.title).toBe('Usable')
+    expect(view.queryByRole('dialog')).toBeNull()
+  })
+  it('should_open_first_template_from_fresh_picker_without_discard_prompt_DGM127', async () => {
+    const view = await fresh()
+    const choice = starterCatalog[0]
+    fireEvent.click(view.getByRole('button', { name: choice.label }))
+    expect(host.confirmReplace).not.toHaveBeenCalled()
+    expect(view.queryByRole('dialog')).toBeNull()
+    expect(host.props!.document).toEqual({ ...starterDocument(choice.key), id: 'new-document' })
+    expect(host.props!.backupDirty).toBe(true)
+  })
+  it('should_recover_saved_work_without_opening_picker_and_not_reopen_on_reacquisition_DGM127', async () => {
+    host.realEditor = true
+    const saved = sampleDiagram()
+    host.load.mockResolvedValue(saved as never)
+    const view = render(<App />)
+    await act(async () => { host.leases.at(-1)!(true) })
+    expect(host.props!.document).toBe(saved)
+    expect(view.queryByRole('dialog')).toBeNull()
+    host.load.mockReset(); host.load.mockResolvedValue(null)
+    act(() => host.leases.at(-1)!(false))
+    await act(async () => { host.leases.at(-1)!(true) })
+    expect(view.queryByRole('dialog')).toBeNull()
+    act(() => host.leases.at(-1)!(false))
+    await act(async () => { host.leases.at(-1)!(true) })
+    expect(view.queryByRole('dialog')).toBeNull()
+  })
+  it('should_not_open_picker_while_loading_read_only_or_failed_DGM127', async () => {
+    host.realEditor = true
+    const view = render(<App />)
+    await waitFor(() => expect(host.leases.length).toBeGreaterThan(0))
+    expect(view.queryByRole('dialog')).toBeNull()
+    host.load.mockRejectedValueOnce(new Error('Corrupt'))
+    await act(async () => { host.leases.at(-1)!(true) })
+    expect(host.props!.saveState).toBe('error')
+    expect(view.queryByRole('dialog')).toBeNull()
+    expect(host.save).not.toHaveBeenCalled()
   })
 })

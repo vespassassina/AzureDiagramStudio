@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url'
 import { chromium } from '@playwright/test'
 import { preview } from 'vite'
 import { catalogCoverage, verifyCatalogPalette } from './verify-catalog.mjs'
+import { ensureStartupSample, readActiveDocument } from './startup-fixture.mjs'
+import { sampleDiagram } from '../src/model.ts'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
 const output = process.env.DGM_FOUNDATION_OUTPUT ?? fileURLToPath(new URL('../test-results/foundation/', import.meta.url))
@@ -87,6 +89,7 @@ try {
     const errors = []
     page.on('pageerror', error => errors.push(error.message))
     await page.goto(url)
+    await ensureStartupSample(page)
     await page.getByRole('heading', { name: 'Commerce platform', exact: true }).waitFor()
     await page.locator('.react-flow__node').first().waitFor()
     await page.evaluate(() => document.fonts.ready)
@@ -133,6 +136,7 @@ try {
         const errors = []
         page.on('pageerror', error => errors.push(error.message))
         await page.goto(url)
+        await ensureStartupSample(page)
         await page.waitForFunction(() => document.querySelector('.save-label')?.textContent === 'Saved on this device')
         const origin = page.getByRole('button', { name: 'New diagram', exact: true })
         if (label === 'Blank') {
@@ -198,6 +202,7 @@ try {
         const errors = []
         page.on('pageerror', error => errors.push(error.message))
         await page.goto(url)
+        await ensureStartupSample(page)
         await page.waitForFunction(() => document.querySelector('.statusbar .save-label')?.textContent === 'Saved on this device')
         const confirmation = new Promise(resolve => page.once('dialog', async dialog => { await dialog.accept(); resolve() }))
         await page.getByRole('button', { name: 'New diagram', exact: true }).click()
@@ -268,6 +273,7 @@ try {
       const errors = []
       page.on('pageerror', error => errors.push(error.message))
       await page.goto(url)
+      await ensureStartupSample(page)
       await page.waitForFunction(() => document.querySelector('.save-label')?.textContent === 'Saved on this device')
       if (await page.locator('html').getAttribute('data-theme') !== theme) await page.getByRole('button', { name: /Switch to .* theme/ }).click()
       await page.waitForFunction(expected => document.documentElement.dataset.theme === expected, theme)
@@ -297,11 +303,17 @@ try {
     } finally { await context.close() }
     const failureContext = await browser.newContext(options)
     try {
-      await failureContext.addInitScript(() => {
-        IDBObjectStore.prototype.put = function () { throw new DOMException('StoragequotaexceededwhilekeepingthiseditableworkavailableforJSONtransfer'.repeat(3), 'QuotaExceededError') }
-      })
       const page = await failureContext.newPage()
       await page.goto(url)
+      await ensureStartupSample(page)
+      // Builds that predate DGM-127 show an unsaved sample default instead of a stored fixture.
+      const seeded = await readActiveDocument(page) ?? sampleDiagram()
+      // Break local saves only after the sample fixture is recovered; recovered work never autosaves,
+      // so one real edit (Auto-arrange) drives the failing save.
+      await page.evaluate(() => {
+        IDBObjectStore.prototype.put = function () { throw new DOMException('StoragequotaexceededwhilekeepingthiseditableworkavailableforJSONtransfer'.repeat(3), 'QuotaExceededError') }
+      })
+      await page.getByRole('button', { name: 'Auto-arrange', exact: true }).click()
       await page.waitForFunction(() => document.querySelector('.save-label')?.textContent === 'Local save failed')
       if (await page.locator('html').getAttribute('data-theme') !== theme) await page.getByRole('button', { name: /Switch to .* theme/ }).click()
       await page.waitForFunction(expected => document.documentElement.dataset.theme === expected, theme)
@@ -309,6 +321,7 @@ try {
       await saveCopyLayout(page, `${label}-long-local-failure`, 'Local save failed', 'Editable JSON copy needed')
       const copy = await jsonCopy(page, `${label}-failure-copy`)
       assert.equal(copy.title, 'Commerce platform')
+      assert.equal(copy.revision, seeded.revision + 1)
       await saveCopyLayout(page, `${label}-failure-json-current`, 'Local save failed', 'No newer JSON changes')
       console.log(`PASS: ${label}: long local failure wraps, JSON remains available without local-save success`)
       saveCases++
