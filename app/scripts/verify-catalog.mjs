@@ -12,7 +12,7 @@ let policy
 try { policy = await policyLoader.ssrLoadModule('/src/catalog/presentation.ts') }
 finally { await policyLoader.close() }
 const { isSelectableIcon, legacyItem, menuGroups, searchGroups, selectionLibrary } = policy
-const output = fileURLToPath(new URL('../test-results/catalog/', import.meta.url))
+const output = process.env.DGM_CATALOG_OUTPUT ?? fileURLToPath(new URL('../test-results/catalog/', import.meta.url))
 const labels = { azure: 'Azure / Microsoft', software: 'Software' }
 const sorted = items => [...items].sort()
 const rows = page => page.locator('.library-item')
@@ -96,22 +96,57 @@ async function assertOptions(page, label) {
   if (legacy) assert.equal(await select.locator('option:checked').textContent(), `${legacy.label} (Saved legacy icon)`)
 }
 
-async function selectConnection(page) {
+export async function selectConnection(page) {
   const picker = page.getByRole('dialog').filter({ has: page.getByRole('button', { name: 'Cancel component picker', exact: true }) })
   if (await picker.isVisible()) {
     await picker.press('Escape')
     await picker.waitFor({ state: 'detached' })
   }
   await closePanels(page)
-  const point = await page.locator('.react-flow__edge[data-id="route"] .react-flow__edge-interaction').evaluate(path => {
-    for (const fraction of [.23, .5, .75, .9, .1]) {
-      const local = path.getPointAtLength(path.getTotalLength() * fraction)
+  const edge = page.locator('.react-flow__edge[data-id="route"]')
+  assert.equal(await edge.count(), 1, 'Exactly one route connection must be rendered for real connection selection')
+  // Clear the previous component selection through the canvas. Its quick-action
+  // toolbar otherwise covers this short route; this must not mutate the fixture.
+  const background = await page.locator('.react-flow__pane').evaluate(pane => {
+    const box = pane.getBoundingClientRect()
+    for (let y = box.top + 2; y < box.bottom; y += 32) {
+      for (let x = box.left + 2; x < box.right; x += 32) {
+        if (document.elementFromPoint(x, y) === pane) return { x, y }
+      }
+    }
+  })
+  assert.ok(background, 'A visible canvas point is available to clear prior selection')
+  await page.mouse.click(background.x, background.y)
+  await page.waitForFunction(() => !document.querySelector('.react-flow__node.selected, .react-flow__edge.selected'))
+  const point = await edge.evaluate(edge => {
+    const selectable = (x, y) => {
+      const hit = document.elementFromPoint(x, y)
+      return hit?.closest('.react-flow__edge') === edge && !hit.closest('.react-flow__edgeupdater')
+    }
+    // Labels bubble clicks to the same EdgeWrapper selection handler as the stroke.
+    // Probe their actual painted area: the selected-node toolbar can cover the center.
+    for (const label of edge.querySelectorAll('text')) {
+      const box = label.getBoundingClientRect()
+      for (let y = box.top + 1; y < box.bottom; y += 2) {
+        for (let x = box.left + 1; x < box.right; x += 2) {
+          if (selectable(x, y)) return { x, y }
+        }
+      }
+    }
+    const path = edge.querySelector('.react-flow__edge-interaction')
+    const length = path.getTotalLength()
+    for (let distance = 0; distance <= length; distance += 1) {
+      const local = path.getPointAtLength(distance)
       const screen = new DOMPoint(local.x, local.y).matrixTransform(path.getScreenCTM())
-      if (document.elementFromPoint(screen.x, screen.y)?.closest('.react-flow__edge') === path.closest('.react-flow__edge')) return { x: screen.x, y: screen.y }
+      if (selectable(screen.x, screen.y)) return { x: screen.x, y: screen.y }
     }
   })
   assert.ok(point, 'A visible route point is available for real connection selection')
   await page.mouse.click(point.x, point.y)
+  await page.waitForFunction(() => {
+    const selected = [...document.querySelectorAll('.react-flow__edge.selected')]
+    return selected.length === 1 && selected[0].dataset.id === 'route' && !document.querySelector('.react-flow__node.selected')
+  })
   if (!(await page.locator('.inspector').evaluate(element => element.classList.contains('open')))) await page.getByRole('button', { name: 'Open properties', exact: true }).click()
 }
 

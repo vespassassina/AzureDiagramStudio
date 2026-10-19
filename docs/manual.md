@@ -5,7 +5,14 @@ This manual describes the [final Windows 0.2.0 release](https://github.com/vespa
 The newer [guided starters and saved descriptions](verification/DGM-122.md),
 plus [Markdown Edit/Preview and the shared presentation sidebar](verification/DGM-124.md),
 are included in both final Windows packages and remain available in the source
-preview at http://127.0.0.1:5224/. They are not retroactively added to older EXEs.
+build. They are not retroactively added to older EXEs.
+
+**Current source adds About, empty startup and a unified New/template picker,
+and updates the ten-step Help guide.** These [DGM-126](specs/DGM-126.md) and
+[DGM-127](specs/DGM-127.md) changes are not in the existing Windows downloads,
+even though the package version is still 0.2.0. The sections marked source-only
+below describe that newer source; the published release retains its earlier
+guide wording.
 
 ## Install and Launch
 
@@ -21,6 +28,59 @@ For the published Windows ARM64 prerelease, use [arm64-v0.2.0](https://github.co
 Source/browser setup is in the [README](../README.md#build-from-source). Packaged offline launch, workers, image import, exports, themes and autosave/relaunch were tested. ARM64 ran natively; x64 ran under Windows ARM64 emulation rather than native Intel/AMD hardware. SmartScreen behavior and native save-dialog appearance remain manual checks. Browser diagrams do not automatically appear in desktop: Save JSON in the browser and Open JSON in the executable.
 
 Both **final Windows 0.2.0 packages** passed independent general desktop checks and targeted latest-feature checks. Native/DOM fullscreen, preview-only sidebar and ink, exit/restoration, Escape and next-edit Undo passed after the approved trusted-main-frame-only permission repair; automatic fullscreen and all other permissions remain denied. Complete anonymous downloads matched all four asset hashes. See [DGM-125](verification/DGM-125.md#final-stable-publication---2026-10-17). Packages remain unsigned. Network-offline emulation is not physical-disconnection, SmartScreen, native-dialog or Teams/Office acceptance. No profile migration or automatic update occurs; retain JSON backups, especially before resaving newer documents with older versions.
+
+## Windows Signing And Certificates
+
+A trusted Windows publisher signature requires an identity-validated signing
+service or code-signing certificate, not an ordinary HTTPS/TLS certificate.
+The published EXEs above are still unsigned. Signing is separate from About
+and from runtime testing; it does not guarantee immediate SmartScreen trust.
+
+1. Choose the publisher: your legal individual identity or an organization you
+   are authorized to represent. Check eligibility before paying for anything.
+2. For an eligible publisher, consider **Azure Artifact Signing** (formerly
+   Trusted Signing). Create a signing account, complete identity validation
+   in the Azure portal and create a **Public Trust** certificate profile.
+   Microsoft manages the signing keys. Organizations in the EU and other
+   listed regions are eligible; individual Public Trust applicants currently
+   must be in the US or Canada. See the current
+   [setup and eligibility requirements](https://learn.microsoft.com/en-us/azure/artifact-signing/quickstart)
+   and [pricing](https://azure.microsoft.com/en-us/pricing/details/artifact-signing/).
+3. Otherwise, obtain a publicly trusted **code-signing** certificate from a CA
+   that accepts your country and applicant type. Complete its identity checks
+   and use its required hardware token or managed signing/HSM service. Confirm
+   individual eligibility and renewal/key-storage costs with the provider.
+4. Once the identity/service is provisioned, configure the authorized signing
+   workflow, sign and timestamp the final Windows artifacts, verify their
+   Authenticode signatures and rerun final-artifact checks before publishing
+   new hashes and provenance. Never put private keys, passwords or signing
+   credentials in source control or chat.
+
+Do not create a self-signed certificate to imply public publisher trust, disable
+SmartScreen or install a certificate on colleagues' machines to conceal the
+unsigned state. Microsoft's [Windows code-signing comparison](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/code-signing-options)
+explains the options and reputation limits. No purchase, identity validation,
+account/permission change or signed release has been performed by this UI task.
+
+## About (Source Only)
+
+Choose **About** beside **Help** at the top of the drawing tool rail. It shows
+Azure Diagram Studio's version, local-first purpose, original application logo,
+plain-text project/documentation references, independent/not-Microsoft identity and
+artwork/license qualifications. The version is read from package metadata; it
+is not proof of a particular build, architecture, digital signature or release.
+
+**Close About**, **Done** or Escape dismisses it and returns focus to About. Tab and
+Shift+Tab stay inside the dialog. Its content scrolls on small/short screens,
+and the appearance follows the editor theme. Opening/closing does not edit or
+save the diagram, discard drafts or change the camera/selection/panels.
+About is available in Read-only mode, not inside Present; conflicting active
+operations use the same opening guards as Help.
+
+Keep **Save JSON** backups for editable work. Project/documentation references
+are selectable text, not clickable links; opening About performs no navigation
+or automatic network request and does not change the packaged app's policy.
+The existing published Windows EXEs do not contain this screen.
 
 ## Historical Local Editor And Markup ARM64 Package
 
@@ -74,8 +134,8 @@ and do not disable SmartScreen. Keep JSON backups and do not clear existing
 profiles to test ownership. The [current native report](verification/DGM-113-windows-arm64-guide.md)
 records passing automated desktop/Help checks, retained failures, isolation and
 cleanup. It does not establish physical offline, downloaded-file policy, human
-file dialogs/IME/clipboard, Teams/Office or novice acceptance. Those are the
-next human checks; publication remains a separate decision.
+file dialogs/IME/clipboard, Teams/Office or novice acceptance. Those evidence
+limits remain historical; they are not a requirement to recruit participants.
 
 ## First-Use UI Guide
 
@@ -86,6 +146,12 @@ editable JSON, exporting artwork and presenting. Each callout highlights the
 corresponding control; **Next** and **Back** move through the guide without
 executing those actions. Close the guide to try them in the editor.
 
+In current source, the same ten steps now describe fresh empty startup and the
+unified picker, all eleven starters, the Markdown right bar with Edit/Preview,
+temporary presentation ink and where to find About. These wording updates do
+not add steps or change the actions they highlight. The existing published EXEs
+retain the earlier wording.
+
 Use **Close guide**, Escape or the final **Finish** button to return to editing.
 Tab and Shift+Tab stay within the guide, and closing returns focus to Help.
 Library and Properties panels may open temporarily for a step; closing restores
@@ -94,6 +160,20 @@ pending label/title draft. The guide is available in Read-only mode, does not
 start automatically and can be replayed from Help at any time while editing.
 
 ## Start With an Example
+
+**Current source startup:** if no autosaved diagram exists and this session owns
+editing, the canvas starts empty and the same **New diagram** picker opens
+automatically. **Blank** is the default keyboard choice: press Enter to begin
+empty, or select a template explicitly. Escape, Close or the backdrop dismisses
+the picker and leaves the empty canvas. No sample architecture is loaded by
+default. A failed or read-only recovery does not start a new writable diagram.
+
+Saved work, including an intentionally saved empty diagram, reopens as it was
+without the startup picker. To start again, use **New diagram** in the top bar
+or Commands; both open the same Blank-plus-templates chooser. Opening or
+canceling it does not replace existing work or commit a draft. Accepted
+replacement still uses the existing unsaved-work confirmation. This new startup
+behavior is source-only, not a change to the existing Windows executables.
 
 Use **Open JSON** and select [Azure web/API](../examples/azure-web-app.json), [Fabric/OneLake](../examples/fabric-onelake.json), [event-driven integration](../examples/event-driven.json) or [Microsoft/enterprise integration](../examples/enterprise-integration.json). These are native schema-1 documents, not skill-import files. All components are synthetic illustrations; none asserts a real deployment or verified integration.
 
@@ -279,7 +359,21 @@ Read-only diagrams can be marked up without editing their saved contents.
 Markup is not saved, exported or added to diagram history, and is discarded on
 Exit/re-entry. Empty clicks do not create empty ink objects.
 
-Document editing, drag/drop, imports, arrange and mutation shortcuts are blocked during Present. Pending file/image/layout operations are invalidated on entry. Existing autosave of a previously committed edit can finish. Present does not remove customer names, hide OS notifications or control Teams sharing. Choose appropriate content and share the intended window. Actual Teams recipient readability and native fullscreen Escape remain manual checks.
+Document editing, drag/drop, imports, arrange and mutation shortcuts are blocked during Present. Pending file/image/layout operations are invalidated on entry. Existing autosave of a previously committed edit can finish. Present does not remove customer names, hide OS notifications or control Teams sharing. Choose appropriate content and share the intended window. Packaged fullscreen/Exit/Escape automation is recorded in DGM-125; actual Teams recipient readability remains unverified.
+
+## Sharing And Feedback
+
+The PO will share the existing release with colleagues independently. Feedback
+is optional: there is no required participant recruitment, timed novice task,
+scoring session or observed Teams/Office trial. This replaces the formal trial
+proposal, not the recorded evidence limits or normal device protections.
+
+Share SVG/PNG for viewing and JSON when someone needs an editable copy. For a
+problem report, include the release/build, ARM64 or x64, Windows version,
+steps to reproduce and expected versus actual behavior when available.
+Remove confidential diagram content from examples/screenshots. Feedback can
+identify a defect; it is not proof of native x64, Office or other-platform
+qualification.
 
 ## Annotations, Status and Legend
 

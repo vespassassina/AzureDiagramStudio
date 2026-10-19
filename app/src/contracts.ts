@@ -87,4 +87,8 @@ export interface EditorProps {
   onCopyImage?(options: ExportOptions): void
   onPreviewChange(document: Diagram | null): void
   onPresentationChange?(presenting: boolean): void
+  /** Internal, session-only: open the New diagram picker once for a fresh workspace (Blank default). */
+  starterOffer?: boolean
+  /** Internal: called once the editor has shown the offered startup picker. */
+  onStarterOffered?(): void
 }

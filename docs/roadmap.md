@@ -1,6 +1,6 @@
 # Diagrammer Roadmap and Delegation Plan
 
-Updated: 2026-10-17. Status: DGM-125 FINAL WINDOWS ARM64/x64 RELEASE PUBLISHED STABLE/LATEST; ALL FOUR PUBLIC DOWNLOAD HASHES VERIFIED; LOCAL TIMESTAMP-ONLY EVIDENCE WARNING RETAINED.
+Updated: 2026-10-19. Status: DGM-125 WINDOWS RELEASE DELIVERED; DGM-126/127/128 APPROVED SOURCE FOLLOW-UPS COMPLETE; FORMAL PARTICIPANT TRIALS REMOVED; NATIVE-x64 GAP AND TIMESTAMP-ONLY WARNING RETAINED.
 
 ## Current Execution Policy
 
@@ -73,6 +73,20 @@ independent actual-runtime checks and stable/latest GitHub publication under
 x64-under-ARM64-emulation and unsigned/human qualification limits stay explicit.
 This is not permission for a Mac release, signing or security/CI changes.
 
+The PO's 2026-10-19 "ok, go" approves the recommended qualification-summary
+reconciliation and continuation using the existing Windows release. The
+[DGM-113 continuation](specs/DGM-113.md#acceptance-continuation---2026-10-19)
+records exact artifacts, existing acceptance cases and missing human/device
+inputs. It does not authorize a new feature sprint, rebuild, publication,
+signing, policy change or support promise.
+
+The PO subsequently removed the participant trials and chose independent
+colleague sharing. Formal participant recruitment, timed novice scoring and
+observed Teams/Office trials are no longer required by the active queue.
+Optional colleague feedback is not a gate or a substitute for native/platform
+evidence. This scoped [decision](decisions.md#2026-10-19-replace-formal-participant-trials-with-optional-colleague-feedback)
+supersedes earlier participant-trial stops, not technical safety requirements.
+
 ## Execution Queue
 
 Execute in order; skip only blocked dependencies, not acceptance criteria.
@@ -101,6 +115,22 @@ they are not fresh independent test results.
 | 17 | [DGM-124](specs/DGM-124.md): AUTOMATED COMPLETE / parent visual review PASS | [Independent report](verification/DGM-124.md): 52 focused tests, both typechecks, one isolated build, 51 accepted browser groups across desktop/mobile/short light/dark; hostile/no-network preview, shared draft/Undo and selected context, pointer/keyboard resize/cancel/collapse/reopen, Present/fullscreen/ink/restoration and exact JSON/SVG/PNG checks pass. Owner 418+37 gates retained as dated evidence. Only marked18.1.0 with license/notice added; no old dependency drift/security-policy change. | Approved source queue complete; preview http://127.0.0.1:5224/. Parent inspected editing/Present/fullscreen/mobile/hostile screenshots and reconciled manual/specs. Preserve existing normal app/profile, packages and tags. New Git delivery, native rebuild or publication needs separate authorization; no platform/human acceptance implied. |
 | 18 | DGM-122/123/124 authorized direct source delivery: DELIVERED SOURCE SNAPSHOT | Feature `97efbb8` and source merge `58448ff` contain the exact 33 accepted source/example/dependency/license inputs and seven accepted documents. Source merge and feature branch are pushed; source milestone [source-v0.2.0-dgm124](https://github.com/vespassassina/AzureDiagramStudio/tree/source-v0.2.0-dgm124) additionally identifies this documentation-only closeout. [Retained operation recorder](../app/test-results/source-publication/20261017T121719646Z/git.mjs) preserves first command outputs/input identity. | Verify final origin default and peeled annotated tag agree and worktree/index are clean, then stop approved work. Existing binaries and older tags/assets are unchanged. Native rebuild, public binary delivery, signing and human/platform qualification remain separate explicit tasks. No PR. |
 | 19 | [DGM-125](specs/DGM-125.md): FINAL WINDOWS RELEASE PUBLISHED / PUBLIC DOWNLOAD VERIFICATION PASS | [Stable/latest release](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/windows-v0.2.0), ID416002142, is not draft/prerelease. Annotated tag peels to exact repair source `7783b384e5a46160bdd340112c924f019e0c7830`. Independent [public verification](../app/test-results/releases/windows-v0.2.0/20261017T125954543Z/repair-cycle1/public-verification/20261017T191118217Z/public-verification-final-handoff.json) fully downloaded all four assets (807,858,504 bytes), matching sealed SHA256; older releases/assets/refs unchanged. Both native/emulated runtime gates pass, cycle1 closed, historical failures retained. | Requested release delivered; do not rebuild, retag, republish or repeat passing gates. README/manual/report identify final assets and unsigned/native-ARM64/emulated-x64 limits. Seven retained local text files have unexplained modification-time drift with identical bytes/hashes; failed metadata check remains visible, not PASS, and timestamps are not restored. No artifact/source/remote integrity mismatch or new product blocker; human/other-platform qualification remains separate. |
+
+### Post-Release Acceptance Continuation - 2026-10-19
+
+These rows are the next execution cursor after completed row 19. Historical
+delivery instructions above are not a request to repeat source/release work.
+
+| Order | Work / current state | Owner and next action | Exit / automatic successor |
+| --- | --- | --- | --- |
+| 20 | DGM-113/DGM-125 qualification-summary reconciliation: DOCUMENTATION COMPLETE | Orchestrator updated the readiness header/matrix and release-report current status to point to the final DGM-125 evidence; historical failures and timestamp-only warning retained. | Documentation only; no new runtime PASS. Continue independent ready cells below. |
+| 21 | Formal participant trials: REMOVED BY PO; colleague feedback OPTIONAL / NOT A GATE | PO will share the existing release independently. No recruitment, timed novice session, scoring or observed Teams/Office trial is queued. Capture actionable feedback if supplied, following the [continuation](specs/DGM-113.md#acceptance-continuation---2026-10-19). | No waiting for participants or feedback required. Historical usability/Office acceptance remains unverified, not passed. |
+| 22 | DGM-113 native Intel/AMD Windows x64: BLOCKED / NOT RUN | Platform owner supplies authorized native x64 device and named operator. Independent verifier uses the existing published x64 EXE/hash, fresh owned profiles and applicable AC113 cases; current evidence is emulated only. | Native evidence closes only this cell. No rebuild, Mac qualification or broader support claim inferred. |
+| 23 | Next product outcome: PO PRIORITY PROVIDED (DGM-126/127) | PO explicitly requested About/current guidance, then unified New/template selection with empty default startup. Execute rows 24/25; optional colleague feedback may identify later defects. | No invented sprint. Feedback and native-x64 evidence remain separate from these approved source tasks. |
+| 24 | [DGM-126 About and current guidance](specs/DGM-126.md): COMPLETE FOR APPROVED SOURCE SCOPE | About/current README/manual/ten-step Help delivered. Owner RED/GREEN and build evidence retained; independent [report](verification/DGM-126.md) records selected acceptance passing in six theme/viewport cells, with remaining guard/draft variants attributed to owner tests. Earlier denials remain history. | PO reviews completed local source. No existing-EXE About, packaging/signing/publication or Git delivery claim. |
+| 25 | [DGM-127 unified New/startup picker](specs/DGM-127.md): COMPLETE FOR APPROVED SOURCE SCOPE | Fresh empty/default Blank and unified chooser implemented; saved work recovers unchanged. Recovery-fit RED1/GREEN511 editor/app checks, typecheck/lint/build and helper3/3 pass. Independent [report](verification/DGM-127.md) records six-cell selected browser PASS, narrow recovery without Fit and later camera preservation. Its closeout retained a baseline catalog failure, subsequently repaired/verified in row26. | Completed UI work is not requeued. Legacy standalone sample-start runners and native/signing limits remain distinct from the subsequently passing foundation command. No new delivery/package/release action inferred. |
+| 26 | [DGM-128 catalog browser connection selection](specs/DGM-128.md): COMPLETE / INDEPENDENT SOURCE-HARNESS PASS | Real canvas deselection and supported hit-tested label/stroke selection retain exact route assertions. Independent [report](verification/DGM-128.md): regressions3/3 and complete unfiltered foundation exit0 on first invocations; 2,414 product/build/package files, 48 accepted-candidate entries and 405 historical evidence files preserved. Original failures retained. | Approved local queue complete; PO reviews local source/harness changes. No further ready approved item, source delivery, dependency, native package, signing or release change. |
+| 27 | [DGM-129 commit/merge/push](specs/DGM-129.md): APPROVED / SOURCE DELIVERY IN PROGRESS | PO explicitly requested committing and merging all current work and pushing updates. Live default confirmed as `feat/DGM-070-desktop-release`, fetched base `65b7efe`; use current feature branch and an isolated detached merge worktree without touching the main checkout. | Commit verified source/docs/harness, merge and push both branch refs, then confirm exact remote trees and clean worktree. No PR, tag, release, binary rebuild or CI-policy change. Existing branch CI may run. |
 
 DGM-109 and DGM-111 already have independent reports; they are not new
 implementation tasks. DGM-112's desk investigation is complete, not an invitation

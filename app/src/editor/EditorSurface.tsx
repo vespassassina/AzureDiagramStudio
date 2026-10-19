@@ -33,6 +33,8 @@ import { starterCatalog } from '../app/starters.ts'
 import type { StarterChoice } from '../app/starters.ts'
 import { CircleHelp } from 'lucide-react'
 import { HelpGuide } from './HelpGuide.tsx'
+import { AboutDialog } from './AboutDialog.tsx'
+import { Info } from 'lucide-react'
 import { ContextMenu } from './ContextMenu.tsx'
 import { PresentationMarkup } from './PresentationMarkup.tsx'
 import { FileText } from 'lucide-react'
@@ -178,8 +180,8 @@ function StarterChooser({ onChoose, onCancel }: { onChoose(choice: StarterChoice
   }}>
     <button type="button" className="starter-backdrop" tabIndex={-1} aria-label="Dismiss new diagram choices" onClick={onCancel} />
     <section className="starter-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId}>
-      <header><h2 id={titleId}>New diagram</h2><button type="button" autoFocus aria-label="Close new diagram" title="Close new diagram" onClick={onCancel}><X size={18} /></button></header>
-      <div className="starter-choices"><button type="button" aria-label="Blank" className="starter-choice blank" onClick={() => onChoose(null)}><span>Blank</span><small>Empty diagram</small></button>{starterCatalog.map(choice => <button type="button" key={choice.key} aria-label={choice.label} className="starter-choice" onClick={() => onChoose(choice)}><StarterPreview choice={choice} /><span>{choice.label}</span><small>{choice.sourceCue}</small></button>)}</div>
+      <header><h2 id={titleId}>New diagram</h2><button type="button" aria-label="Close new diagram" title="Close new diagram" onClick={onCancel}><X size={18} /></button></header>
+      <div className="starter-choices"><button type="button" autoFocus aria-label="Blank" className="starter-choice blank default" onClick={() => onChoose(null)}><span>Blank</span><small>Empty diagram</small></button>{starterCatalog.map(choice => <button type="button" key={choice.key} aria-label={choice.label} className="starter-choice" onClick={() => onChoose(choice)}><StarterPreview choice={choice} /><span>{choice.label}</span><small>{choice.sourceCue}</small></button>)}</div>
     </section>
   </div>
 }
@@ -224,6 +226,10 @@ export default function EditorSurface(props: EditorProps) {
   const guideActive = useRef(false)
   const guideOpening = useRef(false)
   const guideReturn = useRef(false)
+  // About reuses the guide's guideActive/guideOpening guards (draft-preserving
+  // blur capture, click capture and shortcut suppression) while it is open.
+  const [aboutOpen, setAboutOpen] = useState(false)
+  const aboutReturn = useRef(false)
   const composing = useRef(false)
   const keyboardOwner = useRef(false)
   const [inlineEdit, setInlineEdit] = useState<InlineEdit | null>(null)
@@ -242,6 +248,8 @@ export default function EditorSurface(props: EditorProps) {
   const acceptedStarter = useRef(false)
   const starterStarting = useRef(false)
   const starterOpening = useRef(false)
+  // True while the picker shows the fresh-workspace offer: Blank then simply keeps the empty canvas.
+  const starterFresh = useRef(false)
   const starterAttempt = useRef(0)
   const pendingAction = useRef<string | null>(null)
   const propertyFocus = useRef<string | null>(null)
@@ -337,6 +345,10 @@ export default function EditorSurface(props: EditorProps) {
   const idCounter = useRef(0)
   const idPrefix = useRef('')
   const previousDocumentId = useRef(props.document.id)
+  // DGM-127: the session mounts an empty 'loading' placeholder, so the first real document
+  // (recovered work) arrives after React Flow init. Frame exactly once, on the first document
+  // that is not the empty mount placeholder; later edits, reloads and replacements keep the camera.
+  const initialFrame = useRef({ pending: true, flowReady: false, mountId: props.document.id })
     const { getViewport, setViewport, screenToFlowPosition, zoomIn, zoomOut } = useReactFlow<ArchitectureNode, ArchitectureEdge>()
   const [viewport, setCamera] = useState<Viewport>(() => ({ ...getViewport() }))
   const [canvasBounds, setCanvasBounds] = useState({ width: 0, height: 0, left: 0, top: 0 })
@@ -349,7 +361,7 @@ export default function EditorSurface(props: EditorProps) {
   const liveDocument = useRef({ document: props.document, writable })
   liveDocument.current = { document: props.document, writable }
   const latestContext = useRef({ contextMenu, blocked: false })
-  latestContext.current = { contextMenu, blocked: presenting || guideOpen || commandsOpen || starterOpen || !!connectedPicker || exportOpen || !!entryCommit.current }
+  latestContext.current = { contextMenu, blocked: presenting || guideOpen || aboutOpen || commandsOpen || starterOpen || !!connectedPicker || exportOpen || !!entryCommit.current }
   const scene = useMemo(() => buildScene(diagram), [diagram])
   const selected = diagram.entities.find(entity => entity.id === selectedIds.at(-1))
   const quickAddSourceId = selectedIds.length === 1 && !selectedEdges.length && selected && (selected.kind === 'component' || selected.kind === 'boundary') ? selected.id : null
@@ -461,16 +473,19 @@ export default function EditorSurface(props: EditorProps) {
     setCommandsOpen(false)
     commandReturn.current = restore
   }
-  function openStarterChooser(origin?: HTMLElement) {
-    if (guideActive.current || !writable || presentationActive.current || starterOpen || connectedPicker || exportOpen) return
+  function openStarterChooser(origin?: HTMLElement, fresh = false) {
+    if (guideActive.current || !writable || presentationActive.current || starterOpen || connectedPicker || exportOpen) return false
+    starterFresh.current = fresh
     starterOpening.current = true
     starterOrigin.current = origin ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null)
     starterDocumentId.current = props.document.id
     acceptedStarter.current = false
     starterStarting.current = false
     setStarterOpen(true)
+    return true
   }
   function closeStarterChooser(restore = true) {
+    starterFresh.current = false
     starterStarting.current = false
     starterOpening.current = false
     setStarterOpen(false)
@@ -479,6 +494,8 @@ export default function EditorSurface(props: EditorProps) {
   function chooseStarter(choice: StarterChoice | null) {
     if (!starterOpen || starterStarting.current || !writable || presentationActive.current || starterDocumentId.current !== props.document.id) return
     starterOpening.current = false
+    // Fresh offer: the empty canvas is already the Blank document, so Blank just dismisses.
+    if (!choice && starterFresh.current) { closeStarterChooser(); return }
     if (!finishInline() || !finish()) return
     starterStarting.current = true
     if (!choice) {
@@ -789,8 +806,8 @@ export default function EditorSurface(props: EditorProps) {
     const screen = point ? { x: (bounds?.left ?? 0) + camera.x + point.x * camera.zoom, y: (bounds?.top ?? 0) + camera.y + point.y * camera.zoom } : { x: (bounds?.left ?? 0) + (bounds?.width ?? 0) / 2, y: (bounds?.top ?? 0) + (bounds?.height ?? 0) / 2 }
     showContext(screen, entity ? 'entity' : edge ? 'connection' : 'pane', entity?.id ?? edge?.id, active instanceof HTMLElement ? active : canvasElement.current)
   }
-  useEffect(() => { if (contextMenu && !validContext(contextMenu)) setContextMenu(null) }, [contextMenu, props.document, props.document.revision, writable, guideOpen, commandsOpen, starterOpen, connectedPicker, exportOpen, presenting])
-  useEffect(() => { document.dispatchEvent(new CustomEvent('editor-tooltip', { detail: '' })) }, [tool, writable, presenting, guideOpen, commandsOpen, starterOpen, connectedPicker, exportOpen, contextMenu])
+  useEffect(() => { if (contextMenu && !validContext(contextMenu)) setContextMenu(null) }, [contextMenu, props.document, props.document.revision, writable, guideOpen, aboutOpen, commandsOpen, starterOpen, connectedPicker, exportOpen, presenting])
+  useEffect(() => { document.dispatchEvent(new CustomEvent('editor-tooltip', { detail: '' })) }, [tool, writable, presenting, guideOpen, aboutOpen, commandsOpen, starterOpen, connectedPicker, exportOpen, contextMenu])
   useEffect(() => {
     const release = () => { physicalPress.current = false }
     window.addEventListener('mouseup', release, true); window.addEventListener('pointerup', release, true); window.addEventListener('pointercancel', release, true); window.addEventListener('dragend', release, true); window.addEventListener('blur', release)
@@ -1002,6 +1019,16 @@ export default function EditorSurface(props: EditorProps) {
     const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
     void setViewport({ zoom: viewport.zoom, x: left + (right - left - bounds.width * viewport.zoom) / 2 - bounds.x * viewport.zoom, y: top + (bottom - top - bounds.height * viewport.zoom) / 2 - bounds.y * viewport.zoom }, { duration: presenting || reducedMotion ? 0 : 200 })
   }
+  // Pseudocode: wait until React Flow is ready; skip while still showing the empty mount
+  // placeholder; otherwise consume the one-shot and fit (a fresh blank consumes it with a no-op fit).
+  function settleInitialFrame() {
+    const frame = initialFrame.current
+    if (!frame.pending || !frame.flowReady) return
+    if (props.document.id === frame.mountId && !scene.entities.length) return
+    frame.pending = false
+    fitCanvas()
+  }
+  useEffect(settleInitialFrame, [props.document.id])
 
   useEffect(() => {
     const pending = transaction.current
@@ -1019,6 +1046,19 @@ export default function EditorSurface(props: EditorProps) {
     }
     if (!storageWritable) { setTool(current => current === 'pan' ? 'pan' : 'select'); setConnectionStart(null) }
   }, [props.document.id, props.document.revision, writable])
+  // DGM-127: a fresh workspace offers the unified New diagram picker once. Wait while another
+  // surface is blocking; acknowledge only after the picker actually opened.
+  const starterOfferedCallback = useRef(props.onStarterOffered)
+  starterOfferedCallback.current = props.onStarterOffered
+  const starterOfferTaken = useRef(false)
+  useEffect(() => {
+    // Re-arm only after the parent withdrew the offer, so a slow acknowledgement never reopens it.
+    if (!props.starterOffer) { starterOfferTaken.current = false; return }
+    if (starterOfferTaken.current || presenting || guideOpen || aboutOpen || commandsOpen || starterOpen || connectedPicker || exportOpen) return
+    if (!openStarterChooser(canvasElement.current ?? undefined, true)) return
+    starterOfferTaken.current = true
+    starterOfferedCallback.current?.()
+  }, [props.starterOffer, writable, presenting, guideOpen, aboutOpen, commandsOpen, starterOpen, connectedPicker, exportOpen])
   const previewCallback = useRef(props.onPreviewChange)
   previewCallback.current = props.onPreviewChange
   useEffect(() => () => { if (transaction.current) previewCallback.current(null) }, [])
@@ -1168,11 +1208,32 @@ export default function EditorSurface(props: EditorProps) {
     help?.focus({ preventScroll: true })
     guideActive.current = false
   }, [guideOpen])
+  // About follows the guide's blocking rules and refuses to stack over it.
+  function openAbout() {
+    const refused = guideBlocked || guideOpen || aboutOpen || composing.current || inlineComposing.current
+    guideOpening.current = false
+    if (refused) return
+    guideActive.current = true; setAboutOpen(true)
+  }
+  function closeAbout() {
+    aboutReturn.current = true; setAboutOpen(false)
+  }
+  useLayoutEffect(() => {
+    if (aboutOpen || !aboutReturn.current) return
+    aboutReturn.current = false
+    const about = editorElement.current?.querySelector<HTMLButtonElement>('[aria-label="About"]')
+    about?.focus({ preventScroll: true })
+    guideActive.current = false
+  }, [aboutOpen])
+  function markAboutOpening() {
+    if (!guideBlocked && !composing.current && !inlineComposing.current) guideOpening.current = true
+  }
 
-  return <div ref={editorElement} inert={guideOpen} onPointerDownCapture={trackSecondary} onMouseDownCapture={trackSecondary} onPointerMoveCapture={moveSecondary} onMouseMoveCapture={moveSecondary} onContextMenuCapture={event => { if ((event.target as Element)?.closest?.('.canvas-surface') && !(event.target as Element)?.closest?.('input, textarea, select, [contenteditable="true"]')) event.preventDefault() }} onDragStartCapture={event => { if ((event.target as HTMLElement).closest('.library-item')) startResize() }} onCompositionStartCapture={() => { composing.current = true }} onCompositionEndCapture={() => { composing.current = false }} onBlurCapture={event => {
-    if (guideActive.current || guideOpening.current || (event.relatedTarget instanceof HTMLElement && event.relatedTarget.getAttribute('aria-label') === 'Help')) event.stopPropagation()
-  }} onClickCapture={event => { if (guideActive.current && !(event.target as HTMLElement).closest('.help-guide')) event.stopPropagation() }} onFocusCapture={() => { keyboardOwner.current = true }} className={`app-shell${presenting ? ' presenting' : ''}`}>
+  return <div ref={editorElement} inert={guideOpen || aboutOpen} onPointerDownCapture={trackSecondary} onMouseDownCapture={trackSecondary} onPointerMoveCapture={moveSecondary} onMouseMoveCapture={moveSecondary} onContextMenuCapture={event => { if ((event.target as Element)?.closest?.('.canvas-surface') && !(event.target as Element)?.closest?.('input, textarea, select, [contenteditable="true"]')) event.preventDefault() }} onDragStartCapture={event => { if ((event.target as HTMLElement).closest('.library-item')) startResize() }} onCompositionStartCapture={() => { composing.current = true }} onCompositionEndCapture={() => { composing.current = false }} onBlurCapture={event => {
+    if (guideActive.current || guideOpening.current || (event.relatedTarget instanceof HTMLElement && ['Help', 'About'].includes(event.relatedTarget.getAttribute('aria-label') ?? ''))) event.stopPropagation()
+  }} onClickCapture={event => { if (guideActive.current && !(event.target as HTMLElement).closest('.help-guide, .about-dialog')) event.stopPropagation() }} onFocusCapture={() => { keyboardOwner.current = true }} className={`app-shell${presenting ? ' presenting' : ''}`}>
     {guideOpen && <HelpGuide root={editorElement} onReveal={setGuidePanel} onClose={closeGuide} />}
+    {aboutOpen && <AboutDialog onClose={closeAbout} />}
     {contextMenu && validContext(contextMenu) && <ContextMenu key={`${contextMenu.screen.x}:${contextMenu.screen.y}:${contextMenu.kind}:${contextMenu.id ?? ''}`} point={contextMenu.screen} origin={contextMenu.origin} actions={contextActions} onClose={() => setContextMenu(null)} />}
     {commandsOpen && !presenting && <CommandMenu actions={actions} onCancel={() => closeCommands()} onExecute={action => { if (presentationActive.current || action.disabled) return; pendingAction.current = action.label; closeCommands() }} />}
     {starterOpen && !presenting && <StarterChooser onCancel={() => closeStarterChooser()} onChoose={chooseStarter} />}
@@ -1185,7 +1246,7 @@ export default function EditorSurface(props: EditorProps) {
       <button type="button" className="present-button" aria-label="Present" title="Present" disabled={props.saveState === 'loading' || props.isArranging} onPointerDown={() => { entryFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null }} onMouseDown={event => event.preventDefault()} onClick={enterPresentation}><Presentation size={18} /><span>Present</span></button>
     </header>}
     <div className="workspace" inert={commandsOpen}>
-      {!presenting && <nav className="tool-rail" aria-label="Drawing tools"><IconButton icon={CircleHelp} label="Help" className="help-trigger" disabled={guideBlocked} onPointerDown={() => { if (!guideBlocked && !composing.current && !inlineComposing.current) guideOpening.current = true }} onMouseDown={event => event.preventDefault()} onClick={openGuide} />{tools.map(item => <IconButton key={item.tool} icon={item.icon} label={item.label} active={tool === item.tool} disabled={!writable && item.tool !== 'select' && item.tool !== 'pan'} onClick={() => chooseTool(item.tool)} />)}<IconButton icon={isImportingIcon ? LoaderCircle : ImagePlus} label="Import custom icon" disabled={!writable || isImportingIcon} onClick={openIconPicker} /><IconButton icon={CommandIcon} label="Commands" className="commands-trigger" onMouseDown={event => event.preventDefault()} onClick={openCommands} /><span className="rail-spacer" /><EditorThemeToggle /><IconButton icon={ClipboardPaste} label="Paste selection" disabled={!writable || !hasClipboard} onClick={() => paste()} /><IconButton icon={PanelRight} label="Document properties" data-markdown-ui onMouseDown={event => event.preventDefault()} onClick={() => sidebarView === 'markdown' || descriptionDraft ? showSidebar('properties') : documentProperties()} /><IconButton icon={FileText} label="Open Markdown" active={inspectorOpen && sidebarView === 'markdown'} data-markdown-ui onMouseDown={event => event.preventDefault()} onClick={() => showSidebar('markdown')} /></nav>}
+      {!presenting && <nav className="tool-rail" aria-label="Drawing tools"><IconButton icon={CircleHelp} label="Help" className="help-trigger" disabled={guideBlocked} onPointerDown={() => { if (!guideBlocked && !composing.current && !inlineComposing.current) guideOpening.current = true }} onMouseDown={event => event.preventDefault()} onClick={openGuide} /><IconButton icon={Info} label="About" className="about-trigger" disabled={guideBlocked} onPointerDown={markAboutOpening} onMouseDown={event => event.preventDefault()} onClick={openAbout} />{tools.map(item => <IconButton key={item.tool} icon={item.icon} label={item.label} active={tool === item.tool} disabled={!writable && item.tool !== 'select' && item.tool !== 'pan'} onClick={() => chooseTool(item.tool)} />)}<IconButton icon={isImportingIcon ? LoaderCircle : ImagePlus} label="Import custom icon" disabled={!writable || isImportingIcon} onClick={openIconPicker} /><IconButton icon={CommandIcon} label="Commands" className="commands-trigger" onMouseDown={event => event.preventDefault()} onClick={openCommands} /><span className="rail-spacer" /><EditorThemeToggle /><IconButton icon={ClipboardPaste} label="Paste selection" disabled={!writable || !hasClipboard} onClick={() => paste()} /><IconButton icon={PanelRight} label="Document properties" data-markdown-ui onMouseDown={event => event.preventDefault()} onClick={() => sidebarView === 'markdown' || descriptionDraft ? showSidebar('properties') : documentProperties()} /><IconButton icon={FileText} label="Open Markdown" active={inspectorOpen && sidebarView === 'markdown'} data-markdown-ui onMouseDown={event => event.preventDefault()} onClick={() => showSidebar('markdown')} /></nav>}
       <aside className={`library ${!presenting && libraryOpen ? 'open' : ''}`} aria-label="Component library" inert={presenting || !libraryOpen}>
         <div className="panel-heading"><h2>Components</h2><div className="panel-actions">{windowWidth > 900 && <IconButton icon={libraryPinned ? PinOff : Pin} label={libraryPinned ? 'Unpin component library' : 'Pin component library'} active={libraryPinned} onClick={toggleLibraryPin} />}<IconButton icon={PanelLeftClose} label="Close component library" onClick={() => setLibraryOpen(false)} /></div></div>
         <CatalogAccordion writable={writable} selectedIcon={tool === 'component' ? template.icon : null} favoriteIcons={favoriteIcons} onToggleFavorite={toggleFavorite} onClearFavorites={clearFavorites} recentIcons={recentIcons} onClearRecents={clearRecents} onChoose={chooseComponent} />
@@ -1202,7 +1263,7 @@ export default function EditorSurface(props: EditorProps) {
         {!presenting && <div className="canvas-toolbar" data-fit-chrome="top"><div className="direction-control" role="group" aria-label="Layout direction"><IconButton icon={ArrowRight} label="Right layout" active={diagram.direction === 'RIGHT'} disabled={!writable} className={diagram.direction === 'RIGHT' ? 'chosen' : ''} onClick={() => editMetadata({ direction: 'RIGHT' })} /><IconButton icon={ArrowDown} label="Down layout" active={diagram.direction === 'DOWN'} disabled={!writable} className={diagram.direction === 'DOWN' ? 'chosen' : ''} onClick={() => editMetadata({ direction: 'DOWN' })} /></div><button type="button" className="arrange-button" title="Auto-arrange" aria-label="Auto-arrange" disabled={!writable || props.isArranging || !diagram.entities.some(entity => entity.kind === 'component' || entity.kind === 'boundary')} onClick={() => { if (!presentationActive.current && writable && finish()) props.onArrange(diagram.direction) }}>{props.isArranging ? <LoaderCircle size={15} className="spin" /> : <LayoutGrid size={15} />}<span>Auto-arrange</span></button></div>}
         <ReactFlow<ArchitectureNode, ArchitectureEdge> nodes={nodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} zIndexMode="manual" elevateNodesOnSelect={false} elevateEdgesOnSelect={false} connectionMode={ConnectionMode.Loose} onNodesChange={updateNodes} onNodeDragStart={startResize} onNodeDrag={(_event, _node, moved) => moveNodes(moved, false)} onNodeDragStop={(_event, _node, moved) => moveNodes(moved, true)} onNodeClick={(event, node) => selectEntity(node.id, event)} onNodeDoubleClick={(event, node) => { event.preventDefault(); event.stopPropagation(); openInline(node.id, 'entity', event.currentTarget as HTMLElement) }} onEdgeDoubleClick={(event, edge) => { event.preventDefault(); event.stopPropagation(); openInline(edge.id, 'connection', event.currentTarget as HTMLElement) }} onEdgeClick={(event, edge) => { if (presentationActive.current) return; finish(); setSelectedIds([]); setSelectedEdges(current => event.shiftKey || event.ctrlKey || event.metaKey ? current.includes(edge.id) ? current.filter(id => id !== edge.id) : [...current, edge.id] : [edge.id]); openInspector(false) }} onEdgesChange={changes => { if (presentationActive.current) return; if (changes.some(change => change.type === 'select')) finish(); setSelectedEdges(current => { const next = new Set(current); for (const change of changes) if (change.type === 'select') { if (change.selected) next.add(change.id); else next.delete(change.id) } return [...next] }) }}
           onNodeContextMenu={(event, node) => openContext(event, 'entity', node.id)} onEdgeContextMenu={(event, edge) => openContext(event, 'connection', edge.id)} onPaneContextMenu={event => openContext(event, 'pane')}
-          onPaneClick={insertAt} onConnectStart={startResize} onReconnectStart={startResize} onConnect={next => connect(next)} onReconnect={(edge, next) => connect(next, edge.id)} isValidConnection={next => !presentationActive.current && writable && !inlineRef.current && !blockedGesture() && canConnect(diagram, next.source, next.target)} onMove={updateCamera} onInit={() => fitCanvas()} minZoom={0.001} maxZoom={2} snapToGrid={!presenting && grid.snap} snapGrid={[grid.spacing, grid.spacing]} panOnDrag={presenting || tool === 'pan' ? true : [1, 2]} elementsSelectable={!presenting} nodesFocusable={!presenting} edgesFocusable={!presenting} selectionOnDrag={!presenting && tool === 'select'} nodesDraggable={writable && !visibleInline && tool === 'select'} nodesConnectable={writable && !visibleInline} edgesReconnectable={writable && !visibleInline} deleteKeyCode={null}>
+          onPaneClick={insertAt} onConnectStart={startResize} onReconnectStart={startResize} onConnect={next => connect(next)} onReconnect={(edge, next) => connect(next, edge.id)} isValidConnection={next => !presentationActive.current && writable && !inlineRef.current && !blockedGesture() && canConnect(diagram, next.source, next.target)} onMove={updateCamera} onInit={() => { initialFrame.current.flowReady = true; settleInitialFrame() }} minZoom={0.001} maxZoom={2} snapToGrid={!presenting && grid.snap} snapGrid={[grid.spacing, grid.spacing]} panOnDrag={presenting || tool === 'pan' ? true : [1, 2]} elementsSelectable={!presenting} nodesFocusable={!presenting} edgesFocusable={!presenting} selectionOnDrag={!presenting && tool === 'select'} nodesDraggable={writable && !visibleInline && tool === 'select'} nodesConnectable={writable && !visibleInline} edgesReconnectable={writable && !visibleInline} deleteKeyCode={null}>
           {(presenting ? grid.present : grid.visible) && <Background id="diagram-grid" variant={grid.style === 'lines' ? BackgroundVariant.Lines : BackgroundVariant.Dots} gap={grid.spacing} offset={editorGridOffset(diagram.grid)} size={1} lineWidth={0.5} color={contrastInk('#c4d2ce', scene.backgroundColor, 3)} />}<svg width={0} height={0}><defs dangerouslySetInnerHTML={{ __html: MARKERS + scene.connections.map(connection => connectionMarkers(connection, scene.connectionBackgrounds[connection.id])).join('') }} /></svg>
         </ReactFlow>
         {visibleInline && anchor && <InlineLabel key={`${visibleInline.kind}:${visibleInline.id}`} edit={visibleInline} style={{ width: inlineWidth, left: canvasBounds.width ? Math.max(4, Math.min(canvasBounds.width - inlineWidth - 4, inlineLeft)) : inlineLeft, top: canvasBounds.height ? Math.max(4, Math.min(canvasBounds.height - (visibleInline.multiline ? 108 : 44) - 4, inlineTop)) : inlineTop }} onDraft={draftInline} onFinish={() => finishInline(true)} onCancel={() => cancelInline()} onComposing={active => { inlineComposing.current = active }} deferFinish={() => starterOpening.current} />}

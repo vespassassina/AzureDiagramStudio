@@ -63,6 +63,48 @@ describe('DGM117 guide geometry', () => {
     expect(onReveal).toHaveBeenCalledWith('inspector')
     expect(onClose).toHaveBeenCalledOnce()
   })
+  it('should_describe_current_starters_markdown_ink_and_About_location_in_ten_ordered_steps_DGM126', () => {
+    const root = createRef<HTMLDivElement>()
+    render(<><div ref={root} /><HelpGuide root={root} onReveal={vi.fn()} onClose={vi.fn()} /></>)
+    const guide = screen.getByRole('dialog', { name: 'UI guide' })
+    const titles = ['Start a diagram', 'Name your diagram', 'Add components', 'Navigate the canvas', 'Connect and annotate', 'Edit properties', 'Arrange your diagram', 'Save editable work', 'Export artwork', 'Present and hand off']
+    const texts: string[] = []
+    for (const [index, title] of titles.entries()) {
+      expect(within(guide).getByRole('heading', { name: title })).toBeTruthy()
+      texts.push(guide.querySelector('.help-guide-content p')!.textContent!)
+      if (index < 9) fireEvent.click(within(guide).getByRole('button', { name: 'Next' }))
+    }
+    expect(texts[0]).toMatch(/eleven/i)
+    expect(texts[0]).not.toMatch(/Web\/API, Event-driven, Fabric or Enterprise\./)
+    expect(texts[5]).toMatch(/Markdown.*Edit.*Preview/s)
+    expect(texts[5]).toMatch(/right/i)
+    expect(texts[9]).toMatch(/temporary/i)
+    expect(texts[9]).toMatch(/ink|pen|marker/i)
+    expect(texts.join(' ')).toMatch(/About.*(beside|next to) Help/s)
+  })
+  it('should_describe_empty_default_fresh_picker_explicit_templates_and_saved_recovery_DGM127', () => {
+    const root = createRef<HTMLDivElement>()
+    render(<><div ref={root} /><HelpGuide root={root} onReveal={vi.fn()} onClose={vi.fn()} /></>)
+    const guide = screen.getByRole('dialog', { name: 'UI guide' })
+    expect(within(guide).getByRole('heading', { name: 'Start a diagram' })).toBeTruthy()
+    const text = guide.querySelector('.help-guide-content p')!.textContent!
+    expect(text).toMatch(/empty canvas/i)
+    expect(text).toMatch(/Blank is the default/i)
+    expect(text).toMatch(/fresh workspace/i)
+    expect(text).toMatch(/saved (work|diagram)s? (reopens|reopen|recover)/i)
+    expect(text).toMatch(/eleven/i)
+    expect(text).not.toMatch(/sample/i)
+  })
+  it('should_state_that_Escape_cancels_active_ink_or_resize_before_exiting_Present_DGM126', () => {
+    const root = createRef<HTMLDivElement>()
+    render(<><div ref={root} /><HelpGuide root={root} onReveal={vi.fn()} onClose={vi.fn()} /></>)
+    const guide = screen.getByRole('dialog', { name: 'UI guide' })
+    for (let index = 0; index < 9; index++) fireEvent.click(within(guide).getByRole('button', { name: 'Next' }))
+    expect(within(guide).getByRole('heading', { name: 'Present and hand off' })).toBeTruthy()
+    const text = guide.querySelector('.help-guide-content p')!.textContent!
+    expect(text).toMatch(/Escape cancels an active ink stroke or sidebar resize; otherwise it returns to editing\./)
+    expect(text).not.toMatch(/(^|\. )Escape returns to editing\./)
+  })
   it('should_restore_chrome_scroll_and_keep_navigation_reachable_in_a_short_viewport', () => {
     window.innerWidth = 720; window.innerHeight = 450
     const root = createRef<HTMLDivElement>()

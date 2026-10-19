@@ -140,6 +140,7 @@ svg { flex-shrink: 0; }
 .starter-choice > small { align-self: start; color: var(--muted); font-size: 10px; overflow-wrap: anywhere; }
 .starter-preview { grid-row: 1 / span 2; width: 84px; height: 84px; border: 1px solid var(--line); background: white; }
 .starter-choice.blank { display: flex; flex-direction: column; justify-content: center; padding-left: 18px; }
+.starter-choice.default { border-color: var(--accent); }
 @media (max-width: 520px) { .starter-choices { grid-template-columns: 1fr; } }
 @media (max-width: 640px) { .tool-rail:has(.commands-trigger) { width: 44px; }.tool-rail .commands-trigger { width: 44px; height: 44px; } }
 .architecture-tile > svg { display: block; overflow: visible; font-family: 'IBM Plex Sans', sans-serif; }
@@ -392,6 +393,27 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .help-guide .help-guide-unavailable { color: var(--muted); font-size: 12px; margin-top: 8px; }
 .help-guide footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 16px; border-top: 1px solid var(--line); flex-shrink: 0; }
 .help-guide footer button:last-child { color: var(--accent); background: var(--soft); }
+.tool-rail .about-trigger { width: 44px; height: 44px; }
+.about-overlay { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 12px; overflow: hidden; background: #0003; }
+.about-dialog { display: flex; flex-direction: column; width: min(440px, 100%); max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); min-height: 0; border: 1px solid var(--control-line); border-radius: 6px; background: var(--surface); color: var(--ink); box-shadow: 0 8px 24px var(--chrome-shadow); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.about-dialog header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 8px 4px 16px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+.about-dialog header > span { font-size: 12px; font-weight: 500; }
+.about-dialog button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-width: 44px; min-height: 44px; padding: 8px 12px; border: 1px solid var(--control-line); border-radius: 4px; background: var(--surface); color: var(--ink); }
+.about-dialog button:hover { background: var(--soft); }
+.about-dialog header button { border-color: transparent; padding: 8px; }
+.about-content { overflow: auto; overscroll-behavior: contain; min-height: 0; padding: 14px 16px; }
+.about-content:focus-visible { outline: 2px solid var(--focus); outline-offset: -3px; }
+.about-identity { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.about-identity img { flex-shrink: 0; }
+.about-dialog h2 { font-size: 18px; font-weight: 500; line-height: 1.3; margin: 0; }
+.about-dialog h3 { font-size: 13px; font-weight: 600; margin: 14px 0 4px; }
+.about-dialog p, .about-dialog dl { margin: 0 0 8px; }
+.about-dialog .about-version { color: var(--muted); margin: 0; font-variant-numeric: tabular-nums; }
+.about-dialog dt { color: var(--muted); font-size: 12px; }
+.about-dialog dd { margin: 0 0 6px; }
+.about-dialog code { font-size: 12px; background: var(--surface-raised); border-radius: 3px; padding: 0 3px; }
+.about-dialog footer { display: flex; justify-content: flex-end; padding: 8px 16px; border-top: 1px solid var(--line); flex-shrink: 0; }
+.about-dialog footer button { color: var(--accent); background: var(--soft); }
 .canvas-heading { top: 24px; left: 24px; right: 260px; max-width: none; }
 .canvas-heading h1, .diagram-meta { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 .diagram-meta { line-height: 1.4; }

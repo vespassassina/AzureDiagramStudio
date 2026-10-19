@@ -10,6 +10,7 @@ import { promisify } from 'node:util'
 import os from 'node:os'
 import path from 'node:path'
 import { launchDesktop } from './desktop-driver.mjs'
+import { ensureStartupSample } from './startup-fixture.mjs'
 
 const execute = promisify(execFile)
 const root = fileURLToPath(new URL('../', import.meta.url))
@@ -42,7 +43,7 @@ try {
     const errors = []
     page.on('pageerror', (error) => errors.push(error.message))
     await page.reload()
-    await page.locator('.react-flow__node').first().waitFor({ timeout: 30_000 }).catch(() => {
+    await ensureStartupSample(page).catch(() => {
       throw new Error(`app opened but rendered no diagram. Renderer errors: ${errors.join('; ') || 'none captured'}`)
     })
   } finally {
