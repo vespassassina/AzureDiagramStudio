@@ -1,32 +1,36 @@
 # Azure Diagram Studio: Short Manual
 
-This manual describes the [final Windows 0.2.0 release](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/windows-v0.2.0), including the [first-use UI guide](verification/DGM-117.md), [editor/markup improvements](verification/DGM-118.md), guided starters and Markdown sidebar. The [DGM-125 verification report](verification/DGM-125.md#final-stable-publication---2026-10-17) identifies exact source `7783b384e5a46160bdd340112c924f019e0c7830`, both tested packages, retained failures and public download hashes. Earlier releases and local packages remain unchanged historical artifacts, not the current downloads. Stable publication is not general platform or human certification.
+This manual describes the [Windows 0.3.0 release](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.3.0), including About, empty startup, the unified picker, the ten-step Help guide, guided starters and Markdown sidebar. The [DGM-130 verification report](verification/DGM-130.md) identifies exact source `96c3e3f6c497eb008c767efd38f59f00f91d7cea`, both tested portables and verification limits. Earlier releases and local packages remain unchanged historical artifacts. Stable publication is not general platform or human certification.
 
 The newer [guided starters and saved descriptions](verification/DGM-122.md),
 plus [Markdown Edit/Preview and the shared presentation sidebar](verification/DGM-124.md),
 are included in both final Windows packages and remain available in the source
 build. They are not retroactively added to older EXEs.
 
-**Current source adds About, empty startup and a unified New/template picker,
-and updates the ten-step Help guide.** These [DGM-126](specs/DGM-126.md) and
-[DGM-127](specs/DGM-127.md) changes are not in the existing Windows downloads,
-while the current source is prepared as 0.3.0. Its Windows release is still being
-verified; the existing downloads remain 0.2.0. The sections marked source-only
-below describe that newer source; the published release retains its earlier
-guide wording.
+**Windows 0.3.0 includes About, empty startup and the unified New/template picker,
+plus the updated ten-step Help guide.** These [DGM-126](specs/DGM-126.md) and
+[DGM-127](specs/DGM-127.md) features were source-only before this release.
+Older 0.2.0 binaries retain their earlier startup and guide behavior.
 
 ## Install and Launch
 
-Download from the verified [final Windows 0.2.0 release](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/windows-v0.2.0), or use the [README download links](../README.md#release-downloads). The source repository is public. Both portable files bundle the runtime and work without Node.js, a local server or a cloud account.
+Download from the [Windows 0.3.0 release](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.3.0), or use the [README download links](../README.md#windows-030). The source repository is public. Both portable files bundle the runtime and work without Node.js, a local server or a cloud account.
 
 For the published Windows ARM64 prerelease, use [arm64-v0.2.0](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/arm64-v0.2.0) and its own checksum manifest. There is no 0.2.0 x64/Mac asset in that release. Its attached source candidate ZIP, not GitHub's automatic tag archives, contains that older verified candidate; at its publication no source branch was pushed. The later source milestone and local guide package do not replace those release assets.
 
 1. In Windows **Settings > System > About**, check **System type**. Choose **ARM64** for Windows on ARM/Snapdragon, or **x64** for Intel/AMD Windows PCs.
-2. Choose the matching `Azure-Diagram-Studio-0.2.0-win-{arch}-portable.exe` and [SHA256SUMS.txt](https://github.com/vespassassina/AzureDiagramStudio/releases/download/windows-v0.2.0/SHA256SUMS.txt) from the same release. Downloads are approximately 403-404 MB.
+2. Choose the matching `Azure-Diagram-Studio-0.3.0-win-{arch}-portable.exe` and [SHA256SUMS.txt](https://github.com/vespassassina/AzureDiagramStudio/releases/download/0.3.0/SHA256SUMS.txt) from the same release. Downloads are approximately 403-404 MB.
 3. Compare `Get-FileHash '.\your-downloaded-file.exe' -Algorithm SHA256` with the matching manifest entry. A mismatch means do not run the file.
 4. Launch the portable executable. No separate Node.js installation or cloud sign-in is needed for the packaged runtime. Unsigned executables can trigger SmartScreen: follow your organization's policy, and do not disable security protections.
 
 Source/browser setup is in the [README](../README.md#build-from-source). Packaged offline launch, workers, image import, exports, themes and autosave/relaunch were tested. ARM64 ran natively; x64 ran under Windows ARM64 emulation rather than native Intel/AMD hardware. SmartScreen behavior and native save-dialog appearance remain manual checks. Browser diagrams do not automatically appear in desktop: Save JSON in the browser and Open JSON in the executable.
+
+Both 0.3.0 exact portables passed independent general and new-feature runtime
+checks: 14 successful sessions and 16 exports across both targets. Full anonymous
+public downloads matched sealed hashes; corrected provenance/checksum sidecars
+also passed independent content verification. See [DGM-130](verification/DGM-130.md).
+The binaries are unsigned; native Intel/AMD and human-policy qualification are
+not implied. No updater or profile migration is provided; keep JSON backups.
 
 Both **final Windows 0.2.0 packages** passed independent general desktop checks and targeted latest-feature checks. Native/DOM fullscreen, preview-only sidebar and ink, exit/restoration, Escape and next-edit Undo passed after the approved trusted-main-frame-only permission repair; automatic fullscreen and all other permissions remain denied. Complete anonymous downloads matched all four asset hashes. See [DGM-125](verification/DGM-125.md#final-stable-publication---2026-10-17). Packages remain unsigned. Network-offline emulation is not physical-disconnection, SmartScreen, native-dialog or Teams/Office acceptance. No profile migration or automatic update occurs; retain JSON backups, especially before resaving newer documents with older versions.
 
@@ -65,6 +69,9 @@ account/permission change or signed release has been performed by this UI task.
 
 ## About (Source Only)
 
+This section was originally source-only; it is now included in Windows 0.3.0.
+The heading is retained for existing documentation links.
+
 Choose **About** beside **Help** at the top of the drawing tool rail. It shows
 Azure Diagram Studio's version, local-first purpose, original application logo,
 plain-text project/documentation references, independent/not-Microsoft identity and
@@ -81,7 +88,7 @@ operations use the same opening guards as Help.
 Keep **Save JSON** backups for editable work. Project/documentation references
 are selectable text, not clickable links; opening About performs no navigation
 or automatic network request and does not change the packaged app's policy.
-The existing published Windows EXEs do not contain this screen.
+Windows 0.3.0 contains this screen; historical 0.2.0 EXEs do not.
 
 ## Historical Local Editor And Markup ARM64 Package
 
@@ -147,10 +154,10 @@ editable JSON, exporting artwork and presenting. Each callout highlights the
 corresponding control; **Next** and **Back** move through the guide without
 executing those actions. Close the guide to try them in the editor.
 
-In current source, the same ten steps now describe fresh empty startup and the
+In Windows 0.3.0 and current source, the same ten steps describe fresh empty startup and the
 unified picker, all eleven starters, the Markdown right bar with Edit/Preview,
 temporary presentation ink and where to find About. These wording updates do
-not add steps or change the actions they highlight. The existing published EXEs
+not add steps or change the actions they highlight. Historical 0.2.0 EXEs
 retain the earlier wording.
 
 Use **Close guide**, Escape or the final **Finish** button to return to editing.
@@ -174,7 +181,7 @@ without the startup picker. To start again, use **New diagram** in the top bar
 or Commands; both open the same Blank-plus-templates chooser. Opening or
 canceling it does not replace existing work or commit a draft. Accepted
 replacement still uses the existing unsaved-work confirmation. This new startup
-behavior is source-only, not a change to the existing Windows executables.
+behavior is included in Windows 0.3.0, not retroactively in older executables.
 
 Use **Open JSON** and select [Azure web/API](../examples/azure-web-app.json), [Fabric/OneLake](../examples/fabric-onelake.json), [event-driven integration](../examples/event-driven.json) or [Microsoft/enterprise integration](../examples/enterprise-integration.json). These are native schema-1 documents, not skill-import files. All components are synthetic illustrations; none asserts a real deployment or verified integration.
 

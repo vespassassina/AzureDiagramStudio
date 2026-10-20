@@ -193,3 +193,14 @@ Evidence: [independent verification](verification/DGM-128.md).
 - A regression fixture must reproduce the previous selection state, not only
   its document geometry. Retain missing/offscreen-target rejection checks and
   preserve historical evidence through task-specific output directories.
+
+## 2026-10-20: DGM-130 Release Provenance
+
+Evidence: [0.3.0 verification](verification/DGM-130.md).
+
+- Final provenance must reconcile inherited preliminary fields, not merely
+  append a passing runtime object. Public verification caught contradictory
+  acceptance/limits/finalization text even though every download hash matched.
+  Preserve that failed content gate, correct and reseal the two metadata assets,
+  and independently verify their fresh public bytes. Reuse complete EXE download
+  proof only when exact asset identity, digest, size and retained bytes match.

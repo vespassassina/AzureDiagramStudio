@@ -15,7 +15,7 @@ A local architecture editor for Azure, Microsoft Fabric, Microsoft applications 
 
 ![The same native example in the dark editor theme](docs/images/studio-dark.png)
 
-## Current Source: New Document, About And Help
+## New Document, About And Help
 
 A fresh workspace starts with an **empty canvas** and the unified **New diagram**
 picker. **Blank** is the default; choose it to stay empty or explicitly choose
@@ -24,7 +24,7 @@ The same New diagram button and Commands action reopen that picker for existing
 work. Autosaved diagrams recover unchanged without an automatic picker, including
 saved empty diagrams.
 
-The current source adds **About** beside the question-mark **Help** button in
+Version 0.3.0 adds **About** beside the question-mark **Help** button in
 the left tool rail. About shows the product version from package metadata,
 plain-text project/documentation references, identity and artwork-rights information, and
 the reminder to keep editable JSON backups. Close it or press Escape to return
@@ -33,15 +33,38 @@ to the same diagram; it is also available in read-only sessions.
 The ten-step Help guide now describes fresh empty startup, all eleven starters,
 Markdown Edit/Preview and temporary presentation markup. See the [short manual](docs/manual.md#about-source-only)
 for About and [first-use guidance](docs/manual.md#first-use-ui-guide).
-These are **source-only changes**: the existing Windows downloads below have
-not been rebuilt with the new startup flow, About or the revised guide.
-Current source is prepared as **0.3.0**; its Windows release is being verified.
-The downloads below remain the existing 0.2.0 release until publication completes.
+These features are included in the Windows **0.3.0** downloads below.
+Historical 0.2.0 executables remain unchanged.
 
-## Windows 0.2.0
+## Windows 0.3.0
+
+[Azure Diagram Studio 0.3.0 for Windows](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.3.0)
+is the current stable release, with About, empty startup, the unified picker and
+updated guidance, alongside the existing editing, presentation and export tools.
+
+| Your PC | Download |
+| --- | --- |
+| Windows on ARM / Snapdragon | [ARM64 portable EXE](https://github.com/vespassassina/AzureDiagramStudio/releases/download/0.3.0/Azure-Diagram-Studio-0.3.0-win-arm64-portable.exe) |
+| Windows on Intel / AMD | [x64 portable EXE](https://github.com/vespassassina/AzureDiagramStudio/releases/download/0.3.0/Azure-Diagram-Studio-0.3.0-win-x64-portable.exe) |
+
+[SHA256 checksums](https://github.com/vespassassina/AzureDiagramStudio/releases/download/0.3.0/SHA256SUMS.txt)
+| [Source provenance](https://github.com/vespassassina/AzureDiagramStudio/releases/download/0.3.0/SOURCE-PROVENANCE.json)
+| [Verification report](docs/verification/DGM-130.md)
+
+Both portables are **unsigned**. Independent exact-EXE checks passed on native
+Windows ARM64 and x64 under ARM64 emulation, not native Intel/AMD hardware.
+Complete anonymous public downloads matched the sealed hashes; provenance and
+checksum content passed independent verification after a retained metadata repair.
+Follow organizational policy and do not disable SmartScreen or other protections.
+The exact source is tagged `0.3.0` at
+`96c3e3f6c497eb008c767efd38f59f00f91d7cea`.
+No automatic updater or profile migration is provided: keep **Save JSON**
+backups and use **Open JSON** to transfer editable work.
+
+## Historical Windows 0.2.0
 
 [Azure Diagram Studio 0.2.0 for Windows](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/windows-v0.2.0)
-is the latest **final stable release**, not an RC or prerelease. It includes Help,
+is the previous **final stable release**, not an RC or prerelease. It includes Help,
 quick delete, larger connection handles, Escape cancellation, context actions,
 temporary presentation markup, eleven guided starters, saved Markdown descriptions
 and the resizable Edit/Preview sidebar, including presentation fullscreen.
