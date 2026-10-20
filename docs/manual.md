@@ -10,7 +10,8 @@ build. They are not retroactively added to older EXEs.
 **Current source adds About, empty startup and a unified New/template picker,
 and updates the ten-step Help guide.** These [DGM-126](specs/DGM-126.md) and
 [DGM-127](specs/DGM-127.md) changes are not in the existing Windows downloads,
-even though the package version is still 0.2.0. The sections marked source-only
+while the current source is prepared as 0.3.0. Its Windows release is still being
+verified; the existing downloads remain 0.2.0. The sections marked source-only
 below describe that newer source; the published release retains its earlier
 guide wording.
 
