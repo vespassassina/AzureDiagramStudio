@@ -34,8 +34,9 @@ The ten-step Help guide now describes fresh empty startup, all eleven starters,
 Markdown Edit/Preview and temporary presentation markup. See the [short manual](docs/manual.md#about-source-only)
 for About and [first-use guidance](docs/manual.md#first-use-ui-guide).
 These are **source-only changes**: the existing Windows downloads below have
-not been rebuilt with the new startup flow, About or the revised guide. The version number alone
-does not distinguish a source build from those published executables.
+not been rebuilt with the new startup flow, About or the revised guide.
+Current source is prepared as **0.3.0**; its Windows release is being verified.
+The downloads below remain the existing 0.2.0 release until publication completes.
 
 ## Windows 0.2.0
 
