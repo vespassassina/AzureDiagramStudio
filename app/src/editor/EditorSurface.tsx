@@ -34,6 +34,7 @@ import type { StarterChoice } from '../app/starters.ts'
 import { CircleHelp } from 'lucide-react'
 import { HelpGuide } from './HelpGuide.tsx'
 import { AboutDialog } from './AboutDialog.tsx'
+import { SettingsDialog } from './SettingsDialog.tsx'
 import { Info } from 'lucide-react'
 import { ContextMenu } from './ContextMenu.tsx'
 import { PresentationMarkup } from './PresentationMarkup.tsx'
@@ -229,6 +230,7 @@ export default function EditorSurface(props: EditorProps) {
   // About reuses the guide's guideActive/guideOpening guards (draft-preserving
   // blur capture, click capture and shortcut suppression) while it is open.
   const [aboutOpen, setAboutOpen] = useState(false)
+  const [informationKind, setInformationKind] = useState<'About' | 'Settings'>('About')
   const aboutReturn = useRef(false)
   const composing = useRef(false)
   const keyboardOwner = useRef(false)
@@ -1127,6 +1129,22 @@ export default function EditorSurface(props: EditorProps) {
   const field = (label: string, value: string, maxLength: number, onDraft: (value: string) => void, multiline = false) => <DraftField label={label} value={value} maxLength={maxLength} disabled={!writable} multiline={multiline} onDraft={onDraft} onFinish={() => finish()} onCancel={clearPreview} deferFinish={() => starterOpening.current} />
   const descriptionEditor = <MarkdownDescription value={diagram.description ?? ''} mode={markdownMode} writable={writable} presenting={presenting} onModeChange={setMarkdownMode} onDraft={value => editMetadata({ description: value === '' ? undefined : value }, true)} onFinish={() => finish()} onCancel={clearPreview} deferFinish={() => starterOpening.current} />
   const descriptionDraft = transaction.current?.command.type === 'metadata' && Object.hasOwn(transaction.current.command.patch, 'description')
+  const mcpInteraction = useRef<() => string | null>(() => 'Editor loading')
+  mcpInteraction.current = () => {
+    if (presentationActive.current || entryCommit.current) return 'Presentation'
+    if (composing.current || inlineComposing.current) return 'IME composition'
+    if (transaction.current || inlineRef.current || draft) return 'Unfinished edit'
+    if (physicalPress.current || connectionStart) return 'Active gesture'
+    if (guideActive.current || guideOpening.current || guideOpen || aboutOpen || commandsOpen || starterOpen || connectedPicker || exportOpen || contextMenu) return 'Open modal or menu'
+    if (isImportingIcon) return 'Icon import in progress'
+    if (document.activeElement instanceof HTMLElement && editorElement.current?.contains(document.activeElement) &&
+        document.activeElement.matches('input, textarea, select, [contenteditable="true"]')) return 'Focused edit control'
+    return null
+  }
+  useLayoutEffect(() => {
+    props.onMcpGuard?.(() => mcpInteraction.current())
+    return () => props.onMcpGuard?.(null)
+  }, [props.onMcpGuard])
   const alignmentAction = (action: AlignmentAction, icon: LucideIcon, label: string) => {
     const eligible = !selectedEdges.length && !!alignmentPositions(props.document, selectedIds, action)
     const reason = selectedEdges.length ? 'Alignment requires only entities.' : alignmentRoots.length < (action.startsWith('distribute') ? 3 : 2) ? 'Select more top-level objects.' : 'Selection cannot be aligned without changing containment.'
@@ -1209,31 +1227,33 @@ export default function EditorSurface(props: EditorProps) {
     guideActive.current = false
   }, [guideOpen])
   // About follows the guide's blocking rules and refuses to stack over it.
-  function openAbout() {
+  function openInformation(kind: 'About' | 'Settings') {
     const refused = guideBlocked || guideOpen || aboutOpen || composing.current || inlineComposing.current
     guideOpening.current = false
     if (refused) return
-    guideActive.current = true; setAboutOpen(true)
+    guideActive.current = true; setInformationKind(kind); setAboutOpen(true)
   }
+  function openAbout() { openInformation('About') }
+  function openSettings() { openInformation('Settings') }
   function closeAbout() {
     aboutReturn.current = true; setAboutOpen(false)
   }
   useLayoutEffect(() => {
     if (aboutOpen || !aboutReturn.current) return
     aboutReturn.current = false
-    const about = editorElement.current?.querySelector<HTMLButtonElement>('[aria-label="About"]')
+    const about = editorElement.current?.querySelector<HTMLButtonElement>(`[aria-label="${informationKind}"]`)
     about?.focus({ preventScroll: true })
     guideActive.current = false
-  }, [aboutOpen])
+  }, [aboutOpen, informationKind])
   function markAboutOpening() {
     if (!guideBlocked && !composing.current && !inlineComposing.current) guideOpening.current = true
   }
 
   return <div ref={editorElement} inert={guideOpen || aboutOpen} onPointerDownCapture={trackSecondary} onMouseDownCapture={trackSecondary} onPointerMoveCapture={moveSecondary} onMouseMoveCapture={moveSecondary} onContextMenuCapture={event => { if ((event.target as Element)?.closest?.('.canvas-surface') && !(event.target as Element)?.closest?.('input, textarea, select, [contenteditable="true"]')) event.preventDefault() }} onDragStartCapture={event => { if ((event.target as HTMLElement).closest('.library-item')) startResize() }} onCompositionStartCapture={() => { composing.current = true }} onCompositionEndCapture={() => { composing.current = false }} onBlurCapture={event => {
-    if (guideActive.current || guideOpening.current || (event.relatedTarget instanceof HTMLElement && ['Help', 'About'].includes(event.relatedTarget.getAttribute('aria-label') ?? ''))) event.stopPropagation()
+    if (guideActive.current || guideOpening.current || (event.relatedTarget instanceof HTMLElement && ['Help', 'About', 'Settings'].includes(event.relatedTarget.getAttribute('aria-label') ?? ''))) event.stopPropagation()
   }} onClickCapture={event => { if (guideActive.current && !(event.target as HTMLElement).closest('.help-guide, .about-dialog')) event.stopPropagation() }} onFocusCapture={() => { keyboardOwner.current = true }} className={`app-shell${presenting ? ' presenting' : ''}`}>
     {guideOpen && <HelpGuide root={editorElement} onReveal={setGuidePanel} onClose={closeGuide} />}
-    {aboutOpen && <AboutDialog onClose={closeAbout} />}
+    {aboutOpen && (informationKind === 'Settings' ? <SettingsDialog onClose={closeAbout} /> : <AboutDialog onClose={closeAbout} />)}
     {contextMenu && validContext(contextMenu) && <ContextMenu key={`${contextMenu.screen.x}:${contextMenu.screen.y}:${contextMenu.kind}:${contextMenu.id ?? ''}`} point={contextMenu.screen} origin={contextMenu.origin} actions={contextActions} onClose={() => setContextMenu(null)} />}
     {commandsOpen && !presenting && <CommandMenu actions={actions} onCancel={() => closeCommands()} onExecute={action => { if (presentationActive.current || action.disabled) return; pendingAction.current = action.label; closeCommands() }} />}
     {starterOpen && !presenting && <StarterChooser onCancel={() => closeStarterChooser()} onChoose={chooseStarter} />}
@@ -1246,7 +1266,7 @@ export default function EditorSurface(props: EditorProps) {
       <button type="button" className="present-button" aria-label="Present" title="Present" disabled={props.saveState === 'loading' || props.isArranging} onPointerDown={() => { entryFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null }} onMouseDown={event => event.preventDefault()} onClick={enterPresentation}><Presentation size={18} /><span>Present</span></button>
     </header>}
     <div className="workspace" inert={commandsOpen}>
-      {!presenting && <nav className="tool-rail" aria-label="Drawing tools"><IconButton icon={CircleHelp} label="Help" className="help-trigger" disabled={guideBlocked} onPointerDown={() => { if (!guideBlocked && !composing.current && !inlineComposing.current) guideOpening.current = true }} onMouseDown={event => event.preventDefault()} onClick={openGuide} /><IconButton icon={Info} label="About" className="about-trigger" disabled={guideBlocked} onPointerDown={markAboutOpening} onMouseDown={event => event.preventDefault()} onClick={openAbout} />{tools.map(item => <IconButton key={item.tool} icon={item.icon} label={item.label} active={tool === item.tool} disabled={!writable && item.tool !== 'select' && item.tool !== 'pan'} onClick={() => chooseTool(item.tool)} />)}<IconButton icon={isImportingIcon ? LoaderCircle : ImagePlus} label="Import custom icon" disabled={!writable || isImportingIcon} onClick={openIconPicker} /><IconButton icon={CommandIcon} label="Commands" className="commands-trigger" onMouseDown={event => event.preventDefault()} onClick={openCommands} /><span className="rail-spacer" /><EditorThemeToggle /><IconButton icon={ClipboardPaste} label="Paste selection" disabled={!writable || !hasClipboard} onClick={() => paste()} /><IconButton icon={PanelRight} label="Document properties" data-markdown-ui onMouseDown={event => event.preventDefault()} onClick={() => sidebarView === 'markdown' || descriptionDraft ? showSidebar('properties') : documentProperties()} /><IconButton icon={FileText} label="Open Markdown" active={inspectorOpen && sidebarView === 'markdown'} data-markdown-ui onMouseDown={event => event.preventDefault()} onClick={() => showSidebar('markdown')} /></nav>}
+      {!presenting && <nav className="tool-rail" aria-label="Drawing tools"><IconButton icon={CircleHelp} label="Help" className="help-trigger" disabled={guideBlocked} onPointerDown={() => { if (!guideBlocked && !composing.current && !inlineComposing.current) guideOpening.current = true }} onMouseDown={event => event.preventDefault()} onClick={openGuide} /><IconButton icon={Info} label="About" className="about-trigger" disabled={guideBlocked} onPointerDown={markAboutOpening} onMouseDown={event => event.preventDefault()} onClick={openAbout} /><IconButton icon={SlidersHorizontal} label="Settings" className="settings-trigger" disabled={guideBlocked} onPointerDown={markAboutOpening} onMouseDown={event => event.preventDefault()} onClick={openSettings} />{tools.map(item => <IconButton key={item.tool} icon={item.icon} label={item.label} active={tool === item.tool} disabled={!writable && item.tool !== 'select' && item.tool !== 'pan'} onClick={() => chooseTool(item.tool)} />)}<IconButton icon={isImportingIcon ? LoaderCircle : ImagePlus} label="Import custom icon" disabled={!writable || isImportingIcon} onClick={openIconPicker} /><IconButton icon={CommandIcon} label="Commands" className="commands-trigger" onMouseDown={event => event.preventDefault()} onClick={openCommands} /><span className="rail-spacer" /><EditorThemeToggle /><IconButton icon={ClipboardPaste} label="Paste selection" disabled={!writable || !hasClipboard} onClick={() => paste()} /><IconButton icon={PanelRight} label="Document properties" data-markdown-ui onMouseDown={event => event.preventDefault()} onClick={() => sidebarView === 'markdown' || descriptionDraft ? showSidebar('properties') : documentProperties()} /><IconButton icon={FileText} label="Open Markdown" active={inspectorOpen && sidebarView === 'markdown'} data-markdown-ui onMouseDown={event => event.preventDefault()} onClick={() => showSidebar('markdown')} /></nav>}
       <aside className={`library ${!presenting && libraryOpen ? 'open' : ''}`} aria-label="Component library" inert={presenting || !libraryOpen}>
         <div className="panel-heading"><h2>Components</h2><div className="panel-actions">{windowWidth > 900 && <IconButton icon={libraryPinned ? PinOff : Pin} label={libraryPinned ? 'Unpin component library' : 'Pin component library'} active={libraryPinned} onClick={toggleLibraryPin} />}<IconButton icon={PanelLeftClose} label="Close component library" onClick={() => setLibraryOpen(false)} /></div></div>
         <CatalogAccordion writable={writable} selectedIcon={tool === 'component' ? template.icon : null} favoriteIcons={favoriteIcons} onToggleFavorite={toggleFavorite} onClearFavorites={clearFavorites} recentIcons={recentIcons} onClearRecents={clearRecents} onChoose={chooseComponent} />

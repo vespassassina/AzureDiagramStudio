@@ -7,7 +7,7 @@ module.exports = {
   asar: true,
   compression: 'store',
   directories: { app: '.desktop-stage', output: 'release', buildResources: 'public/branding' },
-  files: ['dist/**', 'electron/*.mjs', 'package.json', '!node_modules/**'],
+  files: ['dist/**', 'electron/*.mjs', 'electron/preload.cjs', 'package.json', '!node_modules/**'],
   artifactName: 'Azure-Diagram-Studio-${version}-win-${arch}-portable.${ext}',
   forceCodeSigning: false,
   publish: null,

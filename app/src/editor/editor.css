@@ -394,6 +394,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .help-guide footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 16px; border-top: 1px solid var(--line); flex-shrink: 0; }
 .help-guide footer button:last-child { color: var(--accent); background: var(--soft); }
 .tool-rail .about-trigger { width: 44px; height: 44px; }
+.tool-rail .settings-trigger { width: 44px; height: 44px; }
+.mcp-copy-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.settings-dialog h2 { margin-bottom: 12px; }
 .about-overlay { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 12px; overflow: hidden; background: #0003; }
 .about-dialog { display: flex; flex-direction: column; width: min(440px, 100%); max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); min-height: 0; border: 1px solid var(--control-line); border-radius: 6px; background: var(--surface); color: var(--ink); box-shadow: 0 8px 24px var(--chrome-shadow); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
 .about-dialog header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 8px 4px 16px; border-bottom: 1px solid var(--line); flex-shrink: 0; }

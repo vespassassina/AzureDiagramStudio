@@ -38,6 +38,9 @@ Historical 0.2.0 executables remain unchanged.
 
 ## Windows 0.3.0
 
+The local MCP integration described below is a newer **source-only** feature;
+the existing 0.3.0 downloads have not been rebuilt with it.
+
 [Azure Diagram Studio 0.3.0 for Windows](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.3.0)
 is the current stable release, with About, empty startup, the unified picker and
 updated guidance, alongside the existing editing, presentation and export tools.
@@ -60,6 +63,30 @@ The exact source is tagged `0.3.0` at
 `96c3e3f6c497eb008c767efd38f59f00f91d7cea`.
 No automatic updater or profile migration is provided: keep **Save JSON**
 backups and use **Open JSON** to transfer editable work.
+
+## Local MCP Server (New Source)
+
+Source version **0.4.0** includes this integration; its Git tag is a source
+milestone, not a new Windows binary release.
+
+The desktop source adds a local MCP endpoint that starts automatically while
+Azure Diagram Studio is open. In **Settings**, use **Copy MCP address** and
+**Copy access token** to configure an HTTP-capable MCP client on the same
+computer. The access token changes when the app restarts.
+
+Tools inspect the committed diagram, search the component catalog, list templates
+and read app information, and can create and edit diagrams through the same
+validated session/history/autosave path as the UI. Edits are atomic and undoable;
+stale requests or active user interactions are rejected rather than overwritten.
+Unfinished drafts are not shared or force-committed. There is no shell execution
+or arbitrary file access. The listener binds to loopback only; authenticated
+requests and Host/Origin validation protect against accidental browser access.
+
+See [MCP setup and limits](docs/manual.md#local-mcp-server-new-source).
+No Claude, Scout or GitHub Copilot configuration is silently modified.
+Client-specific compatibility requires an actual successful tool call, not just
+pasting an address. Browser-only builds and the published 0.3.0 EXEs do not
+provide this new desktop server.
 
 ## Historical Windows 0.2.0
 

@@ -204,3 +204,19 @@ Evidence: [0.3.0 verification](verification/DGM-130.md).
   Preserve that failed content gate, correct and reseal the two metadata assets,
   and independently verify their fresh public bytes. Reuse complete EXE download
   proof only when exact asset identity, digest, size and retained bytes match.
+
+## 2026-10-27: DGM-131 Live MCP Mutation Boundaries
+
+Evidence: [independent source verification](verification/DGM-131.md).
+
+- Reuse canonical session validation/history/autosave for remote editing; do not
+  create a competing main-process document store. Validate a whole command batch
+  before one history commit, and require a lifetime/generation token that changes
+  across Undo/Redo as well as ordinary edits to reject ABA stale requests.
+- Wall-clock expiry must be checked after blocking native confirmation and
+  immediately before mutation, not only via asynchronous timers. The independent
+  runtime held a confirmation for 5.5 seconds, then accepted it; the expired
+  request correctly failed without changing live or recovered work.
+- Retain complete owner handoff and source manifests on disk. A lost agent handle
+  did not require rebuilding implementation or guessing status: the saved receipt
+  routed final-source independent verification while preserving first failures.

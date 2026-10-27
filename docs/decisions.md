@@ -260,3 +260,52 @@ qualification/policy gaps remain separate. No messages, file sharing, rebuild,
 release mutation or support expansion is authorized.
 
 Who: Product Owner changes acceptance scope; Orchestrator records the decision.
+
+## 2026-10-27: Always-On App-Local MCP With Settings Connection Details
+
+Context: the PO requested a local MCP server and clarified: "local mcp server for
+the app. that is always on by default. a button in settings to get the address."
+This supersedes the earlier implementation assumption of opt-in startup.
+The earlier client names did not identify a specific Scout product or authorize
+editing global client settings without an understood connection mechanism.
+
+Decision: [DGM-131](specs/DGM-131.md) implements a main-process, loopback-only MCP
+Streamable HTTP endpoint automatically for the desktop instance's lifetime, not
+an installed background service. Settings exposes status, actual address and
+explicit address/token clipboard actions. Initial tools read the committed
+document, catalog, templates and app information; document editing is not
+advertised. Existing Electron sandbox, CSP and network denial remain in place.
+
+Consequences: use narrow trusted IPC rather than opening renderer network access.
+A random per-launch bearer token protects local data without adding persistent
+credential storage; clients must update the token after a restart. An occupied
+preferred port uses an actual displayed loopback fallback. No new dependency,
+client config write, OS service, write tool, release mutation or broad filesystem
+access is introduced. Existing 0.3.0 downloads remain unchanged. Actual protocol/
+desktop verification is required; connection instructions do not establish tested
+Claude/Scout/Copilot interoperability.
+
+Who: Product Owner sets automatic-start and Settings requirements; Orchestrator
+records the bounded read-only design and technical acceptance contract.
+
+## 2026-10-27: MCP Creation And Editing Required
+
+Context: following the initial read-only scaffold, the PO clarified "the mcp
+should be able to create, edit, modify diagrams like a user would".
+
+Decision: supersede DGM-131's initial read-only scope with creation, canonical
+document-command editing, real Auto-arrange and Undo/Redo through the existing
+live session. Keep authenticated loopback transport, narrow IPC and existing
+renderer security. Update [the spec](specs/DGM-131.md) and acceptance, not merely
+advertising unfinished editing as a later possibility.
+
+Consequences: atomic batches validate fully before one history commit and normal
+autosave. Mutations require an opaque current-state token changing even across
+Undo/Redo/reload and fail on stale state, read-only/loading/busy/drafts/Present.
+New diagram replacement retains normal confirmation/history semantics; no
+silent discard or second main-process document store. Correlated bounded requests
+must not execute after expiry. This does not authorize shell/arbitrary file
+access, client registration, new dependencies or a release.
+
+Who: Product Owner explicitly expands editing scope; Orchestrator freezes the
+in-app mutation, concurrency and interaction acceptance contract.
