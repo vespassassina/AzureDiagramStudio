@@ -4,6 +4,8 @@ import type { Diagram, Direction, History } from '../model.ts'
 import type { DocumentCommand, DocumentStorage, ExportOptions, ExportSceneOptions, SaveState, StarterKey } from '../contracts.ts'
 import type { LayoutResult } from '../layout.ts'
 import { starterCatalog } from './starters.ts'
+import type { McpMutationResult, McpOperation } from './mcp-contract.ts'
+import { validateMutation } from '../../electron/mcp-schema.mjs'
 
 export const starterKeys: readonly StarterKey[] = starterCatalog.map(choice => choice.key)
 export function starterDocument(key: StarterKey): Diagram {
@@ -39,6 +41,11 @@ const describe = (error: unknown) => error instanceof Error ? error.message : St
 const filename = (document: Diagram) => (document.title.trim().replace(/[^a-zA-Z0-9_-]+/g, '-').slice(0, 80) || 'architecture')
 
 export function createSession(dependencies: SessionDependencies) {
+  const mcpLifetime = globalThis.crypto.randomUUID()
+  let mcpGuard: (() => string | null) | null = null
+  let mcpPending = false
+  let mcpRecovered = false
+  let fileJobs = 0
   // Non-mutating empty canvas while recovery runs; never the commerce sample.
   let history: History = { past: [], present: createDocument('loading'), future: [] }
   let backup: string | null = null
@@ -121,6 +128,7 @@ export function createSession(dependencies: SessionDependencies) {
   //   3. nothing saved -> new empty document; under ownership, decide once to offer the picker
   //      and treat the pristine blank as backed up so a first template choice needs no discard prompt
   async function load(active: Runtime, owns: boolean) {
+    mcpRecovered = false
     const sequence = ++active.load
     publish({ readOnly: true, saveState: owns ? 'loading' : 'read-only', starterOffer: false })
     try {
@@ -128,6 +136,7 @@ export function createSession(dependencies: SessionDependencies) {
       if (active.stopped || runtime !== active || active.load !== sequence) return
       const fresh = document ?? createDocument(dependencies.newId())
       history = { past: [], present: fresh, future: [] }
+      mcpRecovered = true
       generation++; preview = null
       backup = owns && !document ? canonical(fresh) : null
       const offer = owns && !document && !freshDecided
@@ -158,6 +167,7 @@ export function createSession(dependencies: SessionDependencies) {
     } catch (error) { lockError(error) }
   }
   function lockError(error: unknown) {
+    mcpRecovered = false
     if (runtime) { runtime.owns = false; runtime.load++ }
     if (debounce) { clearTimeout(debounce); debounce = undefined }
     invalidate(); preview = null
@@ -166,7 +176,7 @@ export function createSession(dependencies: SessionDependencies) {
   async function stop() {
     const active = runtime
     if (!active || active.stopped) return
-    active.stopped = true; invalidate(); preview = null
+    active.stopped = true; mcpRecovered = false; invalidate(); preview = null
     if (debounce) { clearTimeout(debounce); debounce = undefined }
     publish({ readOnly: true, starterOffer: false })
     try { await active.queue }
@@ -203,6 +213,7 @@ export function createSession(dependencies: SessionDependencies) {
   // Validate, finish initial layout, then confirm replacement. Any newer command or file choice wins.
   async function openFile(file: InputFile, kind: 'open' | 'import') {
     if (!canMutate()) return
+    fileJobs++
     invalidate(); publish({ message: '' })
     const token = request
     const version = generation
@@ -230,6 +241,7 @@ export function createSession(dependencies: SessionDependencies) {
     } catch (error) {
       if (current()) failure(error, `${kind === 'open' ? 'Open' : 'Import'} failed: `)
     } finally {
+      fileJobs--
       if (token === request) { layoutJob?.cancel(); layoutJob = undefined; publish({ isArranging: false }) }
     }
   }
@@ -297,10 +309,80 @@ export function createSession(dependencies: SessionDependencies) {
     } catch (error) { failure(error, 'Copy image failed: ') }
     finally { publish({ isExporting: false }) }
   }
+  function mcpState() { return { document: history.present, stateToken: `${mcpLifetime}:${generation}` } }
+
+  // Pseudocode: reject stale/expired/interactive work; compute an entire pure
+  // batch before a single accept; recheck guards at commit. Layout uses the
+  // existing worker/cancellation epoch and rechecks after its async boundary.
+  async function mcpMutate(operation: McpOperation, context: { deadline: number; active(): boolean }): Promise<McpMutationResult> {
+    if (mcpPending) return { ok: false, message: 'Another MCP mutation is in progress.' }
+    if (!validateMutation(operation)) return { ok: false, message: 'Invalid mutation arguments.' }
+    const expected = operation.arguments.stateToken
+    const currentRequest = request
+    const activeRuntime = runtime
+    function check(ownLayout = false) {
+      if (!context.active() || Date.now() >= context.deadline) throw new Error('MCP request expired or disconnected.')
+      if (expected !== mcpState().stateToken) throw new Error('Stale stateToken. Read get_document before retrying.')
+      if (!canMutate() || snapshot.saveState === 'loading' || snapshot.saveState === 'error') throw new Error('Workspace unavailable or read-only.')
+      if (runtime !== activeRuntime || (!ownLayout && request !== currentRequest)) throw new Error('Workspace operation changed.')
+      if (presenting || preview || fileJobs || snapshot.isExporting || (!ownLayout && snapshot.isArranging)) throw new Error('Workspace is interaction-busy.')
+      if (!mcpGuard) throw new Error('Editor interaction state unavailable.')
+      const reason = mcpGuard()
+      if (reason) throw new Error(`Workspace is interaction-busy: ${reason}`)
+    }
+    let remoteLayoutRequest: number | undefined
+    let remoteDeadline: ReturnType<typeof setTimeout> | undefined
+    try {
+      check()
+      mcpPending = true
+      if (operation.name === 'edit_diagram') {
+        let next = history.present
+        for (const command of operation.arguments.commands) next = applyCommand(next, command)
+        const committed = historyCommit(history, next)
+        check()
+        accept(committed)
+      } else if (operation.name === 'create_diagram') {
+        const key = operation.arguments.template
+        const candidate = key ? validateDocument({ ...starterDocument(key), id: dependencies.newId() }) : validateDocument(createDocument(dependencies.newId()))
+        if (!candidate.ok) throw new Error('Invalid starting diagram.')
+        check()
+        if (snapshot.backupDirty && !dependencies.confirmReplace()) throw new Error('Diagram replacement canceled.')
+        check()
+        replace(candidate.value, !key)
+      } else if (operation.name === 'arrange_diagram') {
+        const document = history.present
+        invalidate(); publish({ message: '', isArranging: true })
+        remoteLayoutRequest = request
+        layoutJob = dependencies.layout(document, operation.arguments.direction)
+        const result = await Promise.race([layoutJob.promise, new Promise<never>((_resolve, reject) => {
+          remoteDeadline = setTimeout(() => reject(new Error('MCP Auto-arrange timed out.')), Math.max(0, context.deadline - Date.now()))
+        })])
+        check(true)
+        if (request !== remoteLayoutRequest) throw new Error('Auto-arrange superseded by newer work.')
+        const next = applyCommand(document, { type: 'applyLayout', expectedRevision: document.revision, result })
+        const committed = historyCommit(history, next)
+        check(true)
+        accept(committed)
+      } else {
+        const next = operation.name === 'undo' ? historyUndo(history) : historyRedo(history)
+        if (next === history) throw new Error(`No ${operation.name} step is available.`)
+        check()
+        accept(next)
+      }
+      return { ok: true, value: mcpState() }
+    } catch (error) {
+      return { ok: false, message: describe(error) }
+    } finally {
+      if (remoteDeadline) clearTimeout(remoteDeadline)
+      mcpPending = false
+      if (remoteLayoutRequest !== undefined && request === remoteLayoutRequest) invalidate()
+    }
+  }
   return {
     getSnapshot: () => snapshot,
     subscribe: (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener) } },
     start, stop, command, newDocument, openStarter, openFile, saveJson, arrange, exportImage, copyImage, lockError, presentation, canMutate,
+    mcpState, mcpMutate, mcpReady: () => mcpRecovered, setMcpGuard: (guard: (() => string | null) | null) => { mcpGuard = guard },
     // The editor acknowledges the offer once it shows the picker, so remounts never reopen it.
     starterOffered: () => { publish({ starterOffer: false }) },
     undo: () => { if (canMutate()) accept(historyUndo(history)) },

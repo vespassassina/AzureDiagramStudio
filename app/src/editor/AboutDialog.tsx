@@ -25,7 +25,7 @@ export function AboutDialog({ onClose }: { onClose(): void }) {
 // Pseudocode: focus Close; on every key, stop propagation; ignore IME keys;
 // Escape closes; Tab cycles among dialog controls; modifier/edit keys are
 // swallowed; focus escaping the dialog is pulled back to Close.
-function trapKeyboard(dialog: RefObject<HTMLElement | null>, close: RefObject<HTMLButtonElement | null>, onClose: () => void) {
+export function trapKeyboard(dialog: RefObject<HTMLElement | null>, close: RefObject<HTMLButtonElement | null>, onClose: () => void) {
   close.current?.focus({ preventScroll: true })
   const keydown = (event: globalThis.KeyboardEvent) => {
     event.stopImmediatePropagation()

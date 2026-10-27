@@ -10,6 +10,7 @@ import fabricSource from '../../../examples/fabric-onelake.json?raw'
 import enterpriseSource from '../../../examples/enterprise-integration.json?raw'
 import { parseDocument } from '../document/index.ts'
 import { alignmentPositions } from '../editor/interactions.ts'
+import * as historyModel from '../model.ts'
 
 function deferred<T>() {
   let resolve!: (value: T) => void
@@ -40,6 +41,136 @@ function harness(initial: Diagram | null = null) {
   return { session, storage, dependencies, release, downloads, jobs, cancel, writable: (value: boolean) => writable(value) }
 }
 async function ready(initial: Diagram | null = null) { const host = harness(initial); host.writable(true); await settle(); return host }
+
+describe('MCP canonical mutations DGM131', () => {
+  const context = () => ({ deadline: Date.now() + 3000, active: () => true })
+  it('should_commit_atomic_batch_as_one_undo_autosave_and_reject_invalid_whole_batch', async () => {
+    const h = await ready(createDocument('remote'))
+    h.session.setMcpGuard(() => null)
+    const before = h.session.mcpState()
+    const invalid = await h.session.mcpMutate({ name: 'edit_diagram', arguments: { stateToken: before.stateToken, commands: [
+      { type: 'metadata', patch: { title: 'Must rollback' } }, { type: 'remove', entityIds: ['missing'], connectionIds: [] },
+    ] } }, context())
+    expect(invalid.ok).toBe(false)
+    expect(h.session.mcpState()).toEqual(before)
+    const changed = await h.session.mcpMutate({ name: 'edit_diagram', arguments: { stateToken: before.stateToken, commands: [
+      { type: 'metadata', patch: { title: 'Remote' } }, { type: 'metadata', patch: { description: '# Remote description' } },
+    ] } }, context())
+    expect(changed.ok).toBe(true)
+    expect(h.session.getSnapshot().document.title).toBe('Remote')
+    const token = h.session.mcpState().stateToken
+    h.session.undo()
+    expect(h.session.getSnapshot().document).toEqual(before.document)
+    expect(h.session.mcpState().stateToken).not.toBe(before.stateToken)
+    const stale = await h.session.mcpMutate({ name: 'redo', arguments: { stateToken: before.stateToken } }, context())
+    expect(stale.ok).toBe(false)
+    expect(token).not.toBe(h.session.mcpState().stateToken)
+    await h.session.stop()
+  })
+  it('should_reject_readonly_loading_present_drafts_busy_expired_and_disconnected_without_change', async () => {
+    const h = await ready(createDocument('guard'))
+    h.session.setMcpGuard(() => null)
+    const before = h.session.mcpState()
+    const operation = { name: 'edit_diagram' as const, arguments: { stateToken: before.stateToken, commands: [{ type: 'metadata' as const, patch: { title: 'Rejected' } }] } }
+    for (const reason of ['Unfinished draft', 'IME composition', 'Modal', 'Gesture']) {
+      h.session.setMcpGuard(() => reason)
+      expect((await h.session.mcpMutate(operation, context())).ok).toBe(false)
+    }
+    h.session.setMcpGuard(() => null)
+    expect((await h.session.mcpMutate(operation, { deadline: Date.now() - 1, active: () => true })).ok).toBe(false)
+    expect((await h.session.mcpMutate(operation, { deadline: Date.now() + 1000, active: () => false })).ok).toBe(false)
+    h.session.presentation(true)
+    expect((await h.session.mcpMutate(operation, context())).ok).toBe(false)
+    h.session.presentation(false)
+    h.writable(false)
+    expect((await h.session.mcpMutate(operation, context())).ok).toBe(false)
+    expect(h.session.getSnapshot().document).toBe(before.document)
+    await h.session.stop()
+  })
+  it('should_use_normal_confirmation_and_replacement_history_for_blank_and_template', async () => {
+    const h = await ready(sampleDiagram())
+    h.session.setMcpGuard(() => null)
+    const before = h.session.mcpState()
+    vi.mocked(h.dependencies.confirmReplace).mockReturnValueOnce(false)
+    expect((await h.session.mcpMutate({ name: 'create_diagram', arguments: { stateToken: before.stateToken } }, context())).ok).toBe(false)
+    expect(h.session.mcpState()).toEqual(before)
+    expect((await h.session.mcpMutate({ name: 'create_diagram', arguments: { stateToken: before.stateToken, template: 'web-api' } }, context())).ok).toBe(true)
+    expect(h.session.getSnapshot().document.title).toBe(starterDocument('web-api').title)
+    expect(h.session.getSnapshot().canUndo).toBe(false)
+    expect((await h.session.mcpMutate({ name: 'create_diagram', arguments: { stateToken: h.session.mcpState().stateToken } }, context())).ok).toBe(true)
+    expect(h.session.getSnapshot().document.entities).toEqual([])
+    await h.session.stop()
+  })
+  it('should_recheck_token_guards_and_deadline_after_real_layout_before_committing', async () => {
+    const h = await ready(sampleDiagram())
+    h.session.setMcpGuard(() => null)
+    let active = true
+    const pending = h.session.mcpMutate({ name: 'arrange_diagram', arguments: { stateToken: h.session.mcpState().stateToken, direction: 'DOWN' } }, { deadline: Date.now() + 3000, active: () => active })
+    await settle()
+    h.session.command({ type: 'metadata', patch: { title: 'New UI wins' } })
+    active = false
+    h.jobs[0].resolve({ diagram: { ...sampleDiagram(), direction: 'DOWN' }, revision: sampleDiagram().revision })
+    expect((await pending).ok).toBe(false)
+    expect(h.session.getSnapshot().document.title).toBe('New UI wins')
+    expect(h.cancel).toHaveBeenCalled()
+    await h.session.stop()
+  })
+  it('should_cancel_expired_layout_without_late_commit_and_serialize_mutations', async () => {
+    vi.useFakeTimers()
+    try {
+      const h = await ready(sampleDiagram())
+      h.session.setMcpGuard(() => null)
+      const before = h.session.mcpState()
+      const pending = h.session.mcpMutate({ name: 'arrange_diagram', arguments: { stateToken: before.stateToken, direction: 'DOWN' } }, { deadline: Date.now() + 50, active: () => true })
+      expect((await h.session.mcpMutate({ name: 'undo', arguments: { stateToken: before.stateToken } }, context())).ok).toBe(false)
+      await vi.advanceTimersByTimeAsync(51)
+      expect((await pending).ok).toBe(false)
+      h.jobs[0].resolve({ diagram: { ...sampleDiagram(), direction: 'DOWN' }, revision: sampleDiagram().revision })
+      await settle()
+      expect(h.session.mcpState()).toEqual(before)
+      expect(h.cancel).toHaveBeenCalled()
+      await h.session.stop()
+    } finally { vi.useRealTimers() }
+  })
+  it('should_clear_recovery_availability_while_loading_and_after_stop', async () => {
+    const h = harness(createDocument('recovered'))
+    expect(h.session.mcpReady()).toBe(false)
+    await settle()
+    expect(h.session.mcpReady()).toBe(true)
+    await h.session.stop()
+    expect(h.session.mcpReady()).toBe(false)
+  })
+  it('should_reject_write_during_async_open_without_canceling_that_user_operation', async () => {
+    const h = await ready(createDocument('current'))
+    h.session.setMcpGuard(() => null)
+    const text = deferred<string>()
+    const open = h.session.openFile({ name: 'user.json', size: 10, text: () => text.promise }, 'open')
+    const before = h.session.mcpState()
+    expect((await h.session.mcpMutate({ name: 'create_diagram', arguments: { stateToken: before.stateToken } }, context())).ok).toBe(false)
+    text.resolve(JSON.stringify(createDocument('user-file')))
+    await open
+    expect(h.session.getSnapshot().document.id).toBe('user-file')
+    await h.session.stop()
+  })
+  it('should_recheck_deadline_after_pure_history_preparation_before_commit', async () => {
+    vi.useFakeTimers()
+    const original = historyModel.historyCommit
+    try {
+      const h = await ready(createDocument('deadline'))
+      h.session.setMcpGuard(() => null)
+      const before = h.session.mcpState()
+      const spy = vi.spyOn(historyModel, 'historyCommit').mockImplementation((history, next) => {
+        vi.setSystemTime(Date.now() + 1000)
+        return original(history, next)
+      })
+      const result = await h.session.mcpMutate({ name: 'edit_diagram', arguments: { stateToken: before.stateToken, commands: [{ type: 'metadata', patch: { title: 'Too late' } }] } }, { deadline: Date.now() + 50, active: () => true })
+      expect(result.ok).toBe(false)
+      expect(h.session.mcpState()).toEqual(before)
+      spy.mockRestore()
+      await h.session.stop()
+    } finally { vi.restoreAllMocks(); vi.useRealTimers() }
+  })
+})
 
 describe('DGM-127 fresh startup and unified picker intent', () => {
   it('should_show_empty_nonmutating_loading_canvas_without_sample_when_recovery_is_pending_DGM127', async () => {

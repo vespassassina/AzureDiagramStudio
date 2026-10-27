@@ -67,6 +67,130 @@ unsigned state. Microsoft's [Windows code-signing comparison](https://learn.micr
 explains the options and reputation limits. No purchase, identity validation,
 account/permission change or signed release has been performed by this UI task.
 
+## Local MCP Server (New Source)
+
+This feature is newer than the published Windows 0.3.0 executables. It requires
+a desktop build from source version 0.4.0 containing DGM-131; the 0.4.0 source
+tag does not replace the published Windows binaries. It is not a browser development server or
+an installed operating-system service.
+
+The local MCP server starts automatically when the owned desktop instance opens
+and stops when the app exits. Open **Settings** to see its actual status and
+address. **Copy MCP address** copies the loopback HTTP endpoint.
+**Copy access token** copies its bearer credential separately without displaying
+it in the dialog. A restart rotates the token, so update your client after
+restarting the app. If the preferred port is occupied, the app uses an available
+loopback port; copy the current address rather than assuming a fixed port.
+Errors and failed clipboard actions are shown explicitly. A browser build
+reports that the desktop app is required.
+
+### Tools And Access
+
+The server provides diagram inspection and editing:
+
+| Tool | Purpose |
+| --- | --- |
+| `get_document` | Current committed diagram, including its description; not unfinished title/label/Markdown drafts |
+| `search_catalog` | Find component identities in the existing catalog |
+| `list_templates` | Discover the existing template choices |
+| `get_app_info` | Product/version and local integration information |
+| `create_diagram` | Start a blank diagram or one of the existing templates using normal replacement/unsaved-work confirmation |
+| `edit_diagram` | Add, edit, connect, move, resize, group, reorder or remove diagram objects; update title/description through canonical document commands |
+| `arrange_diagram` | Use the app's existing Auto-arrange worker, not client-invented layout results |
+| `undo`, `redo` | Undo/Redo through the same live session history as the editor |
+
+Connecting a client grants it access to the returned diagram data, including
+text and embedded images present in that document, and permits the advertised
+editing operations. Only connect trusted clients. There are no shell-execution,
+arbitrary file-read/write or external-service tools. MCP reads do not commit
+drafts, replace work or change Undo history. Save JSON remains your portable backup.
+
+Read the current diagram/state token before editing. A mutation requires that
+current token; stale state is rejected, including a state changed by Undo/Redo.
+An edit batch validates completely before committing as one Undo step, and uses
+normal autosave. Invalid commands do not partially edit the document. New
+diagram replacement follows the UI's confirmation and history-reset behavior.
+Read-only locks, recovery, Present, active drafts/IME, gestures, modals and other
+conflicting work prevent remote edits. Finish or cancel the interaction in the
+app, read fresh state and retry; MCP will not blur or discard your draft for you.
+Reload/unload and expired requests must not apply delayed changes.
+
+`get_document` returns JSON text containing `{document, stateToken}`.
+Every write requires the returned `stateToken` and returns the updated pair:
+
+```json
+{
+  "stateToken": "<from the most recent get_document or successful mutation>",
+  "commands": [
+    { "type": "metadata", "patch": { "title": "My architecture" } }
+  ]
+}
+```
+
+The example is the arguments for `edit_diagram`, not a full JSON-RPC envelope.
+An edit batch contains 1-100 canonical commands; inspect `tools/list` for the
+complete argument schemas. Entity and connection IDs are caller-supplied and
+must be unique. Use `search_catalog` for supported icon identities rather than
+inventing catalog keys. Client-computed `applyLayout` is not accepted.
+
+Use `create_diagram` with `{stateToken}` for blank, or add `template` using a key
+from `list_templates`. Use `arrange_diagram` with `{stateToken, direction}` where
+direction is `RIGHT` or `DOWN`. `undo` and `redo` each take `{stateToken}`.
+Creation replaces the current document; it does not open a second tab. Complete
+any app confirmation before the bounded request expires. Close Settings and other
+dialogs before asking a client to mutate the diagram.
+
+HTTP request bodies are limited to 64 KiB; the native document limit remains
+5 MiB. Keep command batches reasonably small, especially embedded-image changes.
+An edit response confirms a live session change, not guaranteed durable storage:
+check the app's save status and use Save JSON for a portable backup. Errors use
+MCP tool failure responses or JSON-RPC errors; a refused request is not success.
+
+The server binds only to `127.0.0.1`, requires an Authorization bearer token and
+rejects foreign Host/Origin traffic. Do not expose it through port forwarding,
+share its token, put credentials in a URL or commit client secrets to Git.
+There is no unauthenticated fallback. Loading or unavailable workspace data
+returns an explicit error rather than an old saved diagram.
+
+### Connect A Client
+
+Use your client's **Add MCP server** flow, select **HTTP / Streamable HTTP**,
+paste the address from Settings and add the request header:
+
+```text
+Authorization: Bearer <token copied from Settings>
+```
+
+Keep the desktop app running on the same machine as the client connection.
+A cloud-hosted connector cannot reach your machine's loopback address. Client
+and organization policies may restrict local HTTP endpoints or custom headers.
+The app does not silently register itself or overwrite existing client settings.
+
+For **Claude Code**, its documented HTTP setup is:
+
+```text
+claude mcp add --transport http azure-diagram-studio <copied-address> --header "Authorization: Bearer <copied-token>"
+```
+
+Review the command locally; do not paste a real token into a shared terminal,
+chat, script or repository. See the [Claude Code MCP reference](https://code.claude.com/docs/en/mcp).
+This command is not a claim that Claude Desktop or every Claude deployment uses
+the same registration mechanism.
+
+For **VS Code Copilot**, run **MCP: Add Server**, choose HTTP and configure the
+address/header in the chosen user configuration. Prefer secret inputs rather
+than storing the token in a committed workspace file. See the
+[VS Code MCP setup guide](https://code.visualstudio.com/docs/agent-customization/mcp-servers).
+For GitHub Copilot CLI or another client, use its current HTTP MCP configuration
+and header support; no specific unsupported configuration file is generated here.
+Scout has not been identified and is not claimed as a tested integration.
+
+After connecting, request a low-impact call such as `get_app_info`, then
+`get_document`. Confirm that the tool call actually used this server and returned
+your app version/current committed diagram. A saved configuration alone is not
+proof of connectivity. SSE push and legacy SSE-only clients are not supported;
+this server uses stateless JSON responses over Streamable HTTP.
+
 ## About (Source Only)
 
 This section was originally source-only; it is now included in Windows 0.3.0.

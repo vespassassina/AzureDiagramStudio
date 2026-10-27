@@ -91,4 +91,6 @@ export interface EditorProps {
   starterOffer?: boolean
   /** Internal: called once the editor has shown the offered startup picker. */
   onStarterOffered?(): void
+  /** Desktop-only live interaction guard; registering it does not change editor state. */
+  onMcpGuard?(guard: (() => string | null) | null): void
 }

@@ -75,6 +75,53 @@ function contextMenuDGM119(kind: 'pane' | 'node' | 'edge', id?: string, point = 
 afterEach(() => { cleanup(); vi.clearAllMocks(); window.innerWidth = 1024 })
 
 describe('controlled editor', () => {
+  it('should_read_live_MCP_interaction_guards_without_blurring_and_recover_after_canceled_connector_DGM131', () => {
+    let guard: (() => string | null) | null = null
+    setup({ onMcpGuard: next => { guard = next } })
+    const current = () => { if (!guard) throw new Error('Guard not registered'); return guard() }
+    expect(current()).toBeNull()
+    const title = screen.getByRole('textbox', { name: 'Document title' })
+    fireEvent.compositionStart(title)
+    expect(current()).toMatch(/IME/)
+    fireEvent.compositionEnd(title)
+    fireEvent.click(screen.getByRole('button', { name: 'Connect components' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Select tool' }))
+    expect(current()).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
+    expect(current()).toMatch(/modal|menu/)
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(current()).toBeNull()
+    act(() => title.focus())
+    fireEvent.change(title, { target: { value: 'Unfinished guard draft' } })
+    expect(current()).toMatch(/edit/i)
+    expect(document.activeElement).toBe(title)
+  })
+  it.each(['title', 'inline', 'markdown'] as const)('should_preserve_unfinished_%s_when_Settings_opens_and_returns_focus_DGM131', mode => {
+    const { props } = setup({ document: { ...sampleDiagram(), description: '# Stored' } })
+    let field: HTMLElement
+    if (mode === 'title') field = screen.getByRole('textbox', { name: 'Document title' })
+    else if (mode === 'inline') {
+      fireEvent.doubleClick(screen.getByRole('button', { name: 'app' }))
+      field = screen.getByRole('textbox', { name: /^Inline / })
+    } else {
+      fireEvent.click(within(screen.getByRole('navigation', { name: 'Drawing tools' })).getByRole('button', { name: 'Open Markdown' }))
+      field = screen.getByRole('textbox', { name: 'Architecture description (Markdown)' })
+    }
+    act(() => field.focus())
+    fireEvent.change(field, { target: { value: 'Unfinished Settings draft' } })
+    const settings = screen.getByRole('button', { name: 'Settings' })
+    fireEvent.pointerDown(settings); fireEvent.blur(field, { relatedTarget: settings }); fireEvent.click(settings)
+    const dialog = screen.getByRole('dialog', { name: 'Settings' })
+    expect(document.querySelector('.app-shell')?.hasAttribute('inert')).toBe(true)
+    expect(props.onCommand).not.toHaveBeenCalled()
+    fireEvent.keyDown(window, { key: 'Delete' })
+    fireEvent.keyDown(window, { key: 'z', ctrlKey: true })
+    expect(props.onUndo).not.toHaveBeenCalled()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Done' }))
+    expect(document.activeElement).toBe(settings)
+    expect((field as HTMLInputElement).value).toBe('Unfinished Settings draft')
+    expect(props.onCommand).not.toHaveBeenCalled()
+  })
   const descriptionLabelDGM122 = 'Architecture description (Markdown)'
   function markdownPanelDGM124() {
     fireEvent.click(within(screen.getByRole('navigation', { name: 'Drawing tools' })).getByRole('button', { name: 'Open Markdown' }))

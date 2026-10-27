@@ -237,7 +237,12 @@ test('should_register_scheme_and_profile_before_ready_and_lock_before_creating_w
   assert.ok(source.indexOf('protocol.registerSchemesAsPrivileged') < source.indexOf('app.whenReady'))
   assert.ok(source.indexOf("app.setPath('userData'") < source.indexOf('app.whenReady'))
   assert.ok(source.indexOf('app.requestSingleInstanceLock') < source.indexOf('new BrowserWindow'))
-  assert.doesNotMatch(source, /preload|ipcMain|remote-debugging|openDevTools|disable-web-security/)
+  assert.doesNotMatch(source, /remote-debugging|openDevTools|disable-web-security/)
+  assert.match(source, /preload: path\.join\(app\.getAppPath\(\), 'electron', 'preload\.cjs'\)/)
+  assert.match(source, /webPreferences: \{ \.\.\.WINDOW_OPTIONS\.webPreferences, preload:/)
+  assert.ok(source.indexOf('if (!ownsProfile) app.quit()') < source.indexOf('createMcpServer({'))
+  assert.ok(source.indexOf('await mcp.start()') < source.indexOf('new BrowserWindow'))
+  assert.match(source, /mcp\.stop\(\)\.finally/)
 })
 
 test('should_package_both_unsigned_portable_targets_with_exact_identity_and_allowlist', async () => {
@@ -257,7 +262,7 @@ test('should_package_both_unsigned_portable_targets_with_exact_identity_and_allo
   assert.equal(config.forceCodeSigning, false)
   assert.equal(config.publish, null)
   assert.equal(config.portable.buildUniversalInstaller, false)
-  assert.deepEqual(config.files, ['dist/**', 'electron/*.mjs', 'package.json', '!node_modules/**'])
+  assert.deepEqual(config.files, ['dist/**', 'electron/*.mjs', 'electron/preload.cjs', 'package.json', '!node_modules/**'])
   assert.equal(config.directories.app, '.desktop-stage')
 })
 
