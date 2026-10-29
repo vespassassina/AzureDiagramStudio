@@ -128,10 +128,10 @@ test('should_outline_custom_connectors_and_arrowheads_when_routes_cross_dark_and
   const scene = buildScene(document)
   const connection = scene.connections[0]
   const markup = connectionMarkup(connection, scene.connectionBackgrounds.crossing)
-  expect(markup).toContain('stroke="#000000" stroke-width="3.6"')
-  expect(markup).toContain('stroke="#ffffff" stroke-width="1.6"')
+  expect(markup).toContain('stroke="#000000" stroke-width="4.1"')
+  expect(markup).toContain('stroke="#ffffff" stroke-width="2.1"')
   expect(connectionMarkers(connection, scene.connectionBackgrounds.crossing)).toContain('stroke="#000000" stroke-width="1.2"')
-  expect(connectionMarkup(connection)).not.toContain('stroke-width="3.6"')
+  expect(connectionMarkup(connection)).not.toContain('stroke-width="4.1"')
 })
 
 test.each(['#101010', '#0f0', '#ffcc00', '#f0f', '#03a', '#eeffee', '#bd1636'])('should_meet_text_contrast_on_custom_background_%s', background => {

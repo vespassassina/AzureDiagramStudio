@@ -2,7 +2,8 @@ import { validateDocument } from '../document/index.ts'
 import type { Diagram } from '../model.ts'
 import { searchableLibrary } from '../catalog/presentation.ts'
 import { starterCatalog } from './starters.ts'
-import type { McpDocumentState, McpMutationRequest, McpMutationResult, McpOperation } from './mcp-contract.ts'
+import { validateMutation, validateOutputOperation } from '../../electron/mcp-schema.mjs'
+import type { McpDocumentState, McpRequest, McpMutationResult, McpOperation, McpOutputOperation, McpOutputResult } from './mcp-contract.ts'
 
 export type McpStatus = { state: 'running' | 'unavailable' | 'error'; address?: string; snapshotAvailable: boolean; message?: string }
 export type McpActionResult = { ok: true } | { ok: false; message: string }
@@ -11,7 +12,7 @@ export interface DesktopMcp {
   copyAddress(): Promise<McpActionResult>
   copyToken(): Promise<McpActionResult>
   publishSnapshot(text: string | null): Promise<McpActionResult>
-  onMutation?(callback: (request: McpMutationRequest) => void, canceled: (id: string) => void): () => void
+  onMutation?(callback: (request: McpRequest) => void, canceled: (id: string) => void): () => void
   mutationActive?(id: string): Promise<boolean>
   completeMutation?(id: string, text: string): Promise<boolean>
 }
@@ -50,18 +51,29 @@ export function publishMcpSession(session: SessionSource, bridge: DesktopMcp) {
   return () => { unsubscribe(); previous = undefined; available = false; send(null) }
 }
 
-type MutationSession = { mcpMutate(operation: McpOperation, context: { deadline: number; active(): boolean }): Promise<McpMutationResult> }
+type MutationSession = {
+  mcpMutate(operation: McpOperation, context: { deadline: number; active(): boolean }): Promise<McpMutationResult>
+  mcpOutput?(operation: McpOutputOperation, context: { deadline: number; active(): boolean }): Promise<McpOutputResult>
+}
 export function listenMcpMutations(session: MutationSession, bridge: DesktopMcp) {
   if (!bridge.onMutation || !bridge.completeMutation || !bridge.mutationActive) return () => {}
   let live = true
   const pending = new Map<string, { active: boolean }>()
   const unsubscribe = bridge.onMutation(request => {
+    if (!request || typeof request !== 'object' || Object.keys(request).length !== 3 ||
+        typeof request.id !== 'string' || !request.id || request.id.length > 200 ||
+        !Number.isSafeInteger(request.deadline) || Date.now() >= request.deadline ||
+        (!validateMutation(request.operation) && !validateOutputOperation(request.operation)) || pending.has(request.id)) return
     const state = { active: true }
     pending.set(request.id, state)
     void (async () => {
       try {
         if (!await bridge.mutationActive!(request.id) || !live || !state.active || Date.now() >= request.deadline) return
-        const result = await session.mcpMutate(request.operation, { deadline: request.deadline, active: () => live && state.active })
+        const context = { deadline: request.deadline, active: () => live && state.active }
+        const operation = request.operation
+        const result = operation.name === 'snapshot_diagram' || operation.name === 'export_diagram'
+          ? await session.mcpOutput?.(operation, context) ?? { ok: false, message: 'Output unavailable.' }
+          : await session.mcpMutate(operation, context)
         if (live && state.active) await bridge.completeMutation!(request.id, JSON.stringify(result))
       } catch { console.error('Desktop MCP mutation bridge unavailable') }
       finally { pending.delete(request.id) }

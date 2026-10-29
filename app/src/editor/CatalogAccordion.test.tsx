@@ -40,7 +40,7 @@ import { CatalogAccordion, CatalogOptions, ComponentPicker } from './CatalogAcco
 import { DROP_TYPE, libraryItems, makeEntity, readDrop } from './interactions.ts'
 const { selectionLibrary, searchGroups } = policy
 
-afterEach(() => { cleanup(); vi.clearAllMocks() })
+afterEach(() => { cleanup(); vi.clearAllMocks(); localStorage.clear() })
 function setup(writable = true) {
   const onChoose = vi.fn()
   const view = render(<CatalogAccordion writable={writable} selectedIcon={null} onChoose={onChoose} />)
@@ -77,7 +77,7 @@ it('should_follow_displayed_group_order_wrap_both_arrows_and_restore_search_focu
   expect(onChoose).not.toHaveBeenCalled()
 })
 
-it('should_allow_session_favorites_in_readonly_without_nested_or_duplicate_insert_buttons', () => {
+it('should_allow_profile_favorites_in_readonly_without_nested_or_duplicate_insert_buttons', () => {
   const { onChoose, rerender } = setup(false)
   const favorite = screen.getByRole('button', { name: 'Add App Service to favorites' })
   expect(favorite.querySelector('.lucide-star')).toBeTruthy()
@@ -86,6 +86,7 @@ it('should_allow_session_favorites_in_readonly_without_nested_or_duplicate_inser
   expect(screen.getByRole('tooltip').textContent).toBe('Add App Service to favorites')
   fireEvent.mouseLeave(favorite)
   fireEvent.click(favorite)
+  fireEvent.click(screen.getByRole('tab', { name: /^Favorites/ }))
   expect(screen.getByRole('region', { name: 'Favorite components' })).toBeTruthy()
   expect(screen.getAllByRole('button', { name: 'Insert App Service' })).toHaveLength(1)
   expect(document.querySelector('button button')).toBeNull()
@@ -94,7 +95,8 @@ it('should_allow_session_favorites_in_readonly_without_nested_or_duplicate_inser
   fireEvent.click(screen.getByRole('button', { name: 'Insert App Service' }))
   expect(onChoose).not.toHaveBeenCalled()
   fireEvent.click(screen.getByRole('button', { name: 'Clear favorite components' }))
-  expect(screen.queryByRole('region', { name: 'Favorite components' })).toBeNull()
+  expect(screen.getByText(/No favorites yet/)).toBeTruthy()
+  fireEvent.click(screen.getByRole('tab', { name: /^Azure/ }))
   expect(screen.getAllByRole('button', { name: 'Insert App Service' })).toHaveLength(1)
 })
 
@@ -109,8 +111,10 @@ it('should_limit_favorites_to_twelve_without_losing_choices_and_allow_removal_at
   expect((screen.getByRole('button', { name: `Add ${chosen[12].label} to favorites` }) as HTMLButtonElement).disabled).toBe(true)
   expect(screen.getByRole('button', { name: `Insert ${chosen[12].label}` })).toBeTruthy()
   search('')
+  fireEvent.click(screen.getByRole('tab', { name: /^Favorites/ }))
   expect(within(screen.getByRole('region', { name: 'Favorite components' })).getAllByRole('button', { name: /^Insert / })).toHaveLength(12)
   fireEvent.click(screen.getByRole('button', { name: `Remove ${chosen[0].label} from favorites` }))
+  fireEvent.click(screen.getByRole('tab', { name: /^Azure/ }))
   search(chosen[12].label)
   expect((screen.getByRole('button', { name: `Add ${chosen[12].label} to favorites` }) as HTMLButtonElement).disabled).toBe(false)
   expect(onChoose).not.toHaveBeenCalled()
@@ -126,7 +130,7 @@ it('should_bound_deduplicate_and_clear_recent_rows_without_copying_them_into_sea
   expect(within(recent).getAllByRole('button', { name: /^Insert / }).map(row => row.getAttribute('data-icon'))).toEqual(icons.slice(0, 8))
   expect(screen.getAllByRole('button', { name: 'Insert App Service' })).toHaveLength(1)
   fireEvent.click(screen.getByRole('button', { name: 'Add App Service to favorites' }))
-  expect(within(screen.getByRole('region', { name: 'Recent components' })).queryByRole('button', { name: 'Insert App Service' })).toBeNull()
+  expect(within(screen.getByRole('region', { name: 'Recent components' })).getByRole('button', { name: 'Insert App Service' })).toBeTruthy()
   search('App Service')
   expect(screen.queryByRole('region', { name: 'Recent components' })).toBeNull()
   expect(screen.queryByRole('region', { name: 'Favorite components' })).toBeNull()
@@ -141,6 +145,7 @@ it('should_keep_caller_owned_favorites_controlled_and_forward_only_to_latest_cal
   const view = render(<CatalogAccordion writable selectedIcon={null} favoriteIcons={['azure-app']} onToggleFavorite={original} onClearFavorites={clear} onChoose={vi.fn()} />)
   fireEvent.click(screen.getByRole('button', { name: 'Remove App Service from favorites' }))
   expect(original).toHaveBeenCalledExactlyOnceWith('azure-app')
+  fireEvent.click(screen.getByRole('tab', { name: /^Favorites/ }))
   expect(screen.getByRole('region', { name: 'Favorite components' })).toBeTruthy()
   view.rerender(<CatalogAccordion writable selectedIcon={null} favoriteIcons={['azure-app']} onToggleFavorite={latest} onClearFavorites={clear} onChoose={vi.fn()} />)
   fireEvent.click(screen.getByRole('button', { name: 'Remove App Service from favorites' }))
@@ -148,13 +153,15 @@ it('should_keep_caller_owned_favorites_controlled_and_forward_only_to_latest_cal
   fireEvent.click(screen.getByRole('button', { name: 'Clear favorite components' }))
   expect(clear).toHaveBeenCalledExactlyOnceWith()
   view.rerender(<CatalogAccordion writable selectedIcon={null} favoriteIcons={[]} onToggleFavorite={latest} onClearFavorites={clear} onChoose={vi.fn()} />)
-  expect(screen.queryByRole('region', { name: 'Favorite components' })).toBeNull()
+  expect(screen.getByText(/No favorites yet/)).toBeTruthy()
+  fireEvent.click(screen.getByRole('tab', { name: /^Azure/ }))
   expect(screen.getAllByRole('button', { name: 'Insert App Service' })).toHaveLength(1)
 })
 
 it('should_keep_favorite_rows_draggable_and_never_treat_the_star_enter_as_a_choice', () => {
   const { onChoose } = setup()
   fireEvent.click(screen.getByRole('button', { name: 'Add App Service to favorites' }))
+  fireEvent.click(screen.getByRole('tab', { name: /^Favorites/ }))
   const row = within(screen.getByRole('region', { name: 'Favorite components' })).getByRole('button', { name: 'Insert App Service' })
   const transfer = { setData: vi.fn(), effectAllowed: '' }
   fireEvent.dragStart(row, { dataTransfer: transfer })
@@ -308,7 +315,7 @@ it('should_mount_only_compute_with_policy_pins_and_alphabetical_tail_when_first_
   setup()
   expect(screen.getByRole('button', { name: 'Insert App Service' })).toBeTruthy()
   expect(screen.queryByRole('button', { name: 'Insert Azure Test' })).toBeNull()
-  expect(screen.getAllByRole('tab')).toHaveLength(2)
+  expect(screen.getAllByRole('tab')).toHaveLength(3)
   expect(screen.queryByRole('tab', { name: /^Fabric/ })).toBeNull()
   expect(document.querySelectorAll('.catalog-group-toggle')).toHaveLength(7)
   for (const button of document.querySelectorAll('.catalog-group-toggle')) expect(button.querySelectorAll('svg')).toHaveLength(2)
@@ -379,7 +386,7 @@ it('should_refresh_picked_and_disabled_rows_without_repainting_static_headers', 
   search('OneLake')
   expect(screen.getByRole('button', { name: 'Insert OneLake' })).toBeTruthy()
 })
-it('should_expand_fabric_inside_azure_without_a_third_tab', () => {
+it('should_expand_fabric_inside_azure_without_a_separate_fabric_tab', () => {
   setup()
   const header = screen.getByRole('button', { name: 'Azure / Microsoft: Microsoft Fabric (4)' })
   expect(header.getAttribute('aria-expanded')).toBe('false')
@@ -462,7 +469,7 @@ it('should_recognize_only_selection_policy_keys_when_drag_payloads_are_read', ()
   }
   for (const icon of ['retired-bonsai', 'fabric-onelake-old', '__proto__', 'constructor', 'toString', '../../evil.svg']) expect(readDrop(JSON.stringify({ icon }))).toBeNull()
 })
-it('should_move_keyboard_focus_between_only_azure_and_software_tabs', () => {
+it('should_move_keyboard_focus_between_catalog_tabs', () => {
   setup()
   fireEvent.keyDown(screen.getByRole('tab', { name: /^Azure/ }), { key: 'ArrowRight' })
   expect(document.activeElement).toBe(screen.getByRole('tab', { name: /^Software/ }))

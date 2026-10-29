@@ -50,10 +50,20 @@ const stateToken = { type: 'string', minLength: 1, maxLength: 200, description: 
 export const mutationTools = [
   { name: 'create_diagram', description: 'Replace the current workspace with a blank diagram or an existing template key from list_templates. Uses normal unsaved-work confirmation; cancel leaves it unchanged. Resets Undo history.', inputSchema: object({ stateToken, template: id }, ['stateToken']) },
   { name: 'edit_diagram', description: 'Atomically apply 1–100 native DocumentCommand values as one Undo step, using existing entity/connection IDs from get_document and icon IDs from search_catalog. Entire batch fails on invalid input. No client-computed layout.', inputSchema: object({ stateToken, commands: { ...array(commandSchema, 100), minItems: 1 } }) },
-  { name: 'arrange_diagram', description: 'Run the real Auto-arrange worker and commit only if the workspace stays current and interaction-free.', inputSchema: object({ stateToken, direction: enumeration('RIGHT', 'DOWN') }) },
+  { name: 'arrange_diagram', description: 'Run real Auto-arrange. Optional stacked uses existing boundary groups: RIGHT contents with groups stacked vertically; DOWN contents with groups side by side. Omitted arrangement preserves standard RIGHT/DOWN behavior. Commit only while current and interaction-free.', inputSchema: object({ stateToken, direction: enumeration('RIGHT', 'DOWN'), arrangement: enumeration('standard', 'stacked') }, ['stateToken', 'direction']) },
   { name: 'undo', description: 'Undo one normal history step. Fails if no Undo is available.', inputSchema: object({ stateToken }) },
   { name: 'redo', description: 'Redo one normal history step. Fails if no Redo is available.', inputSchema: object({ stateToken }) },
 ].map(tool => ({ ...tool, annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false } }))
+
+const imageOptions = { scale: { type: 'integer', enum: [1, 2] }, transparent: boolean, background: enumeration('diagram', 'white'), aspect: enumeration('content', '16:9'), includeGrid: boolean }
+export const outputTools = [
+  { name: 'snapshot_diagram', description: 'Render the entire current committed diagram as PNG at scale 1, diagram background, content bounds and normal export grid. No UI, drafts, selection or filesystem access.', inputSchema: object({ stateToken }) },
+  { name: 'export_diagram', description: 'Return SVG, PNG, native editable JSON or Markdown with inline PNG. Optional includeMarkdown packages SVG/PNG/JSON plus companion description Markdown in one ZIP. Requires current stateToken; no save dialog or filesystem access.', inputSchema: { ...object({ stateToken, format: enumeration('svg', 'png', 'json', 'markdown'), ...imageOptions, includeMarkdown: boolean }, ['stateToken', 'format']), oneOf: [
+    object({ stateToken, format: enumeration('svg', 'png'), ...imageOptions, includeMarkdown: boolean }, ['stateToken', 'format']),
+    object({ stateToken, format: { const: 'json' }, includeMarkdown: boolean }, ['stateToken', 'format']),
+    object({ stateToken, format: { const: 'markdown' }, ...imageOptions, includeMarkdown: { const: false } }, ['stateToken', 'format']),
+  ] } },
+].map(tool => ({ ...tool, annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false } }))
 
 // Small, deliberately bounded validator for exactly the JSON Schema subset above.
 // The domain still validates graph/geometry/catalog semantics before any commit.
@@ -81,5 +91,10 @@ export function matchesSchema(value, schema, depth = 0) {
 export function validateMutation(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).some(key => !['name', 'arguments'].includes(key))) return false
   const tool = mutationTools.find(tool => tool.name === value.name)
+  return !!tool && matchesSchema(value.arguments, tool.inputSchema)
+}
+export function validateOutputOperation(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).some(key => !['name', 'arguments'].includes(key))) return false
+  const tool = outputTools.find(tool => tool.name === value.name)
   return !!tool && matchesSchema(value.arguments, tool.inputSchema)
 }

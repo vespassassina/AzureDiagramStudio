@@ -1,6 +1,6 @@
 import { createServer } from 'node:http'
 import { randomBytes, timingSafeEqual } from 'node:crypto'
-import { mutationTools, validateMutation } from './mcp-schema.mjs'
+import { mutationTools, validateMutation, outputTools, validateOutputOperation } from './mcp-schema.mjs'
 
 export const DEFAULT_MCP_PORT = 37431
 export const MCP_VERSIONS = Object.freeze(['2025-06-18', '2025-03-26'])
@@ -13,7 +13,7 @@ const tools = [
   { name: 'search_catalog', description: 'Search the existing selectable component catalog by label, category, aliases and keywords.', inputSchema: { type: 'object', properties: { query: { type: 'string', maxLength: 200 }, limit: { type: 'integer', minimum: 1, maximum: 100, default: 25 } }, required: ['query'], additionalProperties: false } },
   { name: 'list_templates', description: 'List the existing starting diagram identities without opening or modifying them.', inputSchema: emptySchema },
   { name: 'get_app_info', description: 'Read the running desktop app version and read-only access scope.', inputSchema: emptySchema },
-].map(tool => ({ ...tool, annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false } })).concat(mutationTools)
+].map(tool => ({ ...tool, annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false } })).concat(mutationTools, outputTools)
 const record = value => value !== null && typeof value === 'object' && !Array.isArray(value)
 const exact = (value, allowed) => record(value) && Object.keys(value).every(key => allowed.includes(key))
 const empty = value => value === undefined || (record(value) && Object.keys(value).length === 0)
@@ -42,11 +42,11 @@ async function dispatch(message, store, version, mutate, signal) {
   if (method === 'tools/list') return empty(params) ? result({ tools }) : invalid()
   if (method !== 'tools/call') return failure(id, -32601, 'Method not found')
   if (!exact(params, ['name', 'arguments']) || !tools.some(tool => tool.name === params.name)) return invalid()
-  if (mutationTools.some(tool => tool.name === params.name)) {
-    if (!validateMutation(params)) return invalid()
+  if ([...mutationTools, ...outputTools].some(tool => tool.name === params.name)) {
+    if (!validateMutation(params) && !validateOutputOperation(params)) return invalid()
     if (!store.available() || !mutate) return result({ content: [{ type: 'text', text: 'Current workspace is unavailable.' }], isError: true })
     const outcome = await mutate(params, signal)
-    return outcome.ok ? result(content(outcome.value)) : result({ content: [{ type: 'text', text: outcome.message }], isError: true })
+    return outcome.ok ? result(outcome.output ?? content(outcome.value)) : result({ content: [{ type: 'text', text: outcome.message }], isError: true })
   }
   const args = params.arguments === undefined ? {} : params.arguments
   if (params.name === 'search_catalog') {

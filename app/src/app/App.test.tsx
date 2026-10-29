@@ -31,6 +31,36 @@ vi.mock('./browser.ts', () => ({ browserDependencies: {
 afterEach(() => { cleanup(); vi.clearAllMocks(); host.load.mockImplementation(async () => null); host.leases.length = 0; host.realEditor = false })
 
 describe('DGM-040 root integration', () => {
+  it.each(['error', 'resize-notification', 'unhandledrejection', 'pagehide'])('should_keep_fail_closed_mcp_invalidation_for_%s_DGM142', async kind => {
+    const unsubscribe = vi.fn()
+    const bridge = {
+      status: vi.fn(), copyAddress: vi.fn(), copyToken: vi.fn(), publishSnapshot: vi.fn(async (_snapshot: string | null) => ({ ok: true as const })),
+      onMutation: vi.fn(() => unsubscribe), mutationActive: vi.fn(async () => true), completeMutation: vi.fn(async () => true),
+    }
+    window.desktopMcp = bridge
+    try {
+      render(<App />)
+      await act(async () => { host.leases.at(-1)!(true) })
+      expect(bridge.publishSnapshot.mock.calls.at(-1)?.[0]).not.toBeNull()
+      act(() => window.dispatchEvent(kind === 'error' || kind === 'resize-notification'
+        ? new ErrorEvent('error', { message: kind === 'resize-notification' ? 'ResizeObserver loop completed with undelivered notifications.' : 'Renderer failed' })
+        : new Event(kind)))
+      expect(bridge.publishSnapshot).toHaveBeenLastCalledWith(null)
+      expect(unsubscribe).toHaveBeenCalledOnce()
+      const count = bridge.publishSnapshot.mock.calls.length
+      act(() => host.props!.onCommand({ type: 'metadata', patch: { title: 'No stale snapshot publication' } }))
+      expect(bridge.publishSnapshot).toHaveBeenCalledTimes(count)
+    } finally { cleanup(); delete window.desktopMcp }
+  })
+  it('should_forward_transient_arrangement_options_from_editor_to_session_DGM137', async () => {
+    host.load.mockImplementation(async () => sampleDiagram())
+    render(<App />)
+    await act(async () => { host.leases.at(-1)!(true) })
+    const document = host.props!.document
+    host.layout.mockReturnValueOnce({ promise: Promise.resolve({ diagram: document, revision: document.revision }), cancel: vi.fn() })
+    await act(async () => { host.props!.onArrange('RIGHT', { arrangement: 'stacked' }) })
+    expect(host.layout).toHaveBeenCalledExactlyOnceWith(document, 'RIGHT', { arrangement: 'stacked' })
+  })
   it.each([false, true])('should_distinguish_local_save_and_keep_json_available_when_storage_rejects_%s_DGM111', async rejects => {
     vi.useFakeTimers()
     try {
@@ -52,7 +82,8 @@ describe('DGM-040 root integration', () => {
       expect(host.props!.canUndo).toBe(true)
       expect(host.props!.readOnly).toBe(false)
       if (rejects) expect(view.getByRole('status').textContent).toBe('Browser save failed: QuotaExceededError. Download JSON now; free storage and edit again to retry.')
-      await act(async () => { fireEvent.click(view.getByRole('button', { name: 'Save JSON' })) })
+      fireEvent.click(view.getByRole('menuitem', { name: 'File menu' }))
+      await act(async () => { fireEvent.click(view.getByRole('menuitem', { name: 'Save JSON' })) })
       expect(host.download).toHaveBeenCalledOnce()
       expect(host.props!.document).toBe(before)
       expect(host.props!.canUndo).toBe(true)
@@ -68,11 +99,13 @@ describe('DGM-040 root integration', () => {
     host.realEditor = true
     const view = render(<App />)
     await act(async () => { host.leases.at(-1)!(true) })
+    fireEvent.click(view.getByRole('dialog', { name: 'New diagram' }).querySelector<HTMLButtonElement>('[aria-label="Blank"]')!)
     const title = view.getByLabelText('Document title')
     fireEvent.change(title, { target: { value: 'Finalized before picker' } })
     const input = view.getByLabelText(picker) as HTMLInputElement
     const click = vi.spyOn(input, 'click')
-    fireEvent.click(view.getByRole('button', { name: action }))
+    fireEvent.click(view.getByRole('menuitem', { name: 'File menu' }))
+    fireEvent.click(view.getByRole('menuitem', { name: action }))
     expect(click).toHaveBeenCalledOnce()
     expect(host.props!.document.title).toBe('Finalized before picker')
     const before = host.props!

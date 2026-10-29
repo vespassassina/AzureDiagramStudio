@@ -5,6 +5,7 @@ import { createLocalHandler } from './protocol.mjs'
 import { secureSession, secureWindow } from './security.mjs'
 import { createMcpServer } from './mcp.mjs'
 import { createSnapshotStore, createMutationBroker, registerMcpBridge } from './mcp-bridge.mjs'
+import { createWorkspaceSettings, registerWorkspaceBridge } from './workspace.mjs'
 
 protocol.registerSchemesAsPrivileged([{ scheme: 'ads', privileges: SCHEME_PRIVILEGES }])
 app.setName(PRODUCT_NAME)
@@ -48,6 +49,7 @@ else {
     window = new BrowserWindow({ ...WINDOW_OPTIONS, webPreferences: { ...WINDOW_OPTIONS.webPreferences, preload: path.join(app.getAppPath(), 'electron', 'preload.cjs') }, icon: path.join(root, 'branding', 'app-icon.ico') })
     secureWindow(window)
     registerMcpBridge({ ipcMain, clipboard, window, server: mcp, store, broker })
+    registerWorkspaceBridge({ ipcMain, window, settings: createWorkspaceSettings({ profile: app.getPath('userData'), documents: app.getPath('documents'), dialog, window }) })
     window.once('ready-to-show', () => window.show())
     await window.loadURL(STUDIO_URL)
   }).catch(error => {

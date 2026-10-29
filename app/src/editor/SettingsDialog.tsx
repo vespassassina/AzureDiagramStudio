@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { trapKeyboard } from './AboutDialog.tsx'
 import type { McpStatus } from '../app/mcp.ts'
+import type { WorkspacePreference } from '../app/workspace.ts'
 
 export function SettingsDialog({ onClose }: { onClose(): void }) {
   const id = useId()
@@ -13,6 +14,26 @@ export function SettingsDialog({ onClose }: { onClose(): void }) {
   const [status, setStatus] = useState<McpStatus>({ state: 'unavailable', snapshotAvailable: false })
   const [feedback, setFeedback] = useState('')
   const [copying, setCopying] = useState(false)
+  const workspace = window.desktopWorkspace
+  const [preference, setPreference] = useState<WorkspacePreference>()
+  const [workspaceFeedback, setWorkspaceFeedback] = useState('')
+  const [workspaceBusy, setWorkspaceBusy] = useState(false)
+  useEffect(() => {
+    if (!workspace) return
+    let active = true
+    void workspace.read().then(value => { if (active) setPreference(value) }, error => { if (active) setWorkspaceFeedback(`Workspace settings unavailable: ${String(error)}`) })
+    return () => { active = false }
+  }, [workspace])
+  async function changeWorkspace(operation: 'choose' | 'reset') {
+    if (!workspace || workspaceBusy) return
+    setWorkspaceBusy(true); setWorkspaceFeedback('')
+    try {
+      const value = await workspace[operation]()
+      if ('canceled' in value) setWorkspaceFeedback('Folder selection canceled. Workspace root unchanged.')
+      else { setPreference(value); setWorkspaceFeedback('Workspace root saved for this app profile.') }
+    } catch (error) { setWorkspaceFeedback(`Workspace root not saved: ${String(error)}`) }
+    finally { setWorkspaceBusy(false) }
+  }
   useLayoutEffect(() => trapKeyboard(dialog, close, () => currentClose.current()), [])
   useEffect(() => {
     if (!bridge) return
@@ -38,6 +59,14 @@ export function SettingsDialog({ onClose }: { onClose(): void }) {
     <section ref={dialog} role="dialog" aria-modal="true" aria-labelledby={`${id}-title`} aria-describedby={`${id}-description`} className="about-dialog settings-dialog">
       <header><span id={`${id}-title`}>Settings</span><button ref={close} type="button" aria-label="Close Settings" title="Close Settings" onClick={onClose}><X size={18} /></button></header>
       <div className="about-content" role="region" aria-label="Local MCP settings" tabIndex={0}>
+        <h2>Workspace root</h2>
+        {!workspace ? <p>Workspace root configuration requires the desktop app. Browser saves and exports continue as browser downloads.</p> : <>
+          <p>Default: OS Documents / AzureDiagramStudio. Choose a root for new per-document workspace folders and default Save JSON / export destinations. Native save dialogs still let you choose another location.</p>
+          {preference && <p><code aria-label="Current workspace root">{preference.root}</code>{preference.isDefault ? ' (default)' : ' (custom)'}</p>}
+          <div className="mcp-copy-actions"><button type="button" disabled={workspaceBusy} onClick={() => void changeWorkspace('choose')}>Choose folder</button><button type="button" disabled={workspaceBusy} onClick={() => void changeWorkspace('reset')}>Reset to default</button></div>
+          <p>Folders are created only on save/export. Existing files, recovery data and profiles are not moved. MCP output remains in memory.</p>
+          <p role="status" aria-live="polite">{workspaceFeedback}</p>
+        </>}
         <h2>Local MCP server</h2>
         <p id={`${id}-description`}>Read and edit the committed diagram, browse the component catalog and starting templates, create diagrams, Auto-arrange and Undo/Redo. Unfinished title, inline and Markdown drafts are not shared or overwritten.</p>
         {!bridge ? <p>Desktop app required. The browser build does not run an MCP server.</p> : <>

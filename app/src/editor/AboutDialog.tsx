@@ -89,7 +89,7 @@ function AboutSections() {
       <dt>Source repository</dt>
       <dd><code>github.com/vespassassina/AzureDiagramStudio</code></dd>
       <dt>Manual</dt>
-      <dd><code>docs/manual.md</code> in the repository. Help, beside About, opens the in-app guide.</dd>
+      <dd><code>docs/manual.md</code> in the repository. Settings menu → Help opens the in-app guide; Settings and About share that menu.</dd>
     </dl>
     <h3>Identity and rights</h3>
     <p>
@@ -103,7 +103,7 @@ function AboutSections() {
     </p>
     <h3>Keep a backup</h3>
     <p>
-      Saved on this device means local storage, not a portable backup. Use Save JSON
+      Saved on this device in the bottom status bar means local storage, not a portable backup. Use File → Save JSON
       to keep an editable copy you can reopen later.
     </p>
   </>

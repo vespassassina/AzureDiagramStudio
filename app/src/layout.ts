@@ -3,8 +3,12 @@ import workerUrl from 'elkjs/lib/elk-worker.min.js?url'
 import { absolutePosition, entityTextGeometry, measureEntity } from './model.ts'
 import { connectionLabelSize } from './render/text.ts'
 import type { ConnectionSide, Diagram, Entity, Point } from './model.ts'
+import { computeStackedLayout } from './layout-stacked.ts'
+import { routeFixedGeometry } from './routing.ts'
 
 export type LayoutResult = { diagram: Diagram; revision: number }
+export type LayoutArrangement = 'standard' | 'stacked'
+export type LayoutOptions = { arrangement?: LayoutArrangement }
 
 async function createEngine(): Promise<ELK> {
   if (typeof Worker !== 'undefined') {
@@ -15,7 +19,19 @@ async function createEngine(): Promise<ELK> {
   return new Constructor()
 }
 
-export async function computeLayout(diagram: Diagram, direction: Diagram['direction'], revision: number, providedEngine?: ELK): Promise<LayoutResult> {
+export async function computeLayout(diagram: Diagram, direction: Diagram['direction'], revision: number, providedEngine?: ELK, options: LayoutOptions = {}): Promise<LayoutResult> {
+  const structured = diagram.entities.filter(entity => entity.kind === 'component' || entity.kind === 'boundary')
+  const stacked = options.arrangement === 'stacked' && structured.some(entity => entity.kind === 'boundary')
+  const engine = providedEngine ?? await createEngine()
+  try {
+    const placed = stacked
+      ? await computeStackedLayout(diagram, direction, revision, engine)
+      : await computeDirectedLayout(diagram, direction, revision, engine)
+    return { ...placed, diagram: routeFixedGeometry(placed.diagram).diagram }
+  } finally { if (!providedEngine && typeof Worker !== 'undefined') engine.terminateWorker() }
+}
+
+async function computeDirectedLayout(diagram: Diagram, direction: Diagram['direction'], revision: number, engine: ELK): Promise<LayoutResult> {
   const structured = diagram.entities.filter(entity => entity.kind === 'component' || entity.kind === 'boundary')
   const ports = new Map<string, NonNullable<ElkNode['ports']>>()
   const usedIds = new Set([...diagram.entities, ...diagram.connections].map(item => item.id))
@@ -86,16 +102,12 @@ export async function computeLayout(diagram: Diagram, direction: Diagram['direct
     for (const child of node.children ?? []) if (reconcileHeaders(child)) changed = true
     return changed
   }
-  const engine = providedEngine ?? await createEngine()
   let result: ElkNode
-  try {
+  result = await engine.layout(buildRoot())
+  for (let pass = 1; reconcileHeaders(result); pass++) {
+    if (pass >= 3) throw new Error('ELK boundary header padding did not converge within three passes')
     result = await engine.layout(buildRoot())
-    for (let pass = 1; reconcileHeaders(result); pass++) {
-      if (pass >= 3) throw new Error('ELK boundary header padding did not converge within three passes')
-      result = await engine.layout(buildRoot())
-    }
   }
-  finally { if (!providedEngine && typeof Worker !== 'undefined') engine.terminateWorker() }
   const geometry = new Map<string, { x: number; y: number; width: number; height: number }>()
   const routes = new Map<string, Point[]>()
   const labels = new Map<string, Point>()

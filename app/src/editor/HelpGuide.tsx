@@ -2,18 +2,20 @@ import { useId, useLayoutEffect, useRef, useState } from 'react'
 import type { RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import { ArrowLeft, ArrowRight, Check, X } from 'lucide-react'
+import { frameResizeObserver } from './resize-observer.ts'
 
 const steps = [
-  { title: 'Start a diagram', target: '[aria-label="New diagram"]', text: 'A fresh workspace opens an empty canvas with the New diagram picker; Blank is the default, so Enter or Escape keeps the empty canvas. New diagram offers Blank or one of eleven starters: four synthetic examples (Web/API, Event-driven, Fabric, Enterprise) and seven adaptations of Microsoft Learn reference architectures. Templates apply only when you choose one; saved work reopens as you left it.' },
+  { title: 'Start a diagram', target: '[aria-label="File menu"]', text: 'The File menu contains New diagram, Open JSON, Import skill JSON and Save JSON. A fresh workspace opens an empty canvas with the New diagram picker; Blank is the default, so Enter or Escape keeps it empty. Choose Blank or one of eleven starters: four synthetic examples (Web/API, Event-driven, Fabric, Enterprise) and seven Microsoft Learn adaptations. Templates apply only when chosen; saved work reopens as you left it.' },
   { title: 'Name your diagram', target: '[aria-label="Document title"]', text: 'Document title names the diagram. Type a title, then press Enter or leave the field to apply it.' },
-  { title: 'Add components', target: '.library-search', text: 'Components lets you search and browse the library. Choose a component, then click the canvas to place it, or drag it from the library onto the canvas.' },
-  { title: 'Navigate the canvas', target: '.zoom-controls', text: 'Select tool selects and moves objects; Shift-click adds to a selection. Pan tool moves the view. Use Zoom in, Zoom out, Fit diagram or Fit selection to frame your work. Undo in the top bar reverses an edit.' },
+  { title: 'Add components', target: '.library-search', text: 'Add component in the drawing rail opens the library. Search and browse, then choose a component and click the canvas, or drag it onto the canvas. Star components to save them in the Favorites category on this device. The library stays open until you explicitly close it. On narrow screens, scroll the workspace between the canvas and open panels. Boundary, Text and Rectangle remain drawing-rail tools.' },
+  { title: 'Navigate the canvas', target: '[aria-label="View menu"]', text: 'The View menu controls the component library, Sidebar, Properties/Markdown views, theme and Fit diagram or Fit selection. Theme is remembered on this device without changing diagram colors. Select tool selects and moves objects; Shift-click adds to a selection. Pan tool moves the view. Zoom controls remain beside the canvas. The only top action buttons are Undo, Redo, Export and Present.' },
   { title: 'Connect and annotate', target: '.tool-rail [aria-label="Connect components"]', text: 'Connect components links a source to a target; you can also drag connector handles. Add boundary groups a region, Add text places a note, and Add rectangle adds a shape. Select tool returns to selection.' },
-  { title: 'Edit properties', target: '.inspector .panel-heading', text: 'Properties edits the current selection: labels, types, colors, status and parent boundaries, or connection settings. With nothing selected it shows document, background and grid settings. Double-click a label to edit it on the canvas. Open Markdown in the drawing tools shows the architecture description in the same right sidebar, with Edit and Preview modes.' },
-  { title: 'Arrange your diagram', target: '.canvas-toolbar', text: 'Right layout or Down layout sets the flow direction. Auto-arrange lays out components and boundaries. Undo reverses the arrangement; you can still position objects manually.' },
-  { title: 'Save editable work', target: '[aria-label="Save JSON"]', text: 'Saved on this device means local browser or app storage, not a portable backup. Save JSON downloads an editable JSON copy. Open JSON loads a saved diagram; Import skill JSON accepts supported skill-generated diagrams. Keep a JSON copy for later editing or sharing.' },
-  { title: 'Export artwork', target: '[aria-label="Export"]', text: 'Export opens SVG and PNG options, with whole-diagram or selection scope. SVG stays sharp when resized; PNG is a bitmap. Artwork is for documents and slides, not a substitute for editable JSON.' },
-  { title: 'Present and hand off', target: '[aria-label="Present"]', text: 'Present hides editing chrome for review, with a pointer, fullscreen and Exit controls. Draw adds temporary ink for discussion; it is never saved to the diagram and disappears when you leave. Escape cancels an active ink stroke or sidebar resize; otherwise it returns to editing. Hand off SVG or PNG for viewing, and JSON when the recipient needs to edit. Read-only sessions can explore this guide but cannot edit. About, next to Help in the drawing tools, shows the version and project information.' },
+  { title: 'Edit properties', target: '.inspector .panel-heading', text: 'The square Sidebar button after Auto-arrange at the canvas top right opens the shared sidebar. Show properties edits labels, types, colors, status, parent boundaries or connection settings; with nothing selected it shows document, background and grid settings. Show Markdown opens the same architecture description with Edit and Preview modes. Switching views or reopening preserves its draft. Double-click a label to edit it on the canvas.' },
+  { title: 'Arrange your diagram', target: '[aria-label="Auto-arrange"]', text: 'Open Auto-arrange beside the square Sidebar button. Choose Horizontal, Vertical, Horizontal groups stacked vertically, or Vertical groups side by side. Stacked modes align root groups and ungrouped components on one shared axis with uniform gaps; contents, including nested groups, flow in the chosen direction. Without groups they fall back to Horizontal or Vertical. Choosing a layout is one undoable edit; annotations keep their canvas positions.' },
+  { title: 'Save editable work', target: '[aria-label="File menu"]', text: 'The bottom status bar is the canonical place for loading, saving, saved, ownership and error messages. Saved on this device means local browser or app storage, not a portable backup. In File, Save JSON downloads an editable copy, Open JSON loads saved work, and Import skill JSON accepts supported skill-generated diagrams. Replacement actions keep their confirmation guards. Keep a JSON copy for later editing or sharing.' },
+  { title: 'Export artwork', target: '[aria-label="Export"]', text: 'Export opens SVG and PNG options, with whole-diagram or selection scope. Include Markdown adds the committed description in a companion .md inside one ZIP. Markdown with embedded PNG instead downloads a single .md with an inline image; some viewers block data images, so the ZIP is the portable alternative. SVG stays sharp when resized; PNG is a bitmap. Artwork is not a substitute for editable JSON.' },
+  { title: 'Present and hand off', target: '[aria-label="Present"]', text: 'Present hides editing chrome for review, with a pointer, fullscreen and Exit controls. Draw adds temporary ink for discussion; it is never saved to the diagram and disappears when you leave. Escape cancels an active ink stroke or sidebar resize; otherwise it returns to editing. Hand off SVG or PNG for viewing, and JSON for editing. Read-only sessions can explore this guide but cannot edit.' },
+  { title: 'Settings and integration', target: '[aria-label="Settings menu"]', text: 'The Settings menu opens Settings, Help and About. Settings chooses the desktop workspace root for future native file operations; it does not move existing work. Browser downloads still use browser destinations. Desktop MCP exposes the live document, snapshot and export options, including Markdown companions; client support and permissions vary. About shows version and project information. This source guide does not qualify packaged releases, native dialogs or external clients.' },
 ] as const
 
 type Box = { left: number; top: number; width: number; height: number }
@@ -73,6 +75,8 @@ export function HelpGuide({ root, onReveal, onClose }: { root: RefObject<HTMLDiv
   }, [])
 
   useLayoutEffect(() => {
+    const content = dialog.current?.querySelector<HTMLElement>('.help-guide-content')
+    if (content) content.scrollTop = 0
     const target = root.current?.querySelector<HTMLElement>(entry.target)
     const scrollPositions = new Map<HTMLElement, { left: number; top: number }>()
     let parent = target?.parentElement
@@ -91,11 +95,15 @@ export function HelpGuide({ root, onReveal, onClose }: { root: RefObject<HTMLDiv
         if (right > left && bottom > top) box = { left, top, width: right - left, height: bottom - top }
       }
       const card = dialog.current?.getBoundingClientRect()
-      const next = place(box, card?.width || Math.min(352, viewportWidth - 24), Math.min(dialog.current?.scrollHeight || 268, viewportHeight - 24), viewportWidth, viewportHeight)
+      // Measure the scrollable content's intrinsic height, not the already
+      // constrained card. Otherwise ResizeObserver alternates between a short
+      // card that appears to fit and an unconstrained card below the viewport.
+      const naturalHeight = dialog.current ? [...dialog.current.children].reduce((height, child) => height + child.scrollHeight, 2) : 0
+      const next = place(box, card?.width || Math.min(352, viewportWidth - 24), Math.min(naturalHeight > 2 ? naturalHeight : 268, viewportHeight - 24), viewportWidth, viewportHeight)
       setPlacement(current => JSON.stringify(current) === JSON.stringify(next) ? current : next)
     }
     measure()
-    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure)
+    const observer = frameResizeObserver(measure)
     if (target) observer?.observe(target)
     if (dialog.current) observer?.observe(dialog.current)
     if (root.current) observer?.observe(root.current)
@@ -111,7 +119,7 @@ export function HelpGuide({ root, onReveal, onClose }: { root: RefObject<HTMLDiv
     {placement.target && <div className="help-guide-spotlight" aria-hidden="true" data-guide-target={entry.target} style={placement.target} />}
     <section ref={dialog} role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={`${stepId} ${descriptionId}`} className="help-guide" style={{ left: placement.left, top: placement.top, maxHeight: placement.maxHeight }}>
       <header><span id={titleId}>UI guide</span><button ref={close} type="button" title="Close guide" aria-label="Close guide" onClick={onClose}><X size={18} /></button></header>
-      <div className="help-guide-content" role="region" aria-label="Guide step" tabIndex={0}><div id={stepId} className="help-guide-progress" aria-live="polite" aria-atomic="true"><span>{step + 1}/10</span><span>{entry.title}</span></div><h2>{entry.title}</h2><p id={descriptionId}>{entry.text}</p>{!placement.target && <p className="help-guide-unavailable">This control is not visible in the current layout. You can continue or go back.</p>}</div>
+      <div className="help-guide-content" role="region" aria-label="Guide step" tabIndex={0}><div id={stepId} className="help-guide-progress" aria-live="polite" aria-atomic="true"><span>{step + 1}/{steps.length}</span><span>{entry.title}</span></div><h2>{entry.title}</h2><p id={descriptionId}>{entry.text}</p>{!placement.target && <p className="help-guide-unavailable">This control is not visible in the current layout. You can continue or go back.</p>}</div>
       <footer><button type="button" disabled={step === 0} onClick={() => navigate(step - 1)}><ArrowLeft size={16} />Back</button><button type="button" onClick={() => step === steps.length - 1 ? onClose() : navigate(step + 1)}>{step === steps.length - 1 ? <Check size={16} /> : <ArrowRight size={16} />}{step === steps.length - 1 ? 'Finish' : 'Next'}</button></footer>
     </section>
   </div>, document.body)

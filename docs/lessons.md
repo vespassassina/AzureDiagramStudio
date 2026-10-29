@@ -220,3 +220,92 @@ Evidence: [independent source verification](verification/DGM-131.md).
 - Retain complete owner handoff and source manifests on disk. A lost agent handle
   did not require rebuilding implementation or guessing status: the saved receipt
   routed final-source independent verification while preserving first failures.
+
+## 2026-10-28: UI Scope, Explicit State And Real Theme Verification
+
+Evidence: [DGM-134 independent acceptance](verification/DGM-134.md) through
+[DGM-139](verification/DGM-139.md).
+Decision: [approved UI convention](ui-design.md) and
+[decision log](decisions.md#2026-10-28-canonical-ui-placement-and-explicit-state).
+
+- Repeated requests to remove panel controls/footer/pins exposed competing
+  entry points and ambiguous state. Give functions canonical locations,
+  preserve explicit open/close intent, and reclaim duplicate UI space.
+  Persist meaningful preferences separately from diagram history.
+- A harness setting only the root theme attribute did not establish the
+  application's persisted dark theme after Present. The independent verifier
+  preserved that coverage limit and used the actual theme toggle in three
+  fresh dark viewport cells, checking both DOM and stored preference.
+  Do not substitute cosmetic test setup for real state transitions.
+- Keep approved current-source previews separate from immutable release
+  candidates. Source acceptance and an open preview do not close a blocked
+  packaged-release gate or establish native-dialog/client qualification.
+
+## 2026-10-28: Strict Stacking Is Not Merely Directional Layout
+
+Evidence: [reopened DGM-137 and independent repair acceptance](verification/DGM-137.md),
+[menu/Help acceptance](verification/DGM-140.md) and
+[appearance acceptance](verification/DGM-141.md).
+
+- The first grouped-layout oracle checked orientation/order, non-overlap and
+  routed endpoints but did not require a shared stacking axis. The PO correctly
+  rejected staggered groups despite those passing checks. Translate visual
+  requirements into exact geometry: aligned root/nested axes, uniform root
+  gaps and nested direction for varied sizes, disconnected units and cyclic/
+  cross-group edges. Preserve the earlier acceptance as bounded history.
+- Root/nested stack alignment is exact; unrelated ELK route coordinates can
+  carry floating-point arithmetic residuals. Record measured residuals and use
+  a justified tiny tolerance for route orthogonality, not to excuse staggering.
+- A line hit test must transform scene offsets through the actual screen
+  matrix. Five screen pixels on a zoomed narrow canvas do not equal five scene
+  pixels; preserve diagnostic failures instead of enlarging the product hit
+  area or forcing clicks to pass.
+- When actions move into menus, validate real picker activation, draft guards,
+  focus restoration and every guide anchor through actual menus. Hidden old
+  targets or direct storage fixture setup cannot prove the new file workflow.
+
+## 2026-10-28: Fixed Routing And Native Worker Ownership
+
+Evidence: [DGM-142 final independent acceptance](verification/DGM-142.md),
+[approved routing boundary](rfd/002-fixed-geometry-routing.md).
+
+- Correct placement is not proof of good routing. Freeze accepted node/group
+  geometry, then measure actual route excursions, obstacle/header clearance,
+  explicit sides and labels. Compare real UI/HTTP/SVG/PNG output and inspect
+  images; retain dense parallel-link fixtures at the actual stroke width.
+- Functional cancellation/retry does not establish native resource cleanup.
+  Completed targets persisted without debugger attachment; an unresponsive
+  Runtime agent did not prove either executable liveness or benign bookkeeping.
+  Retain the zero-target gate and control debugger attachment separately.
+- Removing nested native-worker ownership resolved this boundary without
+  moving geometry or changing routes. The final independent run accepts one
+  cancellable job worker with exact old/new output and actual native cleanup.
+  Earlier documented-transport guidance is context-specific: ELK0.12.0's
+  embedded transport needs a bounded synchronous worker-scope adapter here.
+  Pin and test its dispatcher/descriptor restoration; revalidate on upgrades.
+- ResizeObserver delivery must not synchronously write measured layout.
+  Coalesce into animation frames, skip unchanged geometry and cancel pending
+  work on disposal, rather than suppressing real errors or weakening MCP's
+  failclosed policy.
+- Preserve failed source controls and diagnostic setup failures. Carry forward
+  unchanged UI acceptance honestly instead of presenting it as freshly rerun;
+  final worker-only repair warranted focused tests and real lifecycle/full-route
+  checks, not another unchanged broad-suite retry.
+
+## 2026-10-28: Compact Routes Do Not Establish Compact Group Layout
+
+Evidence: PO follow-up screenshot and explicit group-sizing approval recorded
+in [DGM-143](specs/DGM-143.md) and the
+[decision](decisions.md#2026-10-28-compact-group-envelopes-before-routing).
+This records a coverage gap, not an accepted sizing repair.
+
+- Freezing old envelopes isolated routing work but retained oversized groups.
+  Do not describe that bounded acceptance as proof of overall Auto-arrange
+  quality. A screenshot can expose a missing criterion despite valid routes.
+- Obsolete provisional paths must not silently remain layout inputs after
+  their routing stage is replaced. Measure group header/child-hull margins
+  and intergroup gaps explicitly, alongside containment and routing.
+- Preserve the PO's already accepted exact stack alignment while correcting
+  sizing. Obtain explicit authority before changing a frozen geometry contract;
+  update its scope and measurable acceptance instead of weakening old tests
+  or silently claiming the earlier requirement was different.

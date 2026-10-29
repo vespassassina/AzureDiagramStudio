@@ -17,6 +17,8 @@ export function ExportDialog(props: Props) {
   const dialog = useRef<HTMLDivElement>(null)
   const invoked = useRef(false)
   const [error, setError] = useState('')
+  const [formatMode, setFormatMode] = useState<'images' | 'markdown'>('images')
+  const [includeMarkdown, setIncludeMarkdown] = useState(false)
   const { scope, transparent = false, ...settings } = props.preset
   const options: ExportSceneOptions = { ...settings, ...(scope === 'selection' ? { selectionIds: [...props.selectedIds] } : {}) }
   const selectionKey = props.selectedIds.join('\n')
@@ -37,11 +39,11 @@ export function ExportDialog(props: Props) {
     try { pngDimensions(output.scene, scale); return '' }
     catch (failure) { return failure instanceof Error ? failure.message : 'PNG size limit exceeded.' }
   }
-  function invoke(format: 'svg' | 'png', scale: 1 | 2, copy = false) {
-    if (props.busy || invoked.current || !output.scene || (format === 'png' && pngError(scale))) return
+  function invoke(format: 'svg' | 'png' | 'markdown', scale: 1 | 2, copy = false) {
+    if (props.busy || invoked.current || !output.scene || (format !== 'svg' && pngError(scale))) return
     invoked.current = true; setError('')
     try {
-      const capture = { format, scale, transparent, ...options }
+      const capture = { format, scale, transparent, ...options, ...(!copy && format !== 'markdown' && includeMarkdown ? { includeMarkdown: true } : {}) }
       if (copy) props.onCopyImage?.(capture)
       else props.onExport(capture)
       props.onClose()
@@ -64,13 +66,15 @@ export function ExportDialog(props: Props) {
     <div ref={dialog} className="export-dialog" role="dialog" aria-modal="true" aria-labelledby={`${id}-title`} aria-busy={props.busy}>
       <header className="export-heading"><h2 id={`${id}-title`}>Export diagram</h2><button type="button" aria-label="Cancel export" title="Cancel export" onClick={() => props.onClose()}><X size={18} /></button></header>
       <div className="export-preview" role="img" aria-label="Export preview" dangerouslySetInnerHTML={{ __html: output.svg }} />
+      <fieldset className="export-segments"><legend>Format</legend>{(['images', 'markdown'] as const).map(value => <label key={value}><input type="radio" name={`${id}-format`} checked={formatMode === value} disabled={props.busy} onChange={() => { setFormatMode(value); setIncludeMarkdown(false); setError('') }} />{value === 'images' ? 'Images (SVG / PNG)' : 'Markdown with embedded PNG'}</label>)}</fieldset>
       <fieldset className="export-segments"><legend>Scope</legend>{(['all', 'selection'] as const).map(value => <label key={value}><input type="radio" name={`${id}-scope`} checked={(scope ?? 'all') === value} disabled={props.busy || (value === 'selection' && !props.selectedIds.length)} onChange={() => update({ scope: value })} />{value === 'all' ? 'All' : 'Selection'}</label>)}</fieldset>
       <fieldset className="export-segments"><legend>Framing</legend>{(['content', '16:9'] as const).map(value => <label key={value}><input type="radio" name={`${id}-aspect`} checked={(settings.aspect ?? 'content') === value} disabled={props.busy} onChange={() => update({ aspect: value })} />{value === 'content' ? 'Content' : value}</label>)}</fieldset>
       <fieldset className="export-segments"><legend>Background</legend>{(['diagram', 'white', 'transparent'] as const).map(value => <label key={value}><input type="radio" name={`${id}-background`} aria-label={value === 'transparent' ? 'Transparent background' : undefined} checked={background === value} disabled={props.busy} onChange={() => update(value === 'transparent' ? { transparent: true } : { background: value, transparent: false })} />{value.charAt(0).toUpperCase() + value.slice(1)}</label>)}</fieldset>
       <label className="export-grid"><input type="checkbox" checked={settings.includeGrid ?? output.scene?.grid.export ?? false} disabled={props.busy} onChange={event => update({ includeGrid: event.target.checked })} />Include grid</label>
+      {formatMode === 'images' ? <label className="export-grid"><input type="checkbox" checked={includeMarkdown} disabled={props.busy} onChange={event => setIncludeMarkdown(event.target.checked)} />Include Markdown</label> : <p className="export-format-note">Includes the committed description and an inline PNG. Some Markdown viewers block data images; use an image + Markdown ZIP for portability.</p>}
       {(error || output.error) && <p className="export-error" role="alert">{error || output.error}</p>}
       {(pngError(1) || pngError(2)) && output.scene && <p className="export-error" role="status">{pngError(1) || 'PNG 2x is too large. Use PNG 1x or SVG.'}</p>}
-      <div className="export-actions">{([{ format: 'svg', scale: 1 }, { format: 'png', scale: 1 }, { format: 'png', scale: 2 }] as const).map(action => <button type="button" key={`${action.format}-${action.scale}`} aria-label={action.format === 'svg' ? 'Export SVG' : `Export PNG ${action.scale}x`} disabled={props.busy || !output.scene || (action.format === 'png' && !!pngError(action.scale))} onClick={() => invoke(action.format, action.scale)}><Download size={16} />{action.format === 'svg' ? 'SVG' : `PNG ${action.scale}x`}</button>)}<button type="button" aria-label="Copy image" disabled={props.busy || !props.onCopyImage || !output.scene || !!pngError(1)} onClick={() => invoke('png', 1, true)}><Copy size={16} />Copy image</button></div>
+      <div className="export-actions">{formatMode === 'images' ? <>{([{ format: 'svg', scale: 1 }, { format: 'png', scale: 1 }, { format: 'png', scale: 2 }] as const).map(action => <button type="button" key={`${action.format}-${action.scale}`} aria-label={action.format === 'svg' ? 'Export SVG' : `Export PNG ${action.scale}x`} disabled={props.busy || !output.scene || (action.format === 'png' && !!pngError(action.scale))} onClick={() => invoke(action.format, action.scale)}><Download size={16} />{action.format === 'svg' ? 'SVG' : `PNG ${action.scale}x`}</button>)}<button type="button" aria-label="Copy image" disabled={props.busy || !props.onCopyImage || !output.scene || !!pngError(1)} onClick={() => invoke('png', 1, true)}><Copy size={16} />Copy image</button></> : ([1, 2] as const).map(scale => <button type="button" key={scale} aria-label={`Export Markdown ${scale}x`} disabled={props.busy || !output.scene || !!pngError(scale)} onClick={() => invoke('markdown', scale)}><Download size={16} />Markdown {scale}x</button>)}</div>
     </div>
   </div>
 }

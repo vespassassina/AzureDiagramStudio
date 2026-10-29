@@ -11,6 +11,8 @@ import enterpriseSource from '../../../examples/enterprise-integration.json?raw'
 import { parseDocument } from '../document/index.ts'
 import { alignmentPositions } from '../editor/interactions.ts'
 import * as historyModel from '../model.ts'
+import { computeLayout } from '../layout.ts'
+import { routeFixedGeometry } from '../routing.ts'
 
 function deferred<T>() {
   let resolve!: (value: T) => void
@@ -41,6 +43,231 @@ function harness(initial: Diagram | null = null) {
   return { session, storage, dependencies, release, downloads, jobs, cancel, writable: (value: boolean) => writable(value) }
 }
 async function ready(initial: Diagram | null = null) { const host = harness(initial); host.writable(true); await settle(); return host }
+
+describe('desktop workspace saves DGM138', () => {
+  it('should_preserve_backup_marker_when_native_save_is_canceled_and_forward_identity', async () => {
+    const h = await ready(sampleDiagram())
+    const save = vi.fn(async () => false)
+    h.dependencies.saveFile = save
+    const dirty = h.session.getSnapshot().backupDirty
+    await h.session.saveJson()
+    expect(save).toHaveBeenCalledWith(expect.any(Blob), 'Commerce-platform.json', 'sample-commerce')
+    expect(h.downloads).not.toHaveBeenCalled()
+    expect(h.session.getSnapshot().backupDirty).toBe(dirty)
+    expect(h.session.getSnapshot().message).toMatch(/canceled/i)
+    save.mockResolvedValueOnce(true)
+    await h.session.saveJson()
+    expect(h.session.getSnapshot().backupDirty).toBe(false)
+    h.session.stop()
+  })
+  it('should_forward_all_UI_exports_but_never_MCP_to_native_workspace_saves', async () => {
+    const h = await ready(sampleDiagram())
+    h.dependencies.saveFile = vi.fn(async () => false)
+    vi.mocked(h.dependencies.exportPng).mockResolvedValue(new Blob([new Uint8Array([137,80,78,71,13,10,26,10])], { type: 'image/png' }))
+    for (const [format, includeMarkdown] of [['svg', false], ['png', false], ['svg', true], ['markdown', false]] as const) {
+      await h.session.exportImage({ format, includeMarkdown, scale: 1, transparent: false })
+      expect(h.session.getSnapshot().message).toMatch(/canceled/i)
+      expect(vi.mocked(h.dependencies.saveFile).mock.calls.at(-1)?.[2]).toBe('sample-commerce')
+    }
+    h.session.setMcpGuard(() => null)
+    await h.session.mcpOutput({ name: 'snapshot_diagram', arguments: { stateToken: h.session.mcpState().stateToken } }, { deadline: Date.now() + 10000, active: () => true })
+    expect(h.dependencies.saveFile).toHaveBeenCalledTimes(4)
+    h.session.stop()
+  })
+})
+
+describe('MCP captured outputs DGM135', () => {
+  const context = () => ({ deadline: Date.now() + 10000, active: () => true })
+  const png = () => new Blob([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])], { type: 'image/png' })
+  it('should_return_all_formats_and_packages_without_session_side_effects', async () => {
+    const h = await ready({ ...sampleDiagram(), description: '# Exact description\n世界' })
+    h.session.setMcpGuard(() => null)
+    vi.mocked(h.dependencies.exportPng).mockImplementation(async () => png())
+    const before = h.session.mcpState(), snapshot = h.session.getSnapshot()
+    for (const format of ['png', 'svg', 'json', 'markdown'] as const) {
+      for (const includeMarkdown of format === 'markdown' ? [false] : [false, true]) {
+        const result = await h.session.mcpOutput({ name: 'export_diagram', arguments: { stateToken: before.stateToken, format, includeMarkdown } }, context())
+        expect(result.ok).toBe(true)
+        if (result.ok) {
+          const meta = JSON.parse(result.output.content[1].text)
+          expect(meta.stateToken).toBe(before.stateToken)
+          expect(meta.filename).toMatch(includeMarkdown ? /\.zip$/ : new RegExp(`\\.${format === 'markdown' ? 'md' : format}$`))
+          if (format === 'json' && !includeMarkdown) expect(JSON.parse(result.output.content[0].resource!.text!)).toEqual(before.document)
+          if (format === 'markdown') expect(result.output.content[0].resource!.text).toContain('![Diagram](data:image/png;base64,')
+        }
+      }
+    }
+    expect(h.session.mcpState()).toEqual(before)
+    expect(h.session.getSnapshot()).toBe(snapshot)
+    expect(h.downloads).not.toHaveBeenCalled()
+    h.session.stop()
+  })
+  it('should_reject_changed_state_busy_drafts_expiry_and_concurrent_operations_without_late_output', async () => {
+    const h = await ready(sampleDiagram())
+    h.session.setMcpGuard(() => null)
+    const state = h.session.mcpState()
+    const operation = { name: 'snapshot_diagram' as const, arguments: { stateToken: state.stateToken } }
+    const capture = deferred<Blob>()
+    vi.mocked(h.dependencies.exportPng).mockReturnValueOnce(capture.promise)
+    const pending = h.session.mcpOutput(operation, context())
+    expect((await h.session.mcpOutput(operation, context())).ok).toBe(false)
+    expect((await h.session.mcpMutate({ name: 'undo', arguments: operation.arguments }, context())).ok).toBe(false)
+    h.session.command({ type: 'metadata', patch: { title: 'Edited during render' } })
+    capture.resolve(png())
+    expect(await pending).toEqual({ ok: false, message: expect.stringMatching(/Stale|changed/) })
+    h.session.setMcpGuard(() => 'draft')
+    expect((await h.session.mcpOutput({ ...operation, arguments: { stateToken: h.session.mcpState().stateToken } }, context())).ok).toBe(false)
+    h.session.setMcpGuard(() => null)
+    expect((await h.session.mcpOutput(operation, { deadline: 0, active: () => true })).ok).toBe(false)
+    expect(h.downloads).not.toHaveBeenCalled()
+    h.session.stop()
+  })
+  it('should_use_normal_image_options_and_reject_oversize_before_returning_bytes', async () => {
+    const h = await ready(sampleDiagram())
+    h.session.setMcpGuard(() => null)
+    vi.mocked(h.dependencies.exportPng).mockImplementation(async () => png())
+    const { stateToken, document } = h.session.mcpState()
+    expect((await h.session.mcpOutput({ name: 'snapshot_diagram', arguments: { stateToken } }, context())).ok).toBe(true)
+    expect(h.dependencies.exportPng).toHaveBeenLastCalledWith(document, 1, false, undefined, { background: 'diagram', aspect: 'content' })
+    expect((await h.session.mcpOutput({ name: 'export_diagram', arguments: { stateToken, format: 'png', scale: 2, transparent: true, background: 'white', aspect: '16:9', includeGrid: false } }, context())).ok).toBe(true)
+    expect(h.dependencies.exportPng).toHaveBeenLastCalledWith(document, 2, true, undefined, { background: 'white', aspect: '16:9', includeGrid: false })
+    const large = new Blob([new Uint8Array(8 * 1024 * 1024)], { type: 'image/png' })
+    const encode = vi.spyOn(large, 'arrayBuffer')
+    vi.mocked(h.dependencies.exportPng).mockResolvedValueOnce(large)
+    expect(await h.session.mcpOutput({ name: 'snapshot_diagram', arguments: { stateToken } }, context())).toEqual({ ok: false, message: expect.stringMatching(/8 MiB/) })
+    expect(encode).not.toHaveBeenCalled()
+    h.session.stop()
+  })
+  it('should_recheck_disconnect_deadline_guard_and_runtime_after_async_render', async () => {
+    for (const boundary of ['disconnect', 'deadline', 'guard', 'stop', 'preview'] as const) {
+      const h = await ready(sampleDiagram())
+      h.session.setMcpGuard(() => null)
+      const capture = deferred<Blob>()
+      vi.mocked(h.dependencies.exportPng).mockReturnValueOnce(capture.promise)
+      let active = true
+      const ctx = { deadline: Date.now() + 10000, active: () => active }
+      const pending = h.session.mcpOutput({ name: 'snapshot_diagram', arguments: { stateToken: h.session.mcpState().stateToken } }, ctx)
+      if (boundary === 'disconnect') active = false
+      if (boundary === 'deadline') ctx.deadline = 0
+      if (boundary === 'guard') h.session.setMcpGuard(() => 'modal')
+      if (boundary === 'stop') h.session.stop()
+      if (boundary === 'preview') h.session.preview(h.session.getSnapshot().document)
+      capture.resolve(png())
+      expect((await pending).ok, boundary).toBe(false)
+      expect(h.downloads).not.toHaveBeenCalled()
+      h.session.stop()
+    }
+  })
+  it('should_allow_settled_read_only_output_without_taking_ownership', async () => {
+    const h = await ready(sampleDiagram())
+    h.session.setMcpGuard(() => null)
+    h.writable(false)
+    await settle()
+    const before = h.session.mcpState()
+    const result = await h.session.mcpOutput({ name: 'export_diagram', arguments: { stateToken: before.stateToken, format: 'json' } }, context())
+    expect(result.ok).toBe(true)
+    expect(h.session.getSnapshot().readOnly).toBe(true)
+    expect(h.session.mcpState()).toEqual(before)
+    h.session.stop()
+  })
+})
+
+describe('canonical arrangement modes DGM137', () => {
+  it.each(['RIGHT', 'DOWN'] as const)('should_apply_real_%s_stacked_layout_as_one_exact_undo_for_UI_and_MCP', async direction => {
+    for (const remote of [false, true]) {
+      const original = sampleDiagram()
+      const h = await ready(original)
+      h.session.setMcpGuard(() => null)
+      vi.mocked(h.dependencies.layout).mockImplementation((document, axis, options) => ({
+        promise: computeLayout(document, axis, document.revision, undefined, options), cancel: h.cancel,
+      }))
+      const before = h.session.mcpState()
+      if (remote) {
+        const result = await h.session.mcpMutate({ name: 'arrange_diagram', arguments: { stateToken: before.stateToken, direction, arrangement: 'stacked' } }, { deadline: Date.now() + 10000, active: () => true })
+        expect(result.ok).toBe(true)
+      } else await h.session.arrange(direction, { arrangement: 'stacked' })
+      expect(h.dependencies.layout).toHaveBeenCalledExactlyOnceWith(original, direction, { arrangement: 'stacked' })
+      const arranged = h.session.mcpState()
+      expect(arranged.stateToken, h.session.getSnapshot().message).not.toBe(before.stateToken)
+      expect(arranged.document.direction).toBe(direction)
+      expect(arranged.document.connections.every(edge => edge.points && edge.points.length > 1)).toBe(true)
+      h.session.undo()
+      expect(h.session.mcpState().document).toEqual(before.document)
+      h.session.redo()
+      expect(h.session.mcpState().document).toEqual(arranged.document)
+      h.session.stop()
+    }
+  })
+  it('should_cancel_stacked_work_and_reject_a_late_result_after_newer_preview_or_undo', async () => {
+    const h = await ready(sampleDiagram())
+    const original = h.session.mcpState()
+    const pending = h.session.arrange('RIGHT', { arrangement: 'stacked' })
+    h.session.preview({ ...original.document, title: 'Newer draft' })
+    const computed = await computeLayout(original.document, 'RIGHT', original.document.revision, undefined, { arrangement: 'stacked' })
+    h.jobs[0].resolve(computed)
+    await pending
+    expect(h.session.mcpState()).toEqual(original)
+    expect(h.cancel).toHaveBeenCalled()
+    h.session.stop()
+  })
+})
+
+describe('paired committed exports DGM136', () => {
+  it('should_capture_pairing_flag_and_scene_options_before_the_caller_changes_them', async () => {
+    const h = await ready({ ...createDocument('capture'), description: 'Committed' })
+    const pending = deferred<string>()
+    vi.mocked(h.dependencies.exportSvg).mockReturnValueOnce(pending.promise)
+    const options = { format: 'svg' as const, scale: 1 as const, transparent: false, includeMarkdown: true, selectionIds: ['a'], includeGrid: true }
+    const exporting = h.session.exportImage(options)
+    options.includeMarkdown = false
+    options.selectionIds.push('b')
+    options.includeGrid = false
+    pending.resolve('<svg/>')
+    await exporting
+    expect(h.downloads.mock.calls[0][1]).toMatch(/\.zip$/)
+    expect(h.dependencies.exportSvg).toHaveBeenCalledWith(expect.anything(), false, undefined, { selectionIds: ['a'], includeGrid: true })
+    await h.session.stop()
+  })
+  it('should_capture_committed_image_description_and_name_before_async_work_and_ignore_preview', async () => {
+    const original = { ...createDocument('pair', 'Before'), description: '# Committed\r\n世界' }
+    const h = await ready(original)
+    const pending = deferred<string>()
+    vi.mocked(h.dependencies.exportSvg).mockReturnValueOnce(pending.promise)
+    h.session.preview({ ...original, title: 'Draft', description: 'Uncommitted' })
+    const exporting = h.session.exportImage({ format: 'svg', scale: 1, transparent: false, includeMarkdown: true })
+    expect(h.dependencies.exportSvg).toHaveBeenCalledWith(original, false)
+    h.session.command({ type: 'metadata', patch: { title: 'After', description: 'Changed' } })
+    pending.resolve('<svg/>')
+    await exporting
+    const [blob, name] = h.downloads.mock.calls[0]
+    expect(name).toBe('Before.zip')
+    expect(blob.type).toBe('application/zip')
+    const bytes = Buffer.from(await blob.arrayBuffer())
+    expect(bytes.includes(Buffer.from('# Committed\r\n世界'))).toBe(true)
+    expect(bytes.includes(Buffer.from('Uncommitted'))).toBe(false)
+    expect(h.session.getSnapshot().isExporting).toBe(false)
+    await h.session.stop()
+  })
+  it('should_export_embedded_markdown_with_png_options_and_reject_double_wrapping_or_invalid_output', async () => {
+    const original = { ...createDocument('embedded', 'Title'), description: 'Exact\r\n' }
+    const h = await ready(original)
+    vi.mocked(h.dependencies.exportPng).mockResolvedValue(new Blob([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])], { type: 'image/png' }))
+    const options = { format: 'markdown' as const, scale: 2 as const, transparent: true, aspect: '16:9' as const, includeGrid: true }
+    await h.session.exportImage(options)
+    expect(h.dependencies.exportPng).toHaveBeenCalledWith(original, 2, true, undefined, { aspect: '16:9', includeGrid: true })
+    expect(h.downloads.mock.calls[0][1]).toBe('Title.md')
+    expect(await h.downloads.mock.calls[0][0].text()).toMatch(/^Exact\r\n\n\n!\[Diagram\]\(data:image\/png;base64,/)
+    await h.session.exportImage({ ...options, includeMarkdown: true })
+    expect(h.downloads).toHaveBeenCalledTimes(1)
+    expect(h.session.getSnapshot().message).toMatch(/Export failed/)
+    vi.mocked(h.dependencies.exportPng).mockResolvedValue(new Blob())
+    await h.session.exportImage({ ...options, format: 'png', includeMarkdown: true })
+    expect(h.downloads).toHaveBeenCalledTimes(1)
+    expect(h.session.getSnapshot().document).toEqual(original)
+    expect(h.session.getSnapshot().canUndo).toBe(false)
+    await h.session.stop()
+  })
+})
 
 describe('MCP canonical mutations DGM131', () => {
   const context = () => ({ deadline: Date.now() + 3000, active: () => true })
@@ -1056,6 +1283,28 @@ describe('DGM-040 integrated session', () => {
     expect(host.session.getSnapshot().document.direction).toBe('DOWN')
     host.session.undo()
     expect(host.session.getSnapshot().document).toBe(before)
+    await host.session.stop()
+  })
+  it('should_leave_document_history_and_autosave_untouched_when_the_real_router_rejects_a_trapped_port_DGM142', async () => {
+    const document = createDocument('trapped')
+    document.entities = [
+      { id: 'a', kind: 'component', label: 'a', color: 'azure', x: 0, y: 0, width: 220, height: 88 },
+      { id: 'wall', kind: 'component', label: 'wall', color: 'azure', x: 220, y: 0, width: 220, height: 88 },
+      { id: 'b', kind: 'component', label: 'b', color: 'azure', x: 600, y: 0, width: 220, height: 88 },
+    ]
+    document.connections = [{ id: 'trapped-edge', from: 'a', to: 'b', sourceSide: 'right', targetSide: 'left', label: 'Flow', style: 'solid', arrow: 'forward' }]
+    const host = await ready(document), before = host.session.getSnapshot()
+    vi.mocked(host.storage.save).mockClear()
+    host.dependencies.layout = input => ({
+      promise: Promise.resolve().then(() => ({ diagram: routeFixedGeometry(input).diagram, revision: input.revision })),
+      cancel: vi.fn(),
+    })
+    await host.session.arrange('RIGHT')
+    expect(host.session.getSnapshot().document).toBe(before.document)
+    expect(host.session.getSnapshot().canUndo).toBe(before.canUndo)
+    expect(host.session.getSnapshot().canRedo).toBe(before.canRedo)
+    expect(host.session.getSnapshot().message).toContain('trapped-edge')
+    expect(host.storage.save).not.toHaveBeenCalled()
     await host.session.stop()
   })
   it('should_layout_import_before_commit_show_warnings_and_discard_stale_import', async () => {

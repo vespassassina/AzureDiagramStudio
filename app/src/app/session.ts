@@ -4,8 +4,9 @@ import type { Diagram, Direction, History } from '../model.ts'
 import type { DocumentCommand, DocumentStorage, ExportOptions, ExportSceneOptions, SaveState, StarterKey } from '../contracts.ts'
 import type { LayoutResult } from '../layout.ts'
 import { starterCatalog } from './starters.ts'
-import type { McpMutationResult, McpOperation } from './mcp-contract.ts'
-import { validateMutation } from '../../electron/mcp-schema.mjs'
+import type { McpMutationResult, McpOperation, McpOutputOperation, McpOutputResult, McpOutput } from './mcp-contract.ts'
+import { validateMutation, validateOutputOperation } from '../../electron/mcp-schema.mjs'
+import { createEmbeddedMarkdown, createExportZip, exportFilenameStem } from '../export-package.ts'
 
 export const starterKeys: readonly StarterKey[] = starterCatalog.map(choice => choice.key)
 export function starterDocument(key: StarterKey): Diagram {
@@ -20,8 +21,9 @@ export type LayoutJob = { promise: Promise<LayoutResult>; cancel(): void }
 export type SessionDependencies = {
   createStorage(): DocumentStorage
   watchLock(callback: (writable: boolean) => void): () => void
-  layout(document: Diagram, direction: Direction): LayoutJob
+  layout(document: Diagram, direction: Direction, options?: import('../layout.ts').LayoutOptions): LayoutJob
   download(blob: Blob, filename: string): void | Promise<void>
+  saveFile?(blob: Blob, filename: string, documentId: string): Promise<boolean>
   confirmReplace(): boolean
   newId(): string
   exportSvg(document: Diagram, transparent: boolean, includeGrid?: boolean, options?: ExportSceneOptions): Promise<string>
@@ -38,7 +40,7 @@ export type SessionSnapshot = {
 type InputFile = { name: string; size: number; text(): Promise<string> }
 const canonical = (document: Diagram) => JSON.stringify(document)
 const describe = (error: unknown) => error instanceof Error ? error.message : String(error)
-const filename = (document: Diagram) => (document.title.trim().replace(/[^a-zA-Z0-9_-]+/g, '-').slice(0, 80) || 'architecture')
+const filename = (document: Diagram) => exportFilenameStem(document.title)
 
 export function createSession(dependencies: SessionDependencies) {
   const mcpLifetime = globalThis.crypto.randomUUID()
@@ -245,7 +247,7 @@ export function createSession(dependencies: SessionDependencies) {
       if (token === request) { layoutJob?.cancel(); layoutJob = undefined; publish({ isArranging: false }) }
     }
   }
-  async function arrange(direction: Direction) {
+  async function arrange(direction: Direction, options?: import('../layout.ts').LayoutOptions) {
     if (!canMutate()) return
     invalidate(); publish({ message: '', isArranging: true })
     const token = request
@@ -253,7 +255,7 @@ export function createSession(dependencies: SessionDependencies) {
     const document = history.present
     const active = runtime
     try {
-      layoutJob = dependencies.layout(preview ?? document, direction)
+      layoutJob = options ? dependencies.layout(preview ?? document, direction, options) : dependencies.layout(preview ?? document, direction)
       const result = await layoutJob.promise
       if (runtime !== active || !canMutate() || token !== request || version !== generation || document.revision !== history.present.revision) return
       command({ type: 'applyLayout', expectedRevision: document.revision, result })
@@ -268,19 +270,31 @@ export function createSession(dependencies: SessionDependencies) {
     const document = history.present
     const version = generation
     try {
-      await dependencies.download(new Blob([JSON.stringify(document, null, 2)], { type: 'application/json' }), `${filename(document)}.json`)
+      const saved = await saveOutput(new Blob([JSON.stringify(document, null, 2)], { type: 'application/json' }), `${filename(document)}.json`, document.id)
+      if (!saved) return
       if (version === generation && document === history.present) { backup = canonical(document); publish() }
     } catch (error) { failure(error, 'JSON download failed: ') }
   }
+  async function saveOutput(blob: Blob, name: string, documentId: string) {
+    if (!dependencies.saveFile) { await dependencies.download(blob, name); return true }
+    const saved = await dependencies.saveFile(blob, name, documentId)
+    if (!saved) publish({ message: 'Save canceled. No file was written.' })
+    return saved
+  }
   async function exportImage(options: ExportOptions) {
     if (snapshot.isExporting) return
-    const document = preview ?? history.present
-    const { format, scale, transparent } = options
+    const { format, scale, transparent, includeMarkdown = false } = options
+    // Paired outputs must use committed data, never the transient draft preview.
+    const document = includeMarkdown || format === 'markdown' ? history.present : preview ?? history.present
     const output = captureOptions(options)
     publish({ message: '', isExporting: true })
     try {
+      if (format === 'markdown' && includeMarkdown) throw new Error('Include Markdown is not available for Markdown format.')
       const blob = format === 'svg' ? new Blob([await (output ? dependencies.exportSvg(document, transparent, undefined, output) : dependencies.exportSvg(document, transparent))], { type: 'image/svg+xml' }) : await (output ? dependencies.exportPng(document, scale, transparent, undefined, output) : dependencies.exportPng(document, scale, transparent))
-      await dependencies.download(blob, `${filename(document)}.${format}`)
+      const description = document.description ?? ''
+      if (format === 'markdown') await saveOutput(await createEmbeddedMarkdown(blob, description), `${exportFilenameStem(document.title)}.md`, document.id)
+      else if (includeMarkdown) await saveOutput(await createExportZip(blob, `${exportFilenameStem(document.title)}.${format}`, description), `${exportFilenameStem(document.title)}.zip`, document.id)
+      else await saveOutput(blob, `${filename(document)}.${format}`, document.id)
     } catch (error) { failure(error, 'Export failed: ') }
     finally { publish({ isExporting: false }) }
   }
@@ -303,13 +317,81 @@ export function createSession(dependencies: SessionDependencies) {
       const blob = await png
       if ((await copying).ok) publish({ message: 'Image copied.' })
       else {
-        await dependencies.download(blob, `${filename(document)}.png`)
+        if (!await saveOutput(blob, `${filename(document)}.png`, document.id)) return
         publish({ message: 'Image not copied: clipboard unavailable or denied. PNG downloaded.' })
       }
     } catch (error) { failure(error, 'Copy image failed: ') }
     finally { publish({ isExporting: false }) }
   }
   function mcpState() { return { document: history.present, stateToken: `${mcpLifetime}:${generation}` } }
+
+  // Pseudocode: capture one validated canonical document/token and runtime;
+  // refuse drafts or competing work without changing UI state; use normal output
+  // renderers and shared packaging; budget before base64; recheck all guards
+  // after async work and return bytes only, never downloads or cached images.
+  async function mcpOutput(operation: McpOutputOperation, context: { deadline: number; active(): boolean }): Promise<McpOutputResult> {
+    if (mcpPending) return { ok: false, message: 'Another MCP operation is in progress.' }
+    if (!validateOutputOperation(operation)) return { ok: false, message: 'Invalid output arguments.' }
+    const document = history.present, stateToken = operation.arguments.stateToken
+    const activeRuntime = runtime, currentRequest = request
+    const limit = 8 * 1024 * 1024
+    function check() {
+      if (!context.active() || Date.now() >= context.deadline) throw new Error('MCP request expired or disconnected.')
+      if (stateToken !== mcpState().stateToken || document !== history.present) throw new Error('Stale stateToken. Read get_document before retrying.')
+      if (!mcpRecovered || !runtime || runtime.stopped || runtime !== activeRuntime || snapshot.saveState === 'loading' || snapshot.saveState === 'error') throw new Error('Workspace unavailable.')
+      if (request !== currentRequest || presenting || preview || fileJobs || snapshot.isExporting || snapshot.isArranging) throw new Error('Workspace is interaction-busy.')
+      if (!mcpGuard) throw new Error('Editor interaction state unavailable.')
+      const reason = mcpGuard()
+      if (reason) throw new Error(`Workspace is interaction-busy: ${reason}`)
+    }
+    function bound(size: number) { if (size > limit) throw new Error('MCP export exceeds 8 MiB serialized response limit.') }
+    try {
+      check()
+      const validated = validateDocument(document)
+      if (!validated.ok) throw new Error('Invalid committed document.')
+      mcpPending = true
+      const args = operation.name === 'export_diagram' ? operation.arguments : undefined
+      const format = args?.format ?? 'png'
+      const options: ExportSceneOptions = { background: args?.background ?? 'diagram', aspect: args?.aspect ?? 'content', ...(args?.includeGrid === undefined ? {} : { includeGrid: args.includeGrid }) }
+      let blob: Blob
+      if (format === 'json') blob = new Blob([JSON.stringify(document, null, 2)], { type: 'application/json' })
+      else if (format === 'svg') blob = new Blob([await dependencies.exportSvg(document, args?.transparent ?? false, undefined, options)], { type: 'image/svg+xml' })
+      else blob = await dependencies.exportPng(document, args?.scale ?? 1, args?.transparent ?? false, undefined, options)
+      check()
+      bound(blob.size)
+      const stem = exportFilenameStem(document.title)
+      let filename = `${stem}.${format === 'markdown' ? 'md' : format}`
+      if (format === 'markdown') {
+        bound((document.description?.length ?? 0) + 4 * Math.ceil(blob.size / 3) + 128)
+        blob = await createEmbeddedMarkdown(blob, document.description)
+      } else if (args?.includeMarkdown) {
+        bound(blob.size + new TextEncoder().encode(document.description ?? '').length + 1024)
+        blob = await createExportZip(blob, filename, document.description)
+        filename = `${stem}.zip`
+      }
+      check()
+      const mimeType = blob.type.split(';')[0]
+      const binary = mimeType === 'image/png' || mimeType === 'application/zip'
+      bound((binary ? 4 * Math.ceil(blob.size / 3) : blob.size) + 1024)
+      let data: string
+      if (binary) {
+        const bytes = new Uint8Array(await blob.arrayBuffer())
+        const chunks: string[] = []
+        for (let offset = 0; offset < bytes.length; offset += 8192) chunks.push(String.fromCharCode(...bytes.subarray(offset, offset + 8192)))
+        data = btoa(chunks.join(''))
+      } else data = await blob.text()
+      const output: McpOutput = { content: [
+        mimeType === 'image/png' ? { type: 'image', mimeType, data } : {
+          type: 'resource', resource: { uri: `diagrammer://exports/${encodeURIComponent(stateToken)}/${filename}`, mimeType, ...(binary ? { blob: data } : { text: data }) },
+        },
+        { type: 'text', text: JSON.stringify({ stateToken, mimeType, filename, byteLength: blob.size }) },
+      ] }
+      bound(new TextEncoder().encode(JSON.stringify({ ok: true, output })).length)
+      check()
+      return { ok: true, output }
+    } catch (error) { return { ok: false, message: describe(error) } }
+    finally { mcpPending = false }
+  }
 
   // Pseudocode: reject stale/expired/interactive work; compute an entire pure
   // batch before a single accept; recheck guards at commit. Layout uses the
@@ -353,7 +435,9 @@ export function createSession(dependencies: SessionDependencies) {
         const document = history.present
         invalidate(); publish({ message: '', isArranging: true })
         remoteLayoutRequest = request
-        layoutJob = dependencies.layout(document, operation.arguments.direction)
+        layoutJob = operation.arguments.arrangement
+          ? dependencies.layout(document, operation.arguments.direction, { arrangement: operation.arguments.arrangement })
+          : dependencies.layout(document, operation.arguments.direction)
         const result = await Promise.race([layoutJob.promise, new Promise<never>((_resolve, reject) => {
           remoteDeadline = setTimeout(() => reject(new Error('MCP Auto-arrange timed out.')), Math.max(0, context.deadline - Date.now()))
         })])
@@ -382,7 +466,7 @@ export function createSession(dependencies: SessionDependencies) {
     getSnapshot: () => snapshot,
     subscribe: (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener) } },
     start, stop, command, newDocument, openStarter, openFile, saveJson, arrange, exportImage, copyImage, lockError, presentation, canMutate,
-    mcpState, mcpMutate, mcpReady: () => mcpRecovered, setMcpGuard: (guard: (() => string | null) | null) => { mcpGuard = guard },
+    mcpState, mcpMutate, mcpOutput, mcpReady: () => mcpRecovered, setMcpGuard: (guard: (() => string | null) | null) => { mcpGuard = guard },
     // The editor acknowledges the offer once it shows the picker, so remounts never reopen it.
     starterOffered: () => { publish({ starterOffer: false }) },
     undo: () => { if (canMutate()) accept(historyUndo(history)) },

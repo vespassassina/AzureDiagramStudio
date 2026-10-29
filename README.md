@@ -15,26 +15,86 @@ A local architecture editor for Azure, Microsoft Fabric, Microsoft applications 
 
 ![The same native example in the dark editor theme](docs/images/studio-dark.png)
 
+In newer local source, **Auto-arrange** at the canvas top right opens four
+layouts: Horizontal, Vertical, Horizontal groups stacked vertically, and
+Vertical groups side by side. Grouped modes use existing boundaries, not
+dependency levels. The square **Sidebar** button immediately afterward switches
+the shared Properties/Markdown sidebar; the views and draft remain available
+inside it. **Add component** opens the library until explicitly closed, with no
+pin control or duplicate ARCHITECTURE footer. Narrow screens scroll between
+canvas and open panel rows without overlap. Paste remains available through
+shortcuts, Commands and the context menu. These source changes do not update
+published executables.
+
+Current-source Auto-arrange keeps ELK's node/group placement, then routes
+orthogonal connections around components and group headers without moving
+the placed objects. Explicit connection sides are respected. If routing
+cannot complete within its bounds, the whole arrangement fails without
+changing the document or its Undo history.
+
 ## New Document, About And Help
 
 A fresh workspace starts with an **empty canvas** and the unified **New diagram**
 picker. **Blank** is the default; choose it to stay empty or explicitly choose
 one of eleven templates. Escape or Close also leaves the fresh canvas empty.
-The same New diagram button and Commands action reopen that picker for existing
+In current source, **File → New diagram** and the Commands action reopen that picker for existing
 work. Autosaved diagrams recover unchanged without an automatic picker, including
 saved empty diagrams.
 
-Version 0.3.0 adds **About** beside the question-mark **Help** button in
-the left tool rail. About shows the product version from package metadata,
+Version 0.3.0 adds **About** beside the question-mark **Help** button.
+In newer local source, **Settings → Help / About / Settings** groups application
+information and preferences. **File** contains New/Open/Import/Save; **View**
+contains panel visibility, Properties/Markdown views, theme and fit commands.
+Only Undo, Redo, Export and Present remain top action buttons; Auto-arrange and
+the square Sidebar stay beside the canvas. Save/error status is at the bottom.
+The left rail is reserved for diagram tools. About shows the product version from package metadata,
 plain-text project/documentation references, identity and artwork-rights information, and
 the reminder to keep editable JSON backups. Close it or press Escape to return
 to the same diagram; it is also available in read-only sessions.
 
-The ten-step Help guide now describes fresh empty startup, all eleven starters,
-Markdown Edit/Preview and temporary presentation markup. See the [short manual](docs/manual.md#about-source-only)
+The current eleven-step Help guide describes these menus, fresh empty startup,
+all eleven starters, persistent Favorites, Markdown Edit/Preview, true group
+stacking, export companions, temporary presentation markup and workspace-root/MCP
+settings. Light workspaces use a subtle paper tone; custom diagram/export colors
+and dark theme are unchanged. Diagram connections are slightly thicker in both
+the editor and SVG/PNG. See the [short manual](docs/manual.md#about-source-only)
 for About and [first-use guidance](docs/manual.md#first-use-ui-guide).
-These features are included in the Windows **0.3.0** downloads below.
+About, empty startup and the ten-step guide are included in the Windows
+**0.3.0** downloads below; the menus, eleven-step refresh and appearance changes are newer source only.
 Historical 0.2.0 executables remain unchanged.
+
+## Diagram And Markdown Exports (New Source)
+
+In **Export**, the default-off **Include Markdown** option downloads one ZIP
+with the selected SVG/PNG and its matching UTF-8 description `.md`. Description
+text comes from the same committed document as the image; unfinished drafts are
+not committed by this export. Empty descriptions produce empty companions.
+With the checkbox off, existing plain image downloads are unchanged.
+
+Choose **Markdown with embedded PNG** instead for a single `.md` containing the
+verbatim description plus an inline PNG data image at 1x or 2x. Scope, framing,
+background/transparency and grid settings still apply. Some Markdown viewers
+block data images; use the ZIP pair as the portable alternative.
+The ZIP option is not available for Markdown format.
+
+Packages use safe matching names, deterministic uncompressed ZIP records and
+explicit limits (32 MiB/member or embedded Markdown, 64 MiB/archive).
+Errors report without a partial download. These are source-only features, not
+updates to any published executable. MCP integration follows separately.
+
+## Windows 0.5.0 Release Preparation
+
+Current source is version **0.5.0**, incorporating conventional menus and the
+eleven-step Help guide, workspace-root settings, persisted Favorites, direct
+MCP/Markdown exports, compact grouped Auto-arrange and improved connections.
+Windows ARM64/x64 packaging and publication are being qualified under
+[DGM-144](docs/specs/DGM-144.md); **0.5.0 downloads are not published yet**.
+The links below remain the existing stable0.3.0 downloads until publication.
+
+The historical source MCP PNG-export4000ms timeout remains unresolved; successful
+focused controls did not establish its cause or repair it. See
+[DGM-143](docs/verification/DGM-143.md). New exact-package qualification must
+retain the original deadline and disclose this known limit.
 
 ## Windows 0.3.0
 
@@ -83,6 +143,15 @@ or arbitrary file access. The listener binds to loopback only; authenticated
 requests and Host/Origin validation protect against accidental browser access.
 
 See [MCP setup and limits](docs/manual.md#local-mcp-server-new-source).
+Source-only MCP also supports **`snapshot_diagram`** (full committed PNG) and
+**`export_diagram`** (SVG, PNG, native editable JSON or Markdown with inline PNG).
+Both require the current `stateToken`. SVG/PNG/JSON can set `includeMarkdown:
+true` for one ZIP containing the diagram and companion description Markdown.
+Bytes return directly as MCP image/embedded resource content, with exact
+`{stateToken, mimeType, filename, byteLength}` text metadata; no save dialogs,
+paths or downloads. The serialized bridge response is limited to **8 MiB**.
+See [output contracts and examples](docs/manual.md#mcp-snapshot-and-export-source-only)
+and [source acceptance evidence](docs/verification/DGM-135.md).
 No Claude, Scout or GitHub Copilot configuration is silently modified.
 Client-specific compatibility requires an actual successful tool call, not just
 pasting an address. Browser-only builds and the published 0.3.0 EXEs do not
@@ -223,3 +292,26 @@ PowerPoint insertion fidelity and uncoached novice usability have not been manua
 - [Windows x64 portable](https://github.com/vespassassina/AzureDiagramStudio/releases/download/v0.1.0/Azure-Diagram-Studio-0.1.0-win-x64-portable.exe)
 - [SHA256 checksum manifest](https://github.com/vespassassina/AzureDiagramStudio/releases/download/v0.1.0/SHA256SUMS.txt)
 - [Release notes and limitations](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/v0.1.0)
+
+## Desktop workspace destinations (source follow-up)
+
+Settings → **Workspace root** shows the resolved OS Documents /
+`AzureDiagramStudio` default and lets you **Choose folder** or **Reset to
+default** for this app profile. New per-document folders appear lazily on
+Save JSON/export; the native save dialog defaults there and still permits
+canceling or choosing another file location. Existing files, recovery and old
+profiles are never moved. Root errors are explicit, not silently redirected.
+Browser builds retain browser downloads; MCP exports remain in-memory bytes.
+See [DGM-138 source evidence](docs/verification/DGM-138.md) for qualification
+limits and independent commands.
+
+## Persistent component Favorites (source follow-up)
+
+In the component library, **Favorites** is a peer category beside Azure /
+Microsoft and Software. Use the existing stars to add/remove up to 12 choices;
+search within Favorites narrows only your saved choices. Empty Favorites
+explains how to add them. Membership persists in this browser/desktop app
+profile across reload and restart, not in diagram JSON, Undo or the workspace
+root. Storage failures are visible and do not claim an unsaved toggle worked.
+See [DGM-139 source evidence](docs/verification/DGM-139.md); existing release
+executables are unchanged.

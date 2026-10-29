@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import { Hand, Pencil, Undo2, Redo2, Trash2 } from 'lucide-react'
 import { useReactFlow, useViewport } from '@xyflow/react'
 import './PresentationMarkup.css'
+import { frameResizeObserver } from './resize-observer.ts'
 
 const colors = { Red: '#ff0000', Blue: '#0000ff', Green: '#008000', Yellow: '#ffff00', Black: '#000000' }
 type Point = { x: number; y: number }
@@ -166,9 +167,15 @@ export function PresentationMarkup() {
     const surface = canvas.current?.closest('.canvas-surface')
     const chrome = surface?.querySelector('.canvas-bottom-chrome')
     if (!surface || !chrome) return
-    const measure = () => setBottom(Math.max(16, surface.getBoundingClientRect().bottom - chrome.getBoundingClientRect().top + 8))
+    let previousBottom = -1
+    const measure = () => {
+      const next = Math.max(16, surface.getBoundingClientRect().bottom - chrome.getBoundingClientRect().top + 8)
+      if (next === previousBottom) return
+      previousBottom = next
+      setBottom(current => current === next ? current : next)
+    }
     measure()
-    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure)
+    const observer = frameResizeObserver(measure)
     observer?.observe(surface); observer?.observe(chrome)
     window.addEventListener('resize', measure)
     return () => { observer?.disconnect(); window.removeEventListener('resize', measure) }

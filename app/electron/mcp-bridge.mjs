@@ -1,6 +1,60 @@
 import { STUDIO_URL } from './policy.mjs'
 import { randomUUID } from 'node:crypto'
-import { validateMutation } from './mcp-schema.mjs'
+import { validateMutation, validateOutputOperation } from './mcp-schema.mjs'
+export const MAX_OUTPUT_BYTES = 8 * 1024 * 1024
+const outputMime = { png: 'image/png', svg: 'image/svg+xml', json: 'application/json', markdown: 'text/markdown', zip: 'application/zip' }
+const outputExact = (value, keys) => exact(value, keys) && Object.keys(value).length === keys.length && keys.every(key => Object.hasOwn(value, key))
+
+// Pseudocode: bound the entire bridge envelope, correlate token and format,
+// require exact inert content shapes, independently decode bytes/signatures,
+// and reject mismatched metadata, noncanonical base64 or unsafe filenames.
+export function validateOutput(value, operation) {
+  try {
+    if (Buffer.byteLength(JSON.stringify({ ok: true, output: value })) > MAX_OUTPUT_BYTES ||
+        !outputExact(value, ['content']) || !Array.isArray(value.content) || value.content.length !== 2) return false
+    const [payload, metadata] = value.content
+    if (!outputExact(metadata, ['type', 'text']) || metadata.type !== 'text' || typeof metadata.text !== 'string' || metadata.text.length > 1024) return false
+    const meta = JSON.parse(metadata.text)
+    const format = operation.name === 'snapshot_diagram' ? 'png' : operation.arguments.includeMarkdown ? 'zip' : operation.arguments.format
+    const extension = format === 'markdown' ? 'md' : format
+    if (!outputExact(meta, ['stateToken', 'mimeType', 'filename', 'byteLength']) || meta.stateToken !== operation.arguments.stateToken ||
+        meta.mimeType !== outputMime[format] || typeof meta.filename !== 'string' || meta.filename.length > 90 ||
+        !/^[a-zA-Z0-9_-]+\.[a-z]+$/.test(meta.filename) || !meta.filename.endsWith(`.${extension}`) ||
+        /^(con|prn|aux|nul|com[1-9]|lpt[1-9])\./i.test(meta.filename) ||
+        !Number.isSafeInteger(meta.byteLength) || meta.byteLength <= 0 || meta.byteLength > MAX_OUTPUT_BYTES) return false
+    let bytes
+    if (format === 'png') {
+      if (!outputExact(payload, ['type', 'mimeType', 'data']) || payload.type !== 'image' || payload.mimeType !== outputMime.png) return false
+      bytes = decodeOutput(payload.data)
+    } else {
+      if (!outputExact(payload, ['type', 'resource']) || payload.type !== 'resource') return false
+      const resource = payload.resource, binary = format === 'zip'
+      if (!outputExact(resource, ['uri', 'mimeType', binary ? 'blob' : 'text']) || resource.mimeType !== meta.mimeType ||
+          resource.uri !== `diagrammer://exports/${encodeURIComponent(meta.stateToken)}/${meta.filename}`) return false
+      if (binary) bytes = decodeOutput(resource.blob)
+      else {
+        if (typeof resource.text !== 'string') return false
+        bytes = Buffer.from(resource.text, 'utf8')
+        if (format === 'svg' && !/^\s*(?:<\?xml[^>]*>\s*)?<svg[\s/>]/.test(resource.text)) return false
+        if (format === 'json' && !validDocument(JSON.parse(resource.text))) return false
+        if (format === 'markdown') {
+          const embedded = /!\[Diagram\]\(data:image\/png;base64,([A-Za-z0-9+/]+=*)\)\n$/.exec(resource.text)
+          if (!embedded || !pngSignature(decodeOutput(embedded[1]))) return false
+        }
+      }
+    }
+    if (!bytes || bytes.length !== meta.byteLength) return false
+    if (format === 'png' && !pngSignature(bytes)) return false
+    if (format === 'zip' && !Buffer.from([80, 75, 3, 4]).equals(bytes.subarray(0, 4))) return false
+    return true
+  } catch { return false }
+}
+function pngSignature(bytes) { return !!bytes && Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]).equals(bytes.subarray(0, 8)) }
+function decodeOutput(text) {
+  if (typeof text !== 'string' || text.length > MAX_OUTPUT_BYTES || text.length % 4 !== 0 || /[^A-Za-z0-9+/=]/.test(text)) return undefined
+  const bytes = Buffer.from(text, 'base64')
+  return bytes.toString('base64') === text ? bytes : undefined
+}
 
 const MAX_SNAPSHOT_BYTES = 8 * 1024 * 1024
 const MAX_DOCUMENT_BYTES = 5 * 1024 * 1024
@@ -72,7 +126,7 @@ export function createSnapshotStore() {
   return { publish, clear, available: () => !!document && !!catalog && !!templates, get: () => document && catalog && templates ? { document, stateToken, catalog, templates } : undefined }
 }
 
-// A single in-flight mutation avoids hidden reordering. IDs/deadlines belong to
+// A single in-flight operation avoids hidden reordering. IDs/deadlines belong to
 // main, are invalidated on unload and never accepted after expiry/cancellation.
 export function createMutationBroker({ send, cancel = () => {}, timeout = 4000 }) {
   let pending
@@ -86,14 +140,14 @@ export function createMutationBroker({ send, cancel = () => {}, timeout = 4000 }
     request.resolve({ ok: false, message })
   }
   function request(operation, signal) {
-    if (!validateMutation(operation)) return Promise.resolve({ ok: false, message: 'Invalid mutation arguments.' })
-    if (pending) return Promise.resolve({ ok: false, message: 'Another MCP mutation is in progress.' })
+    if (!validateMutation(operation) && !validateOutputOperation(operation)) return Promise.resolve({ ok: false, message: 'Invalid MCP arguments.' })
+    if (pending) return Promise.resolve({ ok: false, message: 'Another MCP operation is in progress.' })
     if (signal?.aborted) return Promise.resolve({ ok: false, message: 'MCP client disconnected.' })
     return new Promise(resolve => {
       const id = randomUUID(), deadline = Date.now() + timeout
       const aborted = () => clear('MCP client disconnected.')
-      const timer = setTimeout(() => clear('MCP mutation timed out.'), timeout)
-      pending = { id, deadline, resolve, timer, removeAbort: () => signal?.removeEventListener('abort', aborted) }
+      const timer = setTimeout(() => clear('MCP operation timed out.'), timeout)
+      pending = { id, deadline, operation, resolve, timer, removeAbort: () => signal?.removeEventListener('abort', aborted) }
       signal?.addEventListener('abort', aborted, { once: true })
       try { send({ id, deadline, operation }) }
       catch { clear('Renderer unavailable.') }
@@ -101,6 +155,8 @@ export function createMutationBroker({ send, cancel = () => {}, timeout = 4000 }
   }
   function complete(id, result) {
     if (!pending || pending.id !== id || Date.now() >= pending.deadline) return false
+    if (validateOutputOperation(pending.operation) && result.ok && (!exact(result, ['ok', 'output']) || !validateOutput(result.output, pending.operation))) return false
+    if (validateMutation(pending.operation) && result.ok && !exact(result, ['ok', 'value'])) return false
     const request = pending
     pending = undefined
     clearTimeout(request.timer); request.removeAbort()
@@ -151,7 +207,7 @@ export function registerMcpBridge({ ipcMain, clipboard, window, server, store, b
       const result = JSON.parse(text)
       if (!record(result) || typeof result.ok !== 'boolean') return false
       if (!result.ok && (!exact(result, ['ok', 'message']) || !string(result.message))) return false
-      if (result.ok && (!exact(result, ['ok', 'value']) || !exact(result.value, ['document', 'stateToken']) || !validDocument(result.value.document) ||
+      if (result.ok && !Object.hasOwn(result, 'output') && (!exact(result, ['ok', 'value']) || !exact(result.value, ['document', 'stateToken']) || !validDocument(result.value.document) ||
           Buffer.byteLength(JSON.stringify(result.value.document)) > MAX_DOCUMENT_BYTES || !string(result.value.stateToken, 200))) return false
       return broker.complete(id, result)
     } catch { return false }

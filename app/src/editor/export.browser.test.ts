@@ -4,6 +4,7 @@ import type { Page } from '@playwright/test'
 import { createServer } from 'vite'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
+import { editableApp, fileCommand } from './browser-test-navigation.ts'
 
 const output = resolve('test-results/sprint-3-owner/105')
 
@@ -25,7 +26,9 @@ async function fixture(page: Page) {
     return validateDocument(source)
   }, source)
   if (!validation.ok) throw new Error(`Invalid browser fixture: ${JSON.stringify(validation.errors)}`)
-  await page.getByLabel('Open document file').setInputFiles({ name: 'slide.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(source)) })
+  const open = await fileCommand(page, 'Open JSON')
+  const [chooser] = await Promise.all([page.waitForEvent('filechooser'), open.click()])
+  await chooser.setFiles({ name: 'slide.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(source)) })
   await page.getByLabel('Document title').filter({ visible: true }).waitFor()
   try { await expect.poll(() => page.getByLabel('Document title').inputValue()).toBe('Meeting handoff') }
   catch (error) { throw new Error(`Import status: ${await page.getByRole('status').textContent()}`, { cause: error }) }
@@ -66,7 +69,7 @@ test('should_verify_real_App_clipboard_grant_denial_fallback_and_scoped_slide_pi
       page.on('pageerror', error => errors.push(error.message))
       page.on('dialog', dialog => void dialog.accept())
       await page.goto(origin)
-      await expect.poll(() => page.getByLabel('New diagram', { exact: true }).isEnabled()).toBe(true)
+      await editableApp(page, true)
       const source = await fixture(page)
       if (await page.getByLabel('Close component library', { exact: true }).isVisible()) await page.getByLabel('Close component library', { exact: true }).click()
       const node = page.locator('.react-flow__node[data-id="included"]')
@@ -133,7 +136,7 @@ test('should_verify_real_App_clipboard_grant_denial_fallback_and_scoped_slide_pi
         await route.fulfill({ response, headers: { ...response.headers(), 'permissions-policy': 'clipboard-write=()' } })
       })
       await page.reload()
-      await expect.poll(() => page.getByLabel('New diagram', { exact: true }).isEnabled()).toBe(true)
+      await editableApp(page)
       expect(await page.evaluate(() => (document as Document & { featurePolicy: { allowsFeature(name: string): boolean } }).featurePolicy.allowsFeature('clipboard-write'))).toBe(false)
       if (await page.getByLabel('Close component library', { exact: true }).isVisible()) await page.getByLabel('Close component library', { exact: true }).click()
       await page.getByLabel('Fit diagram', { exact: true }).click()

@@ -4,13 +4,63 @@ import { act, cleanup, fireEvent, render, screen, within } from '@testing-librar
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { HelpGuide } from './HelpGuide.tsx'
 
-afterEach(() => { cleanup(); vi.restoreAllMocks(); window.innerWidth = 1024; window.innerHeight = 768 })
+afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); window.innerWidth = 1024; window.innerHeight = 768 })
 
 function box(left: number, top: number, width: number, height: number) {
   return { left, top, width, height, right: left + width, bottom: top + height, x: left, y: top, toJSON() { return {} } }
 }
 
 describe('DGM117 guide geometry', () => {
+  it('should_start_each_step_at_its_heading_after_reading_scrolled_short_content_DGM140', () => {
+    const root = createRef<HTMLDivElement>()
+    render(<><div ref={root} /><HelpGuide root={root} onReveal={vi.fn()} onClose={vi.fn()} /></>)
+    const content = screen.getByRole('region', { name: 'Guide step' })
+    content.scrollTop = 120
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+    expect(content.scrollTop).toBe(0)
+    content.scrollTop = 80
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+    expect(content.scrollTop).toBe(0)
+  })
+  it('should_measure_intrinsic_content_not_oscillate_when_a_short_callout_is_constrained_DGM140', async () => {
+    window.innerWidth = 720; window.innerHeight = 450
+    const root = createRef<HTMLDivElement>()
+    let measure: () => void = () => {}
+    vi.stubGlobal('ResizeObserver', class { constructor(callback: () => void) { measure = callback } observe() {} disconnect() {} })
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      return this.classList.contains('help-guide') ? box(0, 0, 352, 150) : box(24, 180, 640, 44)
+    })
+    vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockImplementation(function (this: HTMLElement) {
+      if (this.classList.contains('help-guide-content')) return 250
+      if (this.tagName === 'HEADER' || this.tagName === 'FOOTER') return 50
+      return this.classList.contains('help-guide') ? 150 : 0
+    })
+    render(<><div ref={root}><button aria-label="File menu">File</button></div><HelpGuide root={root} onReveal={vi.fn()} onClose={vi.fn()} /></>)
+    const dialog = screen.getByRole('dialog')
+    const first = dialog.style.cssText
+    await act(async () => { measure(); await new Promise(resolve => requestAnimationFrame(resolve)) })
+    expect(dialog.style.cssText).toBe(first)
+    expect(parseFloat(dialog.style.maxHeight)).toBeLessThan(426)
+    vi.unstubAllGlobals()
+  })
+  it('should_describe_final_menus_favorites_root_and_MCP_using_visible_menu_anchors_DGM140', () => {
+    const root = createRef<HTMLDivElement>()
+    render(<><div ref={root} /><HelpGuide root={root} onReveal={vi.fn()} onClose={vi.fn()} /></>)
+    const guide = screen.getByRole('dialog', { name: 'UI guide' })
+    const texts: string[] = []
+    while (true) {
+      texts.push(guide.querySelector('.help-guide-content p')!.textContent!)
+      if (screen.queryByRole('button', { name: 'Finish' })) break
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+    }
+    expect(texts.join(' ')).toMatch(/File menu/)
+    expect(texts.join(' ')).toMatch(/View menu/)
+    expect(texts.join(' ')).toMatch(/Settings menu/)
+    expect(texts.join(' ')).toMatch(/Favorites category/)
+    expect(texts.join(' ')).toMatch(/bottom status bar/)
+    expect(texts.join(' ')).toMatch(/workspace root/i)
+    expect(texts.join(' ')).toMatch(/MCP.*snapshot.*export/i)
+  })
   it('should_include_scrollable_step_content_in_the_keyboard_trap', () => {
     const root = createRef<HTMLDivElement>()
     render(<><div ref={root} /><HelpGuide root={root} onReveal={vi.fn()} onClose={vi.fn()} /></>)
@@ -29,7 +79,7 @@ describe('DGM117 guide geometry', () => {
     let target = box(24, 24, 44, 44)
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) { return this.classList.contains('help-guide') ? box(0, 0, Math.min(352, window.innerWidth - 24), 268) : target })
     const root = createRef<HTMLDivElement>()
-    render(<><div ref={root}><button aria-label="New diagram">New</button></div><HelpGuide root={root} onReveal={vi.fn()} onClose={vi.fn()} /></>)
+    render(<><div ref={root}><button aria-label="File menu">File</button></div><HelpGuide root={root} onReveal={vi.fn()} onClose={vi.fn()} /></>)
     const guide = screen.getByRole('dialog', { name: 'UI guide' })
     const spotlight = () => document.querySelector<HTMLElement>('.help-guide-spotlight')!
     function check() {
@@ -55,9 +105,9 @@ describe('DGM117 guide geometry', () => {
     const guide = screen.getByRole('dialog', { name: 'UI guide' })
     expect(within(guide).getByText(/not visible/)).toBeTruthy()
     expect(document.querySelector('.help-guide-spotlight')).toBeNull()
-    for (let step = 1; step <= 10; step++) {
-      expect(guide.querySelector('[aria-live="polite"]')!.textContent).toContain(`${step}/10`)
-      fireEvent.click(within(guide).getByRole('button', { name: step === 10 ? 'Finish' : 'Next' }))
+    for (let step = 1; step <= 11; step++) {
+      expect(guide.querySelector('[aria-live="polite"]')!.textContent).toContain(`${step}/11`)
+      fireEvent.click(within(guide).getByRole('button', { name: step === 11 ? 'Finish' : 'Next' }))
     }
     expect(onReveal).toHaveBeenCalledWith('library')
     expect(onReveal).toHaveBeenCalledWith('inspector')
@@ -67,12 +117,12 @@ describe('DGM117 guide geometry', () => {
     const root = createRef<HTMLDivElement>()
     render(<><div ref={root} /><HelpGuide root={root} onReveal={vi.fn()} onClose={vi.fn()} /></>)
     const guide = screen.getByRole('dialog', { name: 'UI guide' })
-    const titles = ['Start a diagram', 'Name your diagram', 'Add components', 'Navigate the canvas', 'Connect and annotate', 'Edit properties', 'Arrange your diagram', 'Save editable work', 'Export artwork', 'Present and hand off']
+    const titles = ['Start a diagram', 'Name your diagram', 'Add components', 'Navigate the canvas', 'Connect and annotate', 'Edit properties', 'Arrange your diagram', 'Save editable work', 'Export artwork', 'Present and hand off', 'Settings and integration']
     const texts: string[] = []
     for (const [index, title] of titles.entries()) {
       expect(within(guide).getByRole('heading', { name: title })).toBeTruthy()
       texts.push(guide.querySelector('.help-guide-content p')!.textContent!)
-      if (index < 9) fireEvent.click(within(guide).getByRole('button', { name: 'Next' }))
+      if (index < 10) fireEvent.click(within(guide).getByRole('button', { name: 'Next' }))
     }
     expect(texts[0]).toMatch(/eleven/i)
     expect(texts[0]).not.toMatch(/Web\/API, Event-driven, Fabric or Enterprise\./)
@@ -80,7 +130,7 @@ describe('DGM117 guide geometry', () => {
     expect(texts[5]).toMatch(/right/i)
     expect(texts[9]).toMatch(/temporary/i)
     expect(texts[9]).toMatch(/ink|pen|marker/i)
-    expect(texts.join(' ')).toMatch(/About.*(beside|next to) Help/s)
+    expect(texts.join(' ')).toMatch(/Settings menu opens Settings, Help and About/s)
   })
   it('should_describe_empty_default_fresh_picker_explicit_templates_and_saved_recovery_DGM127', () => {
     const root = createRef<HTMLDivElement>()
@@ -108,7 +158,7 @@ describe('DGM117 guide geometry', () => {
   it('should_restore_chrome_scroll_and_keep_navigation_reachable_in_a_short_viewport', () => {
     window.innerWidth = 720; window.innerHeight = 450
     const root = createRef<HTMLDivElement>()
-    const view = render(<div ref={root}><div data-testid="chrome"><button aria-label="New diagram">New</button></div></div>)
+    const view = render(<div ref={root}><div data-testid="chrome"><button aria-label="File menu">File</button></div></div>)
     const chrome = screen.getByTestId('chrome')
     Object.defineProperties(chrome, { scrollHeight: { value: 1000 }, clientHeight: { value: 100 } })
     chrome.scrollTop = 32

@@ -1,6 +1,6 @@
 # Diagrammer Roadmap and Delegation Plan
 
-Updated: 2026-10-27. Status: DGM-131 MCP / SETTINGS COMPLETE; DGM-132 VERSION 0.4.0 SOURCE MERGED, PUSHED AND TAGGED; WINDOWS 0.3.0 BINARIES UNCHANGED; FORMAL PARTICIPANT TRIALS REMOVED; UNSIGNED/NATIVE-x64 LIMITS AND HISTORICAL TIMESTAMP WARNING RETAINED.
+Updated: 2026-10-29. Status: DGM-144 WINDOWS 0.5.0 BUILD / PUBLICATION / CURRENT-USER INSTALLATION AUTHORIZED; SOURCE PREPARATION ACTIVE. OLDER RELEASES/TAGS AND KNOWN PNG LIMIT REMAIN PRESERVED.
 
 ## Current Execution Policy
 
@@ -89,6 +89,35 @@ supersedes earlier participant-trial stops, not technical safety requirements.
 
 ## Execution Queue
 
+**Latest explicit PO priority, 2026-10-29:** [DGM-144](specs/DGM-144.md),
+"compile and publish0.5.0", then install on this PC and report its location.
+Prepare current approved source/version, immutable two-target Windows builds,
+independent exact-portable qualification, stable public downloads and per-user
+native ARM64 portable installation. Existing no-PR delivery policy applies.
+No old tag/release mutation, new installer/dependency/security/CI or Mac release.
+The DGM-143 historical MCP PNG timeout stays visible; fresh packaged gates
+must pass and do not retroactively erase that failure. DGM-133 publication is
+superseded by this new version request, not passed.
+
+**DGM-144 current cursor:** PhaseA metadata0.5.0 prepared, no dependency drift.
+Desktop85/85/checksums7/7/typecheck/build/stage pass; initial serial renderer
+5910pass/3fail plus teardown and App fork-start errors blocks source sealing.
+Directed harness repair1/3 COMPLETE: actual File/Commands menu navigation and
+native chooser helpers replace obsolete Save/New/Document properties selectors;
+readonly fixture now imports/recoveries real work instead of assuming populated
+startup.36distinctfocusedtests pass across changed repair runs, including
+App28/28 and icons5/5. Typecheck/build pass;36productoutputs byte-identical.
+Old teardown/fork-start causes remain unproven; diagnostics retain their gates.
+Fresh complete source requalification PASS:5941/5941 renderer tests in53/53
+files, including App28; desktop85/85/checksums7/7/typecheck/build/stage PASS.
+All product/stage outputs match phaseA; no dependency drift. Wrapper's first
+exit1 was isolated to two parent-owned docs changing during the run, retained
+and reconciled without rewriting the failure. No product/test/tooling drift.
+Parent now seals/commits/pushes the approved source allowlist, then supplies
+the immutable SHA for sequential two-target packaging.
+No test/deadline/oracle relaxation, product speculation or unchanged full retry.
+No0.5.0 EXE, release or installation exists yet; exact install path pending.
+
 Execute in order; skip only blocked dependencies, not acceptance criteria.
 Update this table before every handoff with evidence and the exact next action.
 The starting statuses below reconcile existing reports and session observations;
@@ -116,6 +145,135 @@ they are not fresh independent test results.
 | 18 | DGM-122/123/124 authorized direct source delivery: DELIVERED SOURCE SNAPSHOT | Feature `97efbb8` and source merge `58448ff` contain the exact 33 accepted source/example/dependency/license inputs and seven accepted documents. Source merge and feature branch are pushed; source milestone [source-v0.2.0-dgm124](https://github.com/vespassassina/AzureDiagramStudio/tree/source-v0.2.0-dgm124) additionally identifies this documentation-only closeout. [Retained operation recorder](../app/test-results/source-publication/20261017T121719646Z/git.mjs) preserves first command outputs/input identity. | Verify final origin default and peeled annotated tag agree and worktree/index are clean, then stop approved work. Existing binaries and older tags/assets are unchanged. Native rebuild, public binary delivery, signing and human/platform qualification remain separate explicit tasks. No PR. |
 | 19 | [DGM-125](specs/DGM-125.md): FINAL WINDOWS RELEASE PUBLISHED / PUBLIC DOWNLOAD VERIFICATION PASS | [Stable/latest release](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/windows-v0.2.0), ID416002142, is not draft/prerelease. Annotated tag peels to exact repair source `7783b384e5a46160bdd340112c924f019e0c7830`. Independent [public verification](../app/test-results/releases/windows-v0.2.0/20261017T125954543Z/repair-cycle1/public-verification/20261017T191118217Z/public-verification-final-handoff.json) fully downloaded all four assets (807,858,504 bytes), matching sealed SHA256; older releases/assets/refs unchanged. Both native/emulated runtime gates pass, cycle1 closed, historical failures retained. | Requested release delivered; do not rebuild, retag, republish or repeat passing gates. README/manual/report identify final assets and unsigned/native-ARM64/emulated-x64 limits. Seven retained local text files have unexplained modification-time drift with identical bytes/hashes; failed metadata check remains visible, not PASS, and timestamps are not restored. No artifact/source/remote integrity mismatch or new product blocker; human/other-platform qualification remains separate. |
 
+### PO-Requested Source Follow-Ups - 2026-10-28
+
+The PO requested these source changes while testing the local 0.4.0 app.
+They do not change DGM-133's immutable source/artifacts or waive its blocker.
+Shared files and terminal work remain serial.
+
+**Current disposition (2026-10-28): DGM-137 STRICT-STACKING REPAIR AND
+DGM-140/141 COMPLETE / INDEPENDENT SOURCE ACCEPTANCE PASS.** The PO-reported
+staggering is repaired with real-ELK constraints/rerouting, exact root/nested
+alignment and uniform root gaps. Earlier order-only acceptance remains bounded
+history, not proof of the strict requirement.
+Fresh independent evidence:
+`app/test-results/dgm137-141-independent/20261028-1223`.
+722 renderer/85 desktop tests, typecheck/build, 132 Help geometry records,
+six authenticated HTTP layouts and 48 additional complex browser/Electron
+arrangements pass; exact shared-axis drift is zero. Root/Favorites/MCP/export
+regressions, physical off-stroke edge hits and 24 zero-difference SVG/PNG
+comparisons pass. First verifier/precondition failures retained; no product
+fixes by verifier. All 17 verifier-owned Electron PIDs exited.
+Other source follow-ups remain accepted, not requeued.
+Evidence: `app/test-results/dgm134-139-independent/20261028-01/`; 674 renderer
+and 85 desktop tests, typecheck/build, six-cell browser/Electron checks, four
+HTTP arrangements, three-lifetime persistence and 22 independently decoded ZIPs.
+Supplemental actual-toggle checks cover dark theme restoration where the
+original harness's attribute-only setup was insufficient. Six verifier-owned
+Electron PIDs exited; source hashes unchanged. Native dialogs were mocked;
+physical/external-client/release acceptance is not claimed.
+
+The earlier corrected ordinary-source desktop preview was opened with
+responding window PID14440. Fresh manual profile `.manual-menus-20261028134807`;
+launch receipt inside that profile. Source:
+`app/test-results/v141i/app/test-results/stack/source-app`.
+Main/renderer hashes were checked against independent preview identities before
+launch. Leave it open for the PO; never confuse it with the unchanged 0.4.0
+portable. Earlier PID56200/profile `.manual-fixed-20261028111954` and user work
+were not accessed or stopped by this correction/launch.
+No commit/push/package/publication was performed. The PO approved saving the
+inferred UI rule as repository design and global agent guidance:
+[convention](ui-design.md), repository AGENTS.md and the existing user-global
+agent instruction file are updated; [decision](decisions.md#2026-10-28-canonical-ui-placement-and-explicit-state)
+records authority. Exact next action: PO inspects the corrected open preview
+and supplies feedback. No automatic successor, release rebuild or publication;
+DGM-133 remains separately blocked.
+
+**Subsequent PO feedback: DGM-142 routing repair, now independently accepted.**
+The PO accepts improved group alignment but rejects long rectangular connection
+detours and crowded routes shown in the Fabric starter screenshot.
+[DGM-142 investigation](verification/DGM-142.md) reproduces exact
+`examples/fabric-onelake.json`: ELK track reserves and preallocated proxies
+produce the long excursions; standard DOWN also has header-band crossings.
+Three bounded existing-constraint candidates failed and were not promoted.
+At that historical checkpoint production strict stacking was unchanged and
+new quality tests were3 RED/1PASS,
+while220 existing tests/typecheck/build pass. Four owned test PIDs exited.
+**DGM-142 bounded source acceptance:** independent automated PASS, cycle2/3;
+cycle3 unused. Subsequent PO screenshot rejects oversized group envelopes;
+see the new DGM-143 active cursor below.
+Final independent149tests/typecheck/build, unchanged12UI/12HTTP aggregate and
+296route audit pass. Fresh native completion/error/cancel/15-second deadline
+controls reach zero targets before browser attachment, while attached and after
+disconnect. Pinned bundledELK executes inside one cancellable native jobworker;
+bounded compatibility adapter independently reviewed. All296 routes and entity
+geometry remain exact; no zero-worker waiver or old-target benign claim.
+Earlier cycle1 lane/observer,454preservation/22desktop/sixcell evidence remains
+historical, not a newly rerun broad suite. App failclosed policy unchanged.
+Frozen group geometry remains intentional.
+Corrected preview was **OPEN / RESPONDING**, PID7868, fresh profile
+`.manual-routing-20261028174419`, exact independently tested source:
+`app/test-results/dgm142-worker-cycle2-independent-20261028-1732/runtime/source-app`.
+Main/renderer/worker hashes verified before launch; launch/readiness receipts
+retained in that evidence root. Previous PID14440/profile/unsaved work untouched.
+The detached PID7868 launch subsequently exited normally with code0; its
+profile and receipts remain preserved, with no automatic relaunch.
+No automatic successor, rebuild, commit/push or publication. DGM-133 remains
+separately blocked; no additional diagnostic cycle is authorized here.
+
+**Active cursor:** [DGM-143 content-sized groups](specs/DGM-143.md), PO-APPROVED
+LAYOUT PREVIEW EXITED NORMALLY / FULL QUALIFICATION BLOCKED143-IV-01.
+PO explicitly approves compacting groups and rerouting, changing
+the earlier frozen-dimensions rule. Screenshot shows large empty top regions;
+source still includes provisional ELK route points in stacked group envelopes.
+Fit real child/header bounds and compact root gaps before canonical routing;
+preserve exact stack axes, hierarchy, component sizes, explicit ports and
+history/worker/error guards. Pre-GREEN Fabric margin/gap bounds are in the spec.
+Owner75distinctfocusedtests/typecheck/build,12UI/12HTTP/296routes and native
+completion/error/cancel/deadline zero-worker controls pass. Fabric measured
+top/bottom margins42/24px; equal root gaps100px, before/after same-scale
+images inspected. Discarded proxy routing no longer expands envelopes.
+Independent75tests/typecheck/build, compactness/standard-preservation/source
+review and nativecleanup pass. First fresh aggregate completes6UI/6HTTP cells
+then complex RIGHT-stacked PNG export hits the existing4000ms MCP deadline,
+immediately after a successful same-state PNG snapshot. No renderer errors or
+live workers; focused3pair controls succeed but do not explain/erase timeout.
+Later output cells and aggregate retry tail remain independently unqualified.
+Retained296owner routes independently audited, not a fresh full-aggregate PASS.
+Bounded owner timing/export/broker diagnosis concluded without reproducing
+the original failure or identifying a justified repair; no source changes.
+One nonfailing1033ms PNG callback wait was observed while heartbeats continued,
+not proof of the original timeout's cause. All2452 original manifest entries
+remain unchanged. No unchanged full rerun, oracle waiver, raised deadline or
+assumed layout/environment cause.
+PO explicitly selects opening the layout preview while PNG qualification
+stays blocked. This overrides only preview sequencing, not technical acceptance.
+Preview was opened/responding as PID42048, fresh `.manual-compact-20261028202422`,
+tested ordinary source `app/test-results/dgm143-iv/runtime/source-app`;
+main/renderer/worker/source identities verified before launch.
+In this fresh preview only, actual New/Fabric and Horizontal groups stacked
+vertically were chosen, then Fit diagram. Canvas image shows compact groups
+and aligned stack at46%; earlier PO windows/profile/unsaved work untouched.
+The detached launch subsequently completed with exit0; the preview is no longer
+open. Its profile and receipts are preserved; no automatic relaunch.
+Exact next action: await PO feedback or an explicit reopen/further diagnostic
+request. Export failure/missing cells remain recorded; no automatic speculative
+fix, retry or publication.
+
+| Work / current state | Owner and next action | Exit |
+| --- | --- | --- |
+| [DGM-134 top-bar application controls](specs/DGM-134.md): COMPLETE / INDEPENDENT SOURCE PASS | [Report](verification/DGM-134.md): controls, guards, six viewport/theme cells and real-theme restoration accepted. | Shown in current-source preview; no package claim. |
+| [DGM-136 diagram + Markdown exports](specs/DGM-136.md): COMPLETE / INDEPENDENT SOURCE PASS | [Report](verification/DGM-136.md): plain image exports, companion-Markdown ZIP and standalone embedded-PNG Markdown accepted with independent decoding. | UI and MCP share output helpers; no release change. |
+| [DGM-137 sidebar and Auto-arrange](specs/DGM-137.md): COMPLETE / STRICT-STACKING INDEPENDENT PASS | [Report](verification/DGM-137.md): exact shared axes/gaps/nested direction, routes/ports/labels/containment/annotation and Undo accepted in six HTTP and48 additional complex arrangements. Original weaker oracle/failures retained. | Corrected preview open; no dependency/schema/release change. |
+| [DGM-135 MCP snapshot/exports](specs/DGM-135.md): COMPLETE / INDEPENDENT SOURCE PASS | [Report](verification/DGM-135.md): create/arrange/inspect/edit/export HTTP flow, guarded tokens/IPC, PNG/SVG/native JSON/Markdown/ZIP bytes accepted without file dialogs/downloads. | No actual external-client interoperability or release claim. |
+| [DGM-138 saved workspace root](specs/DGM-138.md): COMPLETE / INDEPENDENT SOURCE PASS | [Report](verification/DGM-138.md): root persistence/restart, stable default destinations and failure handling accepted with owned temp roots; MCP remains in-memory. | Native dialog selection mocked; no existing-data migration or human-native qualification. |
+| [DGM-139 persistent Favorites category](specs/DGM-139.md): COMPLETE / INDEPENDENT SOURCE PASS | [Report](verification/DGM-139.md): category/search/empty state, persistence across reload/restart and storage failures accepted without diagram/history changes. | No shared-root sync or diagram-schema change. |
+| [DGM-140 top File/View/Settings menus](specs/DGM-140.md): COMPLETE / INDEPENDENT SOURCE PASS | [Report](verification/DGM-140.md): actual menu/file/View/dialog workflows, bottom-only status and save errors, all11 Help steps and affected draft/focus/Present guards accepted across browser/Electron theme/viewport cells. | Corrected ordinary-source preview open; no release change. |
+| [DGM-141 lines and paper workspace](specs/DGM-141.md): COMPLETE / INDEPENDENT SOURCE PASS | [Report](verification/DGM-141.md):2.1px normal connections, unchanged20px hit path, #faf8f3 unspecified light workspace accepted with actual hits/appearance and zero-difference SVGPNG comparisons; custom/export backgrounds/dark preserved. | No document migration or release change. |
+| [DGM-142 compact connection routing](specs/DGM-142.md): COMPLETE / INDEPENDENT AUTOMATED PASS | [Report](verification/DGM-142.md): cycle2/3 accepted;149tests, unchanged12UI/12HTTP/296routes and native completion/error/cancel/deadline zero-target controls pass. Aligned geometry unchanged; cycle3 unused. | Exact verified source preview open for PO feedback; no release or other-platform claim. |
+| [DGM-143 content-sized groups](specs/DGM-143.md): PREVIEW EXITED / QUALIFICATION BLOCKED143-IV-01 | [Report](verification/DGM-143.md): sizing/tests/nativecleanup pass; firstfresh MCP PNG timeout unclassified after bounded diagnosis, no justified patch. PO authorized preview only, not a PASS. | Await PO feedback. Missing native output cells/tail remain unqualified; no deadline/oracle waiver or automatic retry. |
+| Show fixed app: COMPACT LAYOUT PREVIEW LAUNCHED / EXITED NORMALLY | Inspection-only source preview PID42048 subsequently exited0. Fresh `.manual-compact-20261028202422`, identities/launch/readiness and prepared Fabric state preserved; earlier user work untouched. | Do not relaunch unsolicited. PNG qualification and publication remain separately blocked. |
+
 ### Post-Release Acceptance Continuation - 2026-10-19
 
 These rows are the next execution cursor after completed row 19. Historical
@@ -134,6 +292,7 @@ delivery instructions above are not a request to repeat source/release work.
 | 28 | [DGM-130 version 0.3.0 Windows release](specs/DGM-130.md): COMPLETE / STABLE PUBLIC RELEASE VERIFIED | [Release0.3.0](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.3.0) tag peels to exact pushed source96c3e3f. Both unsigned portables passed static and independent targeted/general runtime gates (nativeARM64/emulatedx64,14sessions16exports). Complete anonymous downloads matched; corrected sidecars independently passed cycle1, retaining original provenance-content failure and unchanged EXEs. Old tags/releases/assets/bodies preserved. [Report](verification/DGM-130.md). | Approved release complete. Final factual docs pushed on both branches after immutable tag, no product change. Use matching x64/ARM64 download and JSON backups; no extra build/tag/upload or invented next sprint. Signing/nativeIntelAMD/human-policy limits remain separate. |
 | 29 | [DGM-131 always-on local MCP](specs/DGM-131.md): COMPLETE / INDEPENDENT SOURCE ACCEPTANCE PASS | [Independent report](verification/DGM-131.md): 603 tests, typecheck/build and 17 real source-Electron groups pass against 150 fingerprinted inputs. Nine tools include create/edit/arrange/Undo/Redo through the live canonical session; atomic history/autosave, stale-state/draft/lock protection, Settings copies, loopback fallback/second instance and delayed-confirmation expiry pass. Owner first failures retained. | Source implementation and docs complete; hand off local changes. No open source defect or further approved ready task. No dependency/client-config/service/release changes. Existing 0.3.0 downloads unchanged; actual Claude/Copilot/Scout interoperability and new packages are unclaimed separate work, not automatic successors. |
 | 30 | [DGM-132 version 0.4.0 source delivery](specs/DGM-132.md): COMPLETE / REMOTE REFS VERIFIED | [Report](verification/DGM-132.md): 36 intended files committed, merge `d79c0aa` pushed atomically to both intended branches with annotated [0.4.0](https://github.com/vespassassina/AzureDiagramStudio/tree/0.4.0). Package/root lock version 0.4.0; 76 desktop/checksum + 3 Settings + 15 About tests, typecheck/build pass. Older tags unchanged; isolated merge worktree removed and main checkout untouched. | Final factual docs closeout follows on both branches without moving the tag/product. Approved source delivery complete; no binary release, signing, client registration or further automatic successor. Existing Windows downloads remain 0.3.0. |
+| 31 | [DGM-133 Windows 0.4.0 downloads](specs/DGM-133.md): BUILT / PUBLICATION BLOCKED, 2026-10-28 | [Report](verification/DGM-133.md): exact tagged unsigned portables structurally pass; native ARM64 general (10 groups) and both packaged MCP targets (13 groups each) pass. Emulated-x64 general timed out awaiting startup Open JSON filechooser; cause unresolved. Three harness corrections plus PO-authorized fourth diagnostic cycle concluded. Both targeted chooser probes passed, but did not reproduce or explain the original failure; no corrective adapter or full x64 acceptance claimed. All failures/profiles retained, zero owned processes remain. | Further diagnostic authorization required for pre-render startup timeline/actionability capture under unchanged deadlines, then evidence-backed correction and independent x64-only general acceptance. Do not retry unchanged full tests for a favorable sample. Reuse passing cells and unchanged EXEs; no rebuild, relaxed criteria or publication while blocked. After acceptance: seal final provenance/checksums, draft then stable/latest publication, independent full anonymous downloads and factual docs delivery. Preserve old assets/profiles/tag; no native-IntelAMD/signing/client-registration claim. |
 
 DGM-109 and DGM-111 already have independent reports; they are not new
 implementation tasks. DGM-112's desk investigation is complete, not an invitation

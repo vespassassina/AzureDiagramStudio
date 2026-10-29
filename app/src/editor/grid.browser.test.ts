@@ -4,6 +4,7 @@ import type { Page } from '@playwright/test'
 import { createServer } from 'vite'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
+import { openDocumentProperties } from './browser-test-navigation.ts'
 
 const output = resolve('test-results/sprint-3-owner/115')
 
@@ -89,6 +90,7 @@ test('should_verify_grid_with_real_nested_pointer_gestures_and_export_pixels_in_
   const report: any[] = []
   try {
     for (const snap of [true, false]) {
+      console.info('DGM144 grid stage', 'nested-pointer', snap, new Date().toISOString())
       const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
       await page.emulateMedia({ reducedMotion: 'reduce' })
       const errors: string[] = []
@@ -161,9 +163,10 @@ test('should_verify_grid_with_real_nested_pointer_gestures_and_export_pixels_in_
     }
 
     for (const width of [1440, 390]) {
+      console.info('DGM144 grid stage', 'controls', width, new Date().toISOString())
       const page = await browser.newPage({ viewport: { width, height: 900 } })
       await page.goto(`http://127.0.0.1:${address.port}/src/editor/Editor.harness.html?blank`)
-      await page.getByLabel('Document properties', { exact: true }).click()
+      await openDocumentProperties(page)
       const settings = page.getByRole('group', { name: 'Grid settings', exact: true })
       for (const style of ['Dots', 'Lines']) for (const visible of [true, false]) for (const snap of [true, false]) {
         await settings.getByLabel(`${style} grid`, { exact: true }).click()
@@ -196,10 +199,11 @@ test('should_verify_grid_with_real_nested_pointer_gestures_and_export_pixels_in_
     }
 
     const readonlyPage = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+    console.info('DGM144 grid stage', 'readonly', new Date().toISOString())
     await readonlyPage.emulateMedia({ reducedMotion: 'reduce' })
     await readonlyPage.goto(`http://127.0.0.1:${address.port}/src/editor/Editor.harness.html`)
     await mount(readonlyPage, 16, true, true)
-    await readonlyPage.getByLabel('Document properties', { exact: true }).click()
+    await openDocumentProperties(readonlyPage)
     for (const label of ['Show grid', 'Snap to grid', 'Show grid in Present', 'Include grid in exports', 'Grid spacing', 'Dots grid', 'Lines grid']) expect(await readonlyPage.getByLabel(label, { exact: true }).isDisabled()).toBe(true)
     const readonlyBefore = await state(readonlyPage)
     await readonlyPage.getByLabel('Close properties', { exact: true }).click()
@@ -214,6 +218,7 @@ test('should_verify_grid_with_real_nested_pointer_gestures_and_export_pixels_in_
     await readonlyPage.close()
 
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+    console.info('DGM144 grid stage', 'export-pixels', new Date().toISOString())
     await page.goto(`http://127.0.0.1:${address.port}/src/editor/Editor.harness.html?blank`)
     const pixels = await page.evaluate(async () => {
       const load = new Function('path', 'return import(path)')
@@ -263,7 +268,10 @@ test('should_verify_grid_with_real_nested_pointer_gestures_and_export_pixels_in_
     await writeFile(resolve(output, 'browser-report-failed.json'), JSON.stringify({ status: 'failed', error: String(error), report }, null, 2))
     throw error
   } finally {
+    console.info('DGM144 grid stage', 'browser-close-start', new Date().toISOString())
     await browser.close()
+    console.info('DGM144 grid stage', 'server-close-start', new Date().toISOString())
     await server.close()
+    console.info('DGM144 grid stage', 'server-close-complete', new Date().toISOString())
   }
 }, 180_000)

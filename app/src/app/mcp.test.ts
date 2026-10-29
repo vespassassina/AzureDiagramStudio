@@ -2,11 +2,32 @@ import { describe, expect, it, vi } from 'vitest'
 import { createDocument } from '../model.ts'
 import type { DesktopMcp } from './mcp.ts'
 import { listenMcpMutations, publishMcpSession } from './mcp.ts'
-import type { McpMutationRequest, McpMutationResult } from './mcp-contract.ts'
+import type { McpRequest, McpMutationRequest, McpMutationResult } from './mcp-contract.ts'
 import { searchableLibrary } from '../catalog/presentation.ts'
 import { starterCatalog } from './starters.ts'
 
 describe('committed desktop MCP publisher DGM131', () => {
+  it('should_route_output_to_the_read_only_session_and_reject_malformed_or_expired_bridge_requests', async () => {
+    let receive: (request: McpRequest) => void = () => {}
+    const bridge: DesktopMcp = {
+      status: vi.fn(), copyAddress: vi.fn(), copyToken: vi.fn(), publishSnapshot: vi.fn(),
+      onMutation: callback => { receive = callback; return () => {} },
+      mutationActive: vi.fn(async () => true), completeMutation: vi.fn(async () => true),
+    }
+    const session = { mcpMutate: vi.fn(), mcpOutput: vi.fn(async () => ({ ok: false as const, message: 'Output test' })) }
+    const stop = listenMcpMutations(session, bridge)
+    const request: McpRequest = { id: 'output', deadline: Date.now() + 1000, operation: { name: 'snapshot_diagram', arguments: { stateToken: 'current' } } }
+    receive(request)
+    for (let count = 0; count < 8; count++) await Promise.resolve()
+    expect(session.mcpOutput).toHaveBeenCalledOnce()
+    expect(session.mcpMutate).not.toHaveBeenCalled()
+    expect(bridge.completeMutation).toHaveBeenCalledExactlyOnceWith('output', JSON.stringify({ ok: false, message: 'Output test' }))
+    session.mcpOutput.mockClear()
+    for (const invalid of [{ ...request, deadline: NaN }, { ...request, deadline: 0 }, { ...request, id: '' }, { ...request, extra: true }]) receive(invalid)
+    for (let count = 0; count < 8; count++) await Promise.resolve()
+    expect(session.mcpOutput).not.toHaveBeenCalled()
+    stop()
+  })
   it('should_publish_valid_committed_changes_and_static_existing_metadata_once_not_drafts', async () => {
     let snapshot = { document: createDocument('test'), saveState: 'loading' as string }
     let notify = () => {}

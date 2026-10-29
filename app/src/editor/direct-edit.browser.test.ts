@@ -5,6 +5,7 @@ import { build, preview } from 'vite'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { createDocument } from '../model.ts'
+import { editableApp, fileCommand } from './browser-test-navigation.ts'
 
 const output = resolve('test-results/sprint-3-owner/108')
 const fixture = { ...createDocument('direct-edit', 'Direct editing'), synthetic: false, legendVisible: false,
@@ -30,21 +31,23 @@ async function settled(page: Page) {
 }
 
 async function importFixture(page: Page, source = fixture, diagnostics?: { pageErrors: string[]; dialogMessages: string[] }) {
-  await page.getByLabel('Open document file').setInputFiles({ name: 'direct.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(source)) })
+  const open = await fileCommand(page, 'Open JSON')
+  const [chooser] = await Promise.all([page.waitForEvent('filechooser'), open.click()])
+  await chooser.setFiles({ name: 'direct.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(source)) })
   try {
     await expect.poll(() => page.getByLabel('Document title').inputValue()).toBe(source.title)
   } catch (error) {
     try {
       const state = await page.evaluate(() => {
         const fileInput = document.querySelector<HTMLInputElement>('input[aria-label="Open document file"]')
-        const newDiagram = document.querySelector<HTMLButtonElement>('button[aria-label="New diagram"]')
+        const fileMenu = document.querySelector<HTMLElement>('[role="menubar"] [aria-label="File menu"]')
         return {
           readyState: document.readyState, visibilityState: document.visibilityState, fonts: document.fonts.status,
           title: document.querySelector<HTMLInputElement>('[aria-label="Document title"]')?.value,
           status: Array.from(document.querySelectorAll('[role="status"], [class*="status"], [data-save-state]')).map(element => ({
             text: element.textContent, markup: element.outerHTML,
           })),
-          newDiagram: newDiagram ? { disabled: newDiagram.disabled, ariaDisabled: newDiagram.getAttribute('aria-disabled') } : null,
+          fileMenu: fileMenu ? { expanded: fileMenu.getAttribute('aria-expanded'), ariaDisabled: fileMenu.getAttribute('aria-disabled') } : null,
           fileInput: fileInput ? { disabled: fileInput.disabled, connected: fileInput.isConnected, accept: fileInput.accept,
             files: Array.from(fileInput.files ?? []).map(file => ({ name: file.name, size: file.size, type: file.type })) } : null,
         }
@@ -63,9 +66,8 @@ async function importFixture(page: Page, source = fixture, diagnostics?: { pageE
 }
 
 async function canonical(page: Page) {
-  const pending = page.waitForEvent('download')
-  await page.getByLabel('Save JSON', { exact: true }).click()
-  const download = await pending
+  const save = await fileCommand(page, 'Save JSON')
+  const [download] = await Promise.all([page.waitForEvent('download'), save.click()])
   return JSON.parse(await readFile((await download.path())!, 'utf8')) as typeof fixture & { revision: number }
 }
 
@@ -91,7 +93,7 @@ test('should_verify_DGM108_production_Flow_labels_IME_history_commands_readonly_
       page.on('pageerror', error => errors.push(error.message))
       page.on('dialog', dialog => { dialogMessages.push(dialog.message()); void dialog.accept() })
       await page.goto(origin)
-      await expect.poll(() => page.getByLabel('New diagram', { exact: true }).isEnabled()).toBe(true)
+      await editableApp(page, true)
       await importFixture(page, fixture, { pageErrors: errors, dialogMessages })
       const before = await canonical(page)
       const node = await select(page, 'child')
@@ -196,9 +198,19 @@ test('should_verify_DGM108_production_Flow_labels_IME_history_commands_readonly_
       await context.close()
     }
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+    const owner = await context.newPage()
+    await owner.goto(origin)
+    await editableApp(owner, true)
+    await importFixture(owner)
+    await expect.poll(() => owner.locator('.save-label').textContent()).toBe('Saved on this device')
     const page = await context.newPage()
-    await page.addInitScript(() => { Object.defineProperty(window, 'indexedDB', { get() { throw new Error('Readonly browser fixture') } }) })
     await page.goto(origin)
+    await page.locator('.react-flow__node[data-id="child"]').waitFor()
+    // Recover real imported work under the owner's lease, then fail storage on reacquisition.
+    await page.evaluate(() => { IDBDatabase.prototype.transaction = () => { throw new Error('Readonly browser fixture') } })
+    await owner.close()
+    await page.getByRole('status').filter({ hasText: /Cannot load browser storage:.*Readonly browser fixture/ }).waitFor()
+    const readonlyBefore = await canonical(page)
     await page.getByRole('button', { name: 'Commands', exact: true }).click()
     const dialog = page.getByRole('dialog', { name: 'Commands' })
     expect(await dialog.getByRole('option', { name: 'Undo', exact: true }).getAttribute('aria-disabled')).toBe('true')
@@ -207,6 +219,7 @@ test('should_verify_DGM108_production_Flow_labels_IME_history_commands_readonly_
     const node = page.locator('.react-flow__node').first()
     await node.focus(); await node.press('Enter'); await node.press('F2')
     expect(await page.getByRole('textbox', { name: /^Inline / }).count()).toBe(0)
+    expect(await canonical(page)).toEqual(readonlyBefore)
     report.push({ readonly: 'storage failure disables menu mutations and F2' })
     await context.close()
     await writeFile(resolve(output, 'browser-report.json'), JSON.stringify(report, null, 2))

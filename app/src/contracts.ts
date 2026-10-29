@@ -61,7 +61,7 @@ export type SaveState = 'loading' | 'saving' | 'saved' | 'error' | 'read-only'
 export type StarterKey = 'web-api' | 'event-driven' | 'fabric' | 'enterprise'
   | 'aks-baseline' | 'container-apps-microservices' | 'web-queue-worker' | 'hub-spoke-network'
   | 'saas-deployment-stamps' | 'file-claim-check' | 'azure-data-warehouse'
-export type ExportOptions = { format: 'svg' | 'png'; scale: 1 | 2; transparent: boolean; selectionIds?: string[]; background?: 'diagram' | 'white'; aspect?: 'content' | '16:9'; includeGrid?: boolean }
+export type ExportOptions = { format: 'svg' | 'png' | 'markdown'; scale: 1 | 2; transparent: boolean; includeMarkdown?: boolean; selectionIds?: string[]; background?: 'diagram' | 'white'; aspect?: 'content' | '16:9'; includeGrid?: boolean }
 export type ExportSceneOptions = Pick<ExportOptions, 'selectionIds' | 'background' | 'aspect' | 'includeGrid'>
 /** Preview is a local draft, or null when finished/cancelled; each call invalidates pending layout. */
 export interface EditorProps {
@@ -82,7 +82,7 @@ export interface EditorProps {
   onOpen(): void
   onImport(): void
   onSaveJson(): void
-  onArrange(direction: Direction): void
+  onArrange(direction: Direction, options?: import('./layout.ts').LayoutOptions): void
   onExport(options: ExportOptions): void
   onCopyImage?(options: ExportOptions): void
   onPreviewChange(document: Diagram | null): void

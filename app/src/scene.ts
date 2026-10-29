@@ -234,6 +234,8 @@ function connectionPaint(background: string) {
   return { ink, halo: ink === '#ffffff' ? '#000000' : '#ffffff' }
 }
 
+const CONNECTION_STROKE = 2.1
+
 export function connectionMarkup(connection: SceneConnection, background = '#ffffff'): string {
   const prefix = isWhiteBackground(background) ? '' : `dgm-${escapeXml(connection.id)}-`
   const markerEnd = connection.arrow !== 'none' ? `marker-end="url(#${prefix}arrow)"` : ''
@@ -242,8 +244,8 @@ export function connectionMarkup(connection: SceneConnection, background = '#fff
   const paint = connectionPaint(background)
   const dash = connection.style === 'dashed' ? 'stroke-dasharray="6 5"' : ''
   // A route may cross several fills. Opposite-color outlines keep it visible beyond the sampled label backdrop.
-  const halo = isWhiteBackground(background) ? '' : `<path d="${escapeXml(connection.path)}" fill="none" stroke="${paint.halo}" stroke-width="3.6" ${dash}/>`
-  return `${halo}<path d="${escapeXml(connection.path)}" fill="none" stroke="${paint.ink}" stroke-width="1.6" ${dash} ${markerEnd} ${markerStart}/>${connection.label ? `<rect x="${connection.labelPosition.x - size.width / 2}" y="${connection.labelPosition.y - size.height / 2}" width="${size.width}" height="${size.height}" rx="3" fill="${isWhiteBackground(background) ? 'white' : background}"/>${textLines(wrapText(connection.label, 80), connection.labelPosition.x, connection.labelPosition.y - size.height / 2 + 16, 11, contrastInk('#526b6d', background), size.width - 20, 400, 15, true)}` : ''}`
+  const halo = isWhiteBackground(background) ? '' : `<path d="${escapeXml(connection.path)}" fill="none" stroke="${paint.halo}" stroke-width="${CONNECTION_STROKE + 2}" ${dash}/>`
+  return `${halo}<path d="${escapeXml(connection.path)}" fill="none" stroke="${paint.ink}" stroke-width="${CONNECTION_STROKE}" ${dash} ${markerEnd} ${markerStart}/>${connection.label ? `<rect x="${connection.labelPosition.x - size.width / 2}" y="${connection.labelPosition.y - size.height / 2}" width="${size.width}" height="${size.height}" rx="3" fill="${isWhiteBackground(background) ? 'white' : background}"/>${textLines(wrapText(connection.label, 80), connection.labelPosition.x, connection.labelPosition.y - size.height / 2 + 16, 11, contrastInk('#526b6d', background), size.width - 20, 400, 15, true)}` : ''}`
 }
 
 export const MARKERS = '<marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#6c8587"/></marker><marker id="arrow-start" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#6c8587"/></marker>'

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { createServer, request as httpRequest } from 'node:http'
 import { createMcpServer, DEFAULT_MCP_PORT } from '../mcp.mjs'
-import { createSnapshotStore, registerMcpBridge, trustedSender } from '../mcp-bridge.mjs'
+import { createSnapshotStore, createMutationBroker, registerMcpBridge, trustedSender } from '../mcp-bridge.mjs'
 
 const document = { schemaVersion: 1, id: 'test', title: 'Committed', subtitle: '', revision: 3, direction: 'RIGHT', synthetic: false, legendVisible: true, legend: [], entities: [], connections: [] }
 const metadata = { catalog: [{ icon: 'service', label: 'Service', subtitle: '', category: 'Software', catalog: 'software', aliases: ['app'], keywords: [] }], templates: [{ key: 'web-api', label: 'Web/API', sourceCue: 'Synthetic example' }] }
@@ -36,11 +36,15 @@ test('should_serve_real_stateless_MCP_versions_and_all_discovery_tools', async t
   assert.equal((await request({ jsonrpc: '2.0', method: 'notifications/initialized' })).status, 202)
   assert.deepEqual((await (await request(rpc('ping'))).json()).result, {})
   const tools = (await (await request(rpc('tools/list'))).json()).result.tools
-  assert.deepEqual(tools.map(tool => tool.name), ['get_document', 'search_catalog', 'list_templates', 'get_app_info', 'create_diagram', 'edit_diagram', 'arrange_diagram', 'undo', 'redo'])
+  assert.deepEqual(tools.map(tool => tool.name), ['get_document', 'search_catalog', 'list_templates', 'get_app_info', 'create_diagram', 'edit_diagram', 'arrange_diagram', 'undo', 'redo', 'snapshot_diagram', 'export_diagram'])
   for (const tool of tools) {
     assert.equal(tool.inputSchema.type, 'object')
     assert.equal(tool.inputSchema.additionalProperties, false)
-    assert.equal(tool.annotations.readOnlyHint, tools.indexOf(tool) < 4)
+    for (const schema of tool.inputSchema.oneOf ?? [tool.inputSchema]) {
+      assert.equal(schema.type, 'object')
+      assert.equal(schema.additionalProperties, false)
+    }
+    assert.equal(tool.annotations.readOnlyHint, tools.indexOf(tool) < 4 || tools.indexOf(tool) >= 9)
   }
   for (const [name, args, expected] of [
     ['get_document', {}, { document, stateToken: 'test:3' }],
@@ -51,6 +55,46 @@ test('should_serve_real_stateless_MCP_versions_and_all_discovery_tools', async t
     const body = await (await request(rpc('tools/call', { name, arguments: args }))).json()
     assert.deepEqual(JSON.parse(body.result.content[0].text), expected)
   }
+})
+
+test('should_accept_optional_stacked_arrangement_and_reject_unknown_modes_DGM137', async t => {
+  const operations = []
+  const { request } = await fixture(t, { mutate: async operation => {
+    operations.push(operation)
+    return { ok: true, value: { document, stateToken: 'next' } }
+  } })
+  for (const direction of ['RIGHT', 'DOWN']) for (const arrangement of [undefined, 'standard', 'stacked']) {
+    const args = { stateToken: 'test:3', direction, ...(arrangement ? { arrangement } : {}) }
+    const response = await (await request(rpc('tools/call', { name: 'arrange_diagram', arguments: args }))).json()
+    assert.ok(!response.error && !response.result.isError, JSON.stringify(response))
+    assert.deepEqual(operations.at(-1), { name: 'arrange_diagram', arguments: args })
+  }
+  const accepted = operations.length
+  for (const args of [
+    { stateToken: 'test:3', direction: 'RIGHT', arrangement: 'dependency-levels' },
+    { stateToken: 'test:3', arrangement: 'stacked' },
+    { stateToken: 'test:3', direction: 'RIGHT', arrangement: 'stacked', extra: true },
+  ]) {
+    const result = await (await request(rpc('tools/call', { name: 'arrange_diagram', arguments: args }))).json()
+    assert.ok(result.error || result.result.isError)
+  }
+  assert.equal(operations.length, accepted)
+})
+
+test('should_return_output_content_directly_over_authenticated_HTTP_and_validate_arguments_before_dispatch_DGM135', async t => {
+  const calls = []
+  const output = { content: [{ type: 'image', mimeType: 'image/png', data: 'iVBORw0KGgo=' }, { type: 'text', text: '{"stateToken":"test:3","mimeType":"image/png","filename":"Committed.png","byteLength":8}' }] }
+  const { request } = await fixture(t, { mutate: async operation => { calls.push(operation); return { ok: true, output } } })
+  for (const [name, args] of [
+    ['snapshot_diagram', { stateToken: 'test:3' }],
+    ['export_diagram', { stateToken: 'test:3', format: 'png', scale: 2, transparent: true, background: 'white', aspect: '16:9', includeGrid: true }],
+  ]) assert.deepEqual((await (await request(rpc('tools/call', { name, arguments: args }))).json()).result, output)
+  for (const [name, args] of [
+    ['snapshot_diagram', {}], ['snapshot_diagram', { stateToken: 'test:3', path: 'a.png' }],
+    ['export_diagram', { stateToken: 'test:3', format: 'json', transparent: false }],
+    ['export_diagram', { stateToken: 'test:3', format: 'markdown', includeMarkdown: true }],
+  ]) assert.equal((await (await request(rpc('tools/call', { name, arguments: args }))).json()).error.code, -32602)
+  assert.equal(calls.length, 2)
 })
 
 test('should_dispatch_authenticated_writes_through_the_live_correlated_mutator_only', async t => {
@@ -176,7 +220,7 @@ test('should_surface_listen_failure_without_credentials_or_crashing_the_owner', 
   await server.stop()
 })
 
-function bridgeFixture() {
+function bridgeFixture(broker) {
   const callbacks = {}, handlers = new Map(), copied = []
   const frame = { url: 'ads://studio/', detached: false, isDestroyed: () => false }
   const contents = { mainFrame: frame, getURL: () => 'ads://studio/', isDestroyed: () => false, on: (name, callback) => { callbacks[name] = callback } }
@@ -184,7 +228,7 @@ function bridgeFixture() {
   const event = { sender: contents, senderFrame: frame }
   const store = createSnapshotStore()
   const server = { status: () => ({ state: 'running', address: 'http://127.0.0.1:123/mcp', snapshotAvailable: store.available() }), accessToken: () => 'private-token' }
-  registerMcpBridge({ ipcMain: { handle: (name, callback) => handlers.set(name, callback) }, clipboard: { writeText: value => copied.push(value) }, window, server, store })
+  registerMcpBridge({ ipcMain: { handle: (name, callback) => handlers.set(name, callback) }, clipboard: { writeText: value => copied.push(value) }, window, server, store, broker })
   return { callbacks, handlers, copied, window, contents, frame, event, store }
 }
 
@@ -223,4 +267,26 @@ test('should_clear_snapshots_on_reload_failure_crash_and_destruction', async () 
   assert.equal(f.store.available(), true)
   assert.deepEqual(await f.handlers.get('mcp:publish')(f.event, null), { ok: true })
   assert.equal(f.store.available(), false)
+})
+
+test('should_validate_correlated_output_IPC_and_cancel_old_renderer_generation_DGM135', async () => {
+  let sent
+  const broker = createMutationBroker({ send: request => { sent = request } })
+  const f = bridgeFixture(broker)
+  const operation = { name: 'snapshot_diagram', arguments: { stateToken: 'test:3' } }
+  const pending = broker.request(operation), id = sent.id
+  const result = { ok: true, output: { content: [
+    { type: 'image', mimeType: 'image/png', data: 'iVBORw0KGgo=' },
+    { type: 'text', text: '{"stateToken":"test:3","mimeType":"image/png","filename":"Committed.png","byteLength":8}' },
+  ] } }
+  const complete = f.handlers.get('mcp:mutation-result')
+  assert.throws(() => complete({ ...f.event, senderFrame: {} }, id, JSON.stringify(result)), /Untrusted/)
+  for (const text of ['{}', '{', JSON.stringify({ ...result, extra: true }), JSON.stringify({ ok: true, output: { content: [] } }), 'x'.repeat(8 * 1024 * 1024 + 1)]) assert.equal(complete(f.event, id, text), false)
+  assert.equal(complete(f.event, 'wrong-id', JSON.stringify(result)), false)
+  assert.equal(complete(f.event, id, JSON.stringify(result)), true)
+  assert.deepEqual(await pending, result)
+  const reloading = broker.request(operation), oldId = sent.id
+  f.callbacks['did-start-loading']()
+  assert.equal((await reloading).ok, false)
+  assert.equal(complete(f.event, oldId, JSON.stringify(result)), false)
 })

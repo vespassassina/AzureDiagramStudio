@@ -6,6 +6,7 @@ import type { ELK, ElkNode } from 'elkjs'
 import { createDocument, entityTextGeometry, measureEntity } from './model.ts'
 import { buildScene, renderSvg } from './scene.ts'
 import { qualityFixtures } from './fixtures.ts'
+import * as routing from './routing.ts'
 import type { Diagram } from './model.ts'
 
 function isolatedBoundary(longHeader = false): Diagram {
@@ -195,6 +196,9 @@ test('should_stop_after_three_engine_passes_when_header_width_oscillates', async
 })
 
 test('should_use_elk_label_geometry_container_origin_and_request_stamps_when_engine_is_provided', async () => {
+  // This deliberately diagonal mock tests the original placement adapter, not
+  // valid final routing. Keep its exact translation assertions isolated.
+  vi.spyOn(routing, 'routeFixedGeometry').mockImplementationOnce(diagram => ({ diagram, work: { gridCells: 0, expandedStates: 0, maxCells: 0 } }))
   const original = sampleDiagram()
   const snapshot = structuredClone(original)
   const engine = { layout: async (root: ElkNode) => {
@@ -215,6 +219,8 @@ test('should_use_elk_label_geometry_container_origin_and_request_stamps_when_eng
 })
 
 test('should_reserve_complete_boundary_header_and_component_text_when_building_elk_graph', async () => {
+  // The graph-inspection mock returns unplaced overlapping nodes.
+  vi.spyOn(routing, 'routeFixedGeometry').mockImplementationOnce(diagram => ({ diagram, work: { gridCells: 0, expandedStates: 0, maxCells: 0 } }))
   const original = sampleDiagram()
   original.entities = original.entities.map(entity => entity.kind === 'text' ? entity : { ...entity, label: 'W'.repeat(120), subtitle: 'W'.repeat(200) })
   let graph: ElkNode | undefined

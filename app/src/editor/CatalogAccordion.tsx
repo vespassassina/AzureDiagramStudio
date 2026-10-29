@@ -8,13 +8,14 @@ import { isSelectableIcon, legacyItem, menuGroups, rankedSearch, searchableLibra
 import { visualAssets } from '../assets.ts'
 import { DROP_TYPE } from './interactions.ts'
 import type { LibraryItem } from './interactions.ts'
+import { useFavorites } from './favorites.ts'
 
 const groups = [...menuGroups('azure'), ...menuGroups('software')]
 const computeGroup = groups.find(group => group.catalog === 'azure' && group.items.some(item => item.icon === 'azure-app'))
 const selectionKeys = new Set(selectionLibrary.map(item => item.icon))
 const optionGroups = searchGroups('').map(group => ({ ...group, items: group.items.filter(item => selectionKeys.has(item.icon)) }))
 const catalogs = [{ id: 'azure', label: 'Azure / Microsoft', count: searchableLibrary.filter(item => item.catalog !== 'software').length }, { id: 'software', label: 'Software', count: searchableLibrary.filter(item => item.catalog === 'software').length }] as const
-const catalogLabels = { azure: 'Azure / Microsoft', software: 'Software' }
+const catalogLabels = { azure: 'Azure / Microsoft', software: 'Software', favorites: 'Favorites' }
 const groupIcons = { server: Server, network: Network, database: Database, brain: Brain, workflow: Workflow, shield: Shield, layers: Layers, boxes: Boxes, 'app-window': AppWindow, building: Building2 }
 
 const CurrentCatalogOptions = memo(function CurrentCatalogOptions() {
@@ -137,7 +138,7 @@ const CatalogGroupHeader = memo(function CatalogGroupHeader({ group, expanded, s
 })
 
 export function CatalogAccordion({ onChoose, favoriteIcons, onToggleFavorite, onClearFavorites, ...props }: CatalogProps) {
-  const [sessionFavorites, setSessionFavorites] = useState<string[]>([])
+  const savedFavorites = useFavorites(favoriteIcons === undefined)
   const latestChoose = useRef(onChoose)
   const latestToggle = useRef(onToggleFavorite)
   const latestClear = useRef(onClearFavorites)
@@ -145,29 +146,35 @@ export function CatalogAccordion({ onChoose, favoriteIcons, onToggleFavorite, on
   const choose = useCallback((item: LibraryItem) => latestChoose.current(item), [])
   const toggleFavorite = useCallback((icon: string) => {
     if (latestToggle.current) latestToggle.current(icon)
-    else setSessionFavorites(current => current.includes(icon) ? current.filter(key => key !== icon) : current.length < 12 ? [...current, icon] : current)
-  }, [])
-  const clearFavorites = useCallback(() => { if (latestClear.current) latestClear.current(); else setSessionFavorites([]) }, [])
-  return <CatalogContent {...props} favoriteIcons={favoriteIcons ?? sessionFavorites} onToggleFavorite={toggleFavorite} onClearFavorites={clearFavorites} onChoose={choose} />
+    else savedFavorites.toggle(icon)
+  }, [savedFavorites.toggle])
+  const clearFavorites = useCallback(() => { if (latestClear.current) latestClear.current(); else savedFavorites.clear() }, [savedFavorites.clear])
+  return <>{savedFavorites.error && <div className="favorites-error"><p role="alert">{savedFavorites.error}</p><button type="button" onClick={savedFavorites.retry}>Retry favorites storage</button></div>}<CatalogContent {...props} favoriteIcons={favoriteIcons ?? savedFavorites.icons} onToggleFavorite={toggleFavorite} onClearFavorites={clearFavorites} onChoose={choose} /></>
 }
 
 const CatalogContent = memo(function CatalogContent({ writable, selectedIcon, onChoose, recentIcons = emptyIcons, onClearRecents, favoriteIcons = emptyIcons, onToggleFavorite, onClearFavorites }: CatalogProps) {
   const prefix = useId()
   const searchInput = useRef<HTMLInputElement>(null)
   const results = useRef<HTMLDivElement>(null)
-  const [tab, setTab] = useState<'azure' | 'software'>('azure')
+  const [tab, setTab] = useState<'azure' | 'software' | 'favorites'>('azure')
   const [query, setQuery] = useState('')
   const [openGroups, setOpenGroups] = useState(() => new Set(groups.filter(group => group.id === computeGroup?.id || (group.catalog === 'software' && group.items.length <= 12)).map(group => group.id)))
   const searching = !!query.trim()
-  const visibleGroups = useMemo(() => searching ? searchGroups(query) : groups.filter(group => group.catalog === tab), [searching, query, tab])
+  const visibleGroups = useMemo(() => tab === 'favorites' ? [] : searching ? searchGroups(query) : groups.filter(group => group.catalog === tab), [searching, query, tab])
   const recentItems = useMemo(() => [...new Set(recentIcons)].map(icon => itemByIcon.get(icon)).filter(item => !!item).slice(0, 8), [recentIcons])
   const favoriteItems = useMemo(() => [...new Set(favoriteIcons)].map(icon => itemByIcon.get(icon)).filter(item => !!item).slice(0, 12), [favoriteIcons])
   const favoriteKeys = new Set<string>(favoriteItems.map(item => item.icon))
-  const savedKeys = new Set([...favoriteKeys, ...recentItems.map(item => item.icon)])
+  const savedKeys = new Set(recentItems.map(item => item.icon))
+  const favoriteResults = useMemo(() => {
+    if (!searching) return favoriteItems
+    const matches = new Set(rankedSearch(query).map(item => item.icon))
+    return favoriteItems.filter(item => matches.has(item.icon))
+  }, [favoriteItems, searching, query])
+  const categoryTabs = [...catalogs, { id: 'favorites', label: 'Favorites', count: favoriteItems.length }] as const
   const row = (item: LibraryItem) => <CatalogRow key={item.icon} item={item} writable={writable} picked={selectedIcon === item.icon} onChoose={onChoose} favorite={favoriteKeys.has(item.icon)} favoriteDisabled={favoriteItems.length >= 12} onToggleFavorite={onToggleFavorite} />
 
   function searchKey(event: KeyboardEvent) {
-    if (searching) navigateResults(event, results.current, searchInput.current, writable, () => setQuery(''))
+    if (searching || tab === 'favorites') navigateResults(event, results.current, searchInput.current, writable, () => setQuery(''))
   }
 
   const toggle = useCallback((id: string) => {
@@ -181,16 +188,16 @@ const CatalogContent = memo(function CatalogContent({ writable, selectedIcon, on
 
   return <>
     <div className="library-search"><Search size={15} /><input ref={searchInput} aria-label="Search components" placeholder="Search components" value={query} onChange={event => setQuery(event.target.value)} onKeyDown={searchKey} /></div>
-    <div className="tabs" role="tablist" aria-label="Component catalogs">{catalogs.map((catalog, index) => <button type="button" key={catalog.id} id={`${prefix}-tab-${catalog.id}`} role="tab" aria-selected={tab === catalog.id} aria-controls={`${prefix}-catalog`} tabIndex={tab === catalog.id ? 0 : -1} className={tab === catalog.id ? 'selected' : ''} onClick={() => { setTab(catalog.id); setQuery('') }} onKeyDown={event => {
+    <div className="tabs" role="tablist" aria-label="Component catalogs">{categoryTabs.map((catalog, index) => <button type="button" key={catalog.id} id={`${prefix}-tab-${catalog.id}`} role="tab" aria-selected={tab === catalog.id} aria-controls={`${prefix}-catalog`} tabIndex={tab === catalog.id ? 0 : -1} className={tab === catalog.id ? 'selected' : ''} onClick={() => { setTab(catalog.id); setQuery('') }} onKeyDown={event => {
       const offset = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0
       if (!offset && event.key !== 'Home' && event.key !== 'End') return
       event.preventDefault()
-      const next = catalogs[event.key === 'Home' ? 0 : event.key === 'End' ? catalogs.length - 1 : (index + offset + catalogs.length) % catalogs.length]
+      const next = categoryTabs[event.key === 'Home' ? 0 : event.key === 'End' ? categoryTabs.length - 1 : (index + offset + categoryTabs.length) % categoryTabs.length]
       setTab(next.id); setQuery(''); document.getElementById(`${prefix}-tab-${next.id}`)?.focus()
     }}>{catalog.label}<span>{catalog.count}</span></button>)}</div>
     <div ref={results} className="library-list" id={`${prefix}-catalog`} role="tabpanel" aria-label={searching ? 'Search results' : `${catalogLabels[tab]} components`} onKeyDown={searchKey}>
-      {!searching && favoriteItems.length > 0 && <section className="catalog-session" aria-label="Favorite components"><div className="catalog-session-heading"><span title="Favorite components"><Star size={16} aria-hidden="true" /></span><h3>Favorites <small>Session</small></h3>{onClearFavorites && <CatalogAction icon={X} label="Clear favorite components" onClick={onClearFavorites} />}</div>{favoriteItems.map(row)}</section>}
-      {!searching && recentItems.length > 0 && <section className="catalog-session" aria-label="Recent components"><div className="catalog-session-heading"><span title="Recent components"><Clock size={16} aria-hidden="true" /></span><h3>Recent <small>Session</small></h3>{onClearRecents && <CatalogAction icon={X} label="Clear recent components" onClick={onClearRecents} />}</div>{recentItems.filter(item => !favoriteKeys.has(item.icon)).map(row)}</section>}
+      {tab === 'favorites' && <section className="catalog-session" aria-label="Favorite components"><div className="catalog-session-heading"><span title="Favorite components"><Star size={16} aria-hidden="true" /></span><h3>Favorites</h3>{favoriteItems.length > 0 && onClearFavorites && <CatalogAction icon={X} label="Clear favorite components" onClick={onClearFavorites} />}</div>{favoriteResults.map(row)}{!favoriteResults.length && <div className="no-results">{favoriteItems.length ? 'No matching favorites. Clear search to see your saved favorites.' : 'No favorites yet. Select another category and use a component’s star to add favorites.'}</div>}</section>}
+      {tab !== 'favorites' && !searching && recentItems.length > 0 && <section className="catalog-session" aria-label="Recent components"><div className="catalog-session-heading"><span title="Recent components"><Clock size={16} aria-hidden="true" /></span><h3>Recent <small>Session</small></h3>{onClearRecents && <CatalogAction icon={X} label="Clear recent components" onClick={onClearRecents} />}</div>{recentItems.map(row)}</section>}
       {visibleGroups.map(group => {
       const expanded = searching || openGroups.has(group.id)
       const rowsId = `${prefix}-group-${encodeURIComponent(group.id)}`
@@ -198,6 +205,6 @@ const CatalogContent = memo(function CatalogContent({ writable, selectedIcon, on
         <CatalogGroupHeader group={group} expanded={expanded} searching={searching} rowsId={rowsId} onToggle={toggle} />
         {expanded && <div id={rowsId}>{group.items.filter(item => searching || !savedKeys.has(item.icon)).map(row)}</div>}
       </section>
-    })}{!visibleGroups.length && <div className="no-results">No matching components</div>}</div>
+    })}{tab !== 'favorites' && !visibleGroups.length && <div className="no-results">No matching components</div>}</div>
   </>
 })

@@ -10,6 +10,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 svg { flex-shrink: 0; }
 .app-shell { height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
 .topbar { min-height: 74px; display: flex; flex-shrink: 0; align-items: center; gap: 22px; padding: 0 20px; border-bottom: 1px solid var(--line); background: white; z-index: 20; }
+.app-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 .topbar .wordmark { width: 242px; flex: 0 0 242px; min-width: 0; display: flex; align-items: center; gap: 9px; font-weight: 600; color: #24413e; }
 .topbar .brand-icon { width: 36px; height: 36px; flex: 0 0 36px; display: block; object-fit: contain; }
 .topbar .brand-name { min-width: 0; font-size: 16px; line-height: 1.2; white-space: normal; overflow-wrap: normal; letter-spacing: 0; }
@@ -44,6 +45,9 @@ svg { flex-shrink: 0; }
 .tabs button { border: 0; background: transparent; color: #8b9a9b; font-size: 11px; height: 33px; padding: 0 2px; display: flex; align-items: center; justify-content: center; gap: 4px; flex: 1; min-width: 0; border-bottom: 2px solid transparent; }
 .tabs button.selected { color: #16715e; border-bottom-color: #16715e; font-weight: 500; }
 .tabs span { font-size: 9px; color: #9aabaa; }
+.tabs button { height: auto; min-height: 44px; flex-wrap: wrap; padding: 5px 2px; overflow-wrap: anywhere; }
+.favorites-error { padding: 8px 12px; font-size: 11px; color: var(--ink); }
+.favorites-error p { overflow-wrap: anywhere; }
 .library-list { padding: 14px 10px; overflow-y: auto; flex: 1; }
 .catalog-group { min-width: 0; }
 .catalog-group-toggle { display: flex; align-items: center; gap: 6px; width: 100%; min-height: 38px; padding: 8px 5px; border: 0; border-bottom: 1px solid var(--line); background: transparent; text-align: left; color: #58796b; font-size: 10px; line-height: 1.4; }
@@ -78,10 +82,6 @@ svg { flex-shrink: 0; }
 .component-picker-heading h2 { flex: 1; min-width: 0; font-size: 15px; font-weight: 500; margin: 0; overflow-wrap: anywhere; }
 .component-picker .library-search { margin-bottom: 0; }
 .component-picker-results { min-height: 0; overscroll-behavior: contain; }
-.library-bottom { padding: 16px 17px; border-top: 1px solid var(--line); }
-.library-category { display: block; font-size: 9px; color: #a0acab; margin-bottom: 14px; }
-.library-bottom button { display: flex; align-items: center; gap: 11px; width: 100%; background: transparent; border: 0; color: #728783; font-size: 11px; padding: 9px 0; }
-.library-bottom button svg:last-child { margin-left: auto; color: #a4b3ae; }
 .no-results { color: var(--muted); padding: 20px 8px; font-size: 11px; }
 .canvas-surface { position: relative; flex: 1; min-width: 0; background: #fbfdfd; overflow: hidden; }
 .canvas-heading { position: absolute; top: 29px; left: 29px; z-index: 5; pointer-events: none; max-width: calc(100% - 245px); }
@@ -188,7 +188,6 @@ svg { flex-shrink: 0; }
 .session-state.state-loading > span, .session-state.state-saving > span, .status-dot.state-loading, .status-dot.state-saving { background: #a56b16; }
 .session-state.state-read-only > span, .status-dot.state-read-only { background: #62696c; }
 .library-item:disabled { cursor: default; opacity: .6; }
-.library-bottom button:disabled { opacity: .4; }
 .direction-control button:disabled { opacity: .4; }
 .statusbar > span:first-child { flex-shrink: 1; flex-wrap: wrap; }
 .statusbar [role='status'] { flex: 1; white-space: normal; overflow-wrap: anywhere; text-align: center; line-height: 1.4; padding: 4px 0; }
@@ -373,7 +372,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .panel-actions { display: flex; align-items: center; gap: 4px; }
 .action-tooltip { position: fixed; z-index: 100; width: 208px; max-width: calc(100vw - 16px); padding: 7px 10px; border: 1px solid var(--control-line); border-radius: 4px; background: var(--surface); color: var(--ink); font-size: 11px; line-height: 1.4; text-align: center; overflow-wrap: anywhere; pointer-events: none; transform: translateX(-50%); box-shadow: 0 2px 6px var(--chrome-shadow); }
 .action-tooltip.above { transform: translate(-50%, -100%); }
-.tool-rail .help-trigger { width: 44px; height: 44px; }
 .help-guide-overlay { position: fixed; inset: 0; z-index: 60; isolation: isolate; overflow: hidden; background: #0003; }
 .help-guide-spotlight { position: fixed; pointer-events: none; border: 2px solid var(--focus); outline: 2px solid var(--surface); outline-offset: 1px; border-radius: 6px; box-shadow: 0 0 0 9999px #0003; }
 .help-guide { position: fixed; display: flex; flex-direction: column; width: min(352px, calc(100vw - 24px)); min-height: 0; border: 1px solid var(--control-line); border-radius: 6px; background: var(--surface); color: var(--ink); box-shadow: 0 8px 24px var(--chrome-shadow); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
@@ -383,7 +381,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .help-guide button:hover:not(:disabled) { background: var(--soft); }
 .help-guide button:disabled { color: var(--muted); cursor: default; }
 .help-guide header button { border-color: transparent; padding: 8px; }
-.help-guide-content { overflow-y: auto; overscroll-behavior: contain; min-height: 0; padding: 14px 16px; }
+.help-guide-content { overflow-y: auto; scrollbar-gutter: stable; overscroll-behavior: contain; min-height: 0; padding: 14px 16px; }
 .help-guide-content:focus-visible { outline: 2px solid var(--focus); outline-offset: -3px; }
 .help-guide-progress { display: flex; align-items: baseline; gap: 10px; color: var(--muted); font-size: 11px; }
 .help-guide-progress > span:first-child { flex-shrink: 0; font-variant-numeric: tabular-nums; }
@@ -393,8 +391,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .help-guide .help-guide-unavailable { color: var(--muted); font-size: 12px; margin-top: 8px; }
 .help-guide footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 16px; border-top: 1px solid var(--line); flex-shrink: 0; }
 .help-guide footer button:last-child { color: var(--accent); background: var(--soft); }
-.tool-rail .about-trigger { width: 44px; height: 44px; }
-.tool-rail .settings-trigger { width: 44px; height: 44px; }
 .mcp-copy-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
 .settings-dialog h2 { margin-bottom: 12px; }
 .about-overlay { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 12px; overflow: hidden; background: #0003; }
@@ -509,11 +505,66 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .shared-sidebar { position: absolute; width: var(--sidebar-width); max-width: calc(100% - 56px); }
   .presenting .shared-sidebar { top: 80px; bottom: 144px; max-width: calc(100% - 24px); }
 }
-@media (max-width: 900px) { .topbar .present-button { grid-column: 1 / -1; justify-self: end; }.presenting .canvas-heading { right: 220px; } }
+@media (max-width: 1200px) {
+  .topbar { display: grid; grid-template-columns: minmax(0, 1fr) minmax(100px, 1fr); gap: 8px 12px; padding: 8px 12px; }
+  .topbar .wordmark { width: auto; min-width: 0; margin: 0; }
+  .document-bar input { width: 100%; text-align: right; }
+  .top-actions { grid-column: 1 / -1; justify-content: flex-end; flex-wrap: wrap; width: 100%; }
+  .topbar .app-actions { grid-column: 1; grid-row: 3; }
+  .topbar .present-button { grid-column: 2; grid-row: 3; justify-self: end; }
+}
+@media (max-width: 900px) { .presenting .canvas-heading { right: 220px; } }
 @media (max-width: 640px) and (min-width: 0px) {
   .presenting .canvas-heading { top: 80px; left: 16px; right: 16px; }
   .presenting .canvas-heading h1 { font-size: 21px; }
   .presentation-controls { top: 16px; right: 16px; }
   .presenting .canvas-navigation { grid-row: 2; }
   .presentation-status { flex-basis: 100%; }
+}
+
+.canvas-toolbar .sidebar-trigger { width: 44px; height: 44px; flex-shrink: 0; border: 1px solid var(--control-line); border-radius: 5px; background: var(--surface); }
+.canvas-toolbar .arrange-button { min-height: 44px; }
+.arrange-menu { position: relative; }
+.arrange-choices { position: fixed; z-index: 48; overflow-y: auto; width: min(300px, calc(100vw - 88px)); padding: 4px; background: var(--surface); color: var(--ink); border: 1px solid var(--control-line); border-radius: 5px; box-shadow: 0 8px 24px var(--chrome-shadow); }
+.arrange-choices button { display: block; width: 100%; min-height: 44px; padding: 10px 12px; text-align: left; font: inherit; font-size: 12px; color: inherit; background: transparent; border: 0; border-radius: 3px; }
+.arrange-choices button:hover, .arrange-choices button:focus-visible { background: var(--soft); outline: 2px solid var(--focus); outline-offset: -2px; }
+.application-menubar { display: flex; align-items: center; flex-shrink: 0; gap: 2px; }
+.application-menubar > button { min-height: 44px; padding: 8px 12px; border: 0; border-radius: 4px; background: transparent; color: var(--ink); font: inherit; font-size: 13px; }
+.application-menubar > button:hover:not(:disabled), .application-menubar > button[aria-expanded='true'] { background: var(--soft); }
+.application-menubar button:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.application-menu { position: fixed; z-index: 48; width: min(250px, calc(100vw - 24px)); overflow-y: auto; padding: 4px; border: 1px solid var(--control-line); border-radius: 5px; background: var(--surface); color: var(--ink); box-shadow: 0 8px 24px var(--chrome-shadow); }
+.application-menu > button { display: flex; align-items: center; width: 100%; min-height: 44px; padding: 8px; border: 0; border-radius: 3px; background: transparent; color: inherit; text-align: left; font: inherit; font-size: 13px; }
+.application-menu > button:hover, .application-menu > button:focus-visible { background: var(--soft); }
+.application-menu > button[aria-disabled='true'] { opacity: .5; cursor: default; }
+.menu-check { width: 22px; flex-shrink: 0; color: var(--accent); }
+.topbar .top-actions { gap: 5px; }
+.top-actions .icon-button { min-width: 44px; min-height: 44px; }
+.top-actions .present-button, .top-actions .export-button { min-height: 44px; margin-left: 0; }
+@media (max-width: 1100px) {
+  .topbar { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4px 12px; padding: 8px 12px; }
+  .topbar .wordmark { width: auto; min-width: 0; margin: 0; }
+  .document-bar input { width: 100%; text-align: right; }
+  .application-menubar { grid-column: 1; grid-row: 2; }
+  .topbar .top-actions { grid-column: 2; grid-row: 2; width: auto; flex-wrap: nowrap; justify-content: flex-end; }
+  .topbar .present-button { grid-column: auto; grid-row: auto; }
+  .top-actions > .icon-button:first-child { margin-right: 0; }
+}
+@media (max-width: 540px) {
+  .application-menubar { grid-column: 1 / -1; }
+  .topbar .top-actions { grid-column: 1 / -1; grid-row: 3; justify-content: flex-end; }
+  .application-menubar > button { flex: 1; }
+}
+.library .library-list { min-height: 0; }
+
+/* Narrow screens use a scrollable dock, rather than closing an explicitly open
+   panel or overlapping its controls. Present keeps its separate overlay. */
+@media (max-width: 900px) {
+  .app-shell:not(.presenting) .workspace { display: grid; grid-template-columns: 56px minmax(0, 1fr); grid-template-rows: minmax(340px, 1fr) auto auto; overflow-y: auto; overflow-x: hidden; align-items: stretch; }
+  .app-shell:not(.presenting) .tool-rail { grid-column: 1; grid-row: 1 / 4; width: 56px; }
+  .app-shell:not(.presenting) .canvas-surface { grid-column: 2; grid-row: 1; min-height: 340px; }
+  .app-shell:not(.presenting) .library, .app-shell:not(.presenting) .inspector { position: relative; left: auto; right: auto; top: auto; bottom: auto; width: 100%; max-width: 100%; min-width: 0; height: min(460px, 65vh); min-height: 270px; box-shadow: none; border: 1px solid var(--line); }
+  .app-shell:not(.presenting) .library { grid-column: 2; grid-row: 2; }
+  .app-shell:not(.presenting) .inspector { grid-column: 2; grid-row: 3; width: min(var(--sidebar-width), 100%); justify-self: end; }
+  .app-shell:not(.presenting) .canvas-toolbar { top: 100px; right: 12px; }
+  .app-shell:not(.presenting) .canvas-navigation { grid-template-rows: 52px; }
 }

@@ -42,10 +42,10 @@ test('should_correlate_serialize_and_reject_expired_disconnected_reload_requests
 })
 
 test('should_expose_only_fixed_sandbox_preload_operations_and_dispose_mutation_listeners', async () => {
-  let exposed
+  let exposed, workspace
   const invocations = [], listeners = new Map()
   const electron = {
-    contextBridge: { exposeInMainWorld: (name, value) => { assert.equal(name, 'desktopMcp'); exposed = value } },
+    contextBridge: { exposeInMainWorld: (name, value) => { if (name === 'desktopWorkspace') workspace = value; else { assert.equal(name, 'desktopMcp'); exposed = value } } },
     ipcRenderer: {
       invoke: (...args) => { invocations.push(args); return Promise.resolve(true) },
       on: (name, callback) => listeners.set(name, callback),
@@ -55,6 +55,10 @@ test('should_expose_only_fixed_sandbox_preload_operations_and_dispose_mutation_l
   runInNewContext(await readFile(new URL('../preload.cjs', import.meta.url), 'utf8'), { require: name => { assert.equal(name, 'electron'); return electron } })
   assert.deepEqual(Object.keys(exposed), ['status', 'copyAddress', 'copyToken', 'publishSnapshot', 'onMutation', 'mutationActive', 'completeMutation'])
   assert.equal(Object.isFrozen(exposed), true)
+  assert.deepEqual(Object.keys(workspace), ['read', 'choose', 'reset', 'save'])
+  assert.equal(Object.isFrozen(workspace), true)
+  await workspace.read(); await workspace.choose(); await workspace.reset(); await workspace.save({ bounded: true })
+  assert.deepEqual(invocations.splice(0), [['workspace:read'], ['workspace:choose'], ['workspace:reset'], ['workspace:save', { bounded: true }]])
   await exposed.copyToken()
   assert.deepEqual(invocations, [['mcp:copy-token']])
   let received, canceled
@@ -67,11 +71,11 @@ test('should_expose_only_fixed_sandbox_preload_operations_and_dispose_mutation_l
   assert.equal(listeners.size, 0)
 })
 
-test('should_stage_exact_eight_shell_files_including_preload_without_source_or_dependencies', async () => {
+test('should_stage_exact_nine_shell_files_including_workspace_and_preload_without_source_or_dependencies', async () => {
   const source = await readFile(new URL('../../scripts/stage-desktop.mjs', import.meta.url), 'utf8')
   const names = /for \(const name of (\[[^\n]+\])\)/.exec(source)?.[1]
   assert.ok(names)
   const files = runInNewContext(names)
-  assert.deepEqual([...files], ['main.mjs', 'policy.mjs', 'protocol.mjs', 'security.mjs', 'mcp.mjs', 'mcp-bridge.mjs', 'mcp-schema.mjs', 'preload.cjs'])
+  assert.deepEqual([...files], ['main.mjs', 'policy.mjs', 'protocol.mjs', 'security.mjs', 'mcp.mjs', 'mcp-bridge.mjs', 'mcp-schema.mjs', 'workspace.mjs', 'preload.cjs'])
   assert.match(source, /no npm dependencies or source tests/)
 })

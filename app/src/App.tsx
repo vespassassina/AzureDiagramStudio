@@ -46,7 +46,7 @@ export default function App() {
   return <>
     <Editor {...snapshot} onCommand={session.command} onUndo={session.undo} onRedo={session.redo}
       onNew={session.newDocument} onChooseStarter={session.openStarter} onOpen={() => choose(openInput.current)} onImport={() => choose(importInput.current)}
-      onSaveJson={() => void session.saveJson()} onArrange={direction => void session.arrange(direction)}
+      onSaveJson={() => void session.saveJson()} onArrange={(direction, options) => void session.arrange(direction, options)}
       onExport={options => void session.exportImage(options)} onCopyImage={options => void session.copyImage(options)} onPreviewChange={session.preview} onPresentationChange={session.presentation} onStarterOffered={session.starterOffered} onMcpGuard={session.setMcpGuard} />
     <input ref={openInput} type="file" accept=".json,application/json" aria-label="Open document file" hidden onChange={event => selected(event, 'open')} />
     <input ref={importInput} type="file" accept=".json,application/json" aria-label="Import skill file" hidden onChange={event => selected(event, 'import')} />

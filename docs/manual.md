@@ -1,5 +1,13 @@
 # Azure Diagram Studio: Short Manual
 
+**0.5.0 preparation:** current source includes the menu, Help, workspace,
+Favorites, export and compact-layout changes described below.
+[DGM-144](specs/DGM-144.md) is qualifying new Windows ARM64/x64 packages;
+the existing0.3.0 download links remain authoritative until publication.
+The historical source MCP PNG4000ms timeout remains a
+[known unresolved qualification limit](verification/DGM-143.md), not a fixed
+issue or an authorized deadline increase.
+
 This manual describes the [Windows 0.3.0 release](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.3.0), including About, empty startup, the unified picker, the ten-step Help guide, guided starters and Markdown sidebar. The [DGM-130 verification report](verification/DGM-130.md) identifies exact source `96c3e3f6c497eb008c767efd38f59f00f91d7cea`, both tested portables and verification limits. Earlier releases and local packages remain unchanged historical artifacts. Stable publication is not general platform or human certification.
 
 The newer [guided starters and saved descriptions](verification/DGM-122.md),
@@ -96,8 +104,10 @@ The server provides diagram inspection and editing:
 | `get_app_info` | Product/version and local integration information |
 | `create_diagram` | Start a blank diagram or one of the existing templates using normal replacement/unsaved-work confirmation |
 | `edit_diagram` | Add, edit, connect, move, resize, group, reorder or remove diagram objects; update title/description through canonical document commands |
-| `arrange_diagram` | Use the app's existing Auto-arrange worker, not client-invented layout results |
+| `arrange_diagram` | Use the app's existing Auto-arrange worker. Required `direction`: `RIGHT` or `DOWN`; optional `arrangement`: `standard` (default) or `stacked`. Stacked uses existing boundaries, not dependency levels: RIGHT contents/vertical group stack, DOWN contents/horizontal group stack. No client-invented layout results. |
 | `undo`, `redo` | Undo/Redo through the same live session history as the editor |
+| `snapshot_diagram` | Full committed diagram PNG, directly returned with current-token metadata |
+| `export_diagram` | SVG, PNG, native JSON or Markdown with inline PNG; optional SVG/PNG/JSON plus companion Markdown ZIP |
 
 Connecting a client grants it access to the returned diagram data, including
 text and embedded images present in that document, and permits the advertised
@@ -152,6 +162,79 @@ share its token, put credentials in a URL or commit client secrets to Git.
 There is no unauthenticated fallback. Loading or unavailable workspace data
 returns an explicit error rather than an old saved diagram.
 
+### MCP Snapshot And Export (Source Only)
+
+An agent can create/edit a diagram, arrange it, inspect a returned PNG, edit again
+and obtain the final exports entirely through authenticated HTTP MCP. This is
+source-only: it does not change the immutable published 0.4.0 artifacts. No
+external client's compatibility is claimed by the source-Electron acceptance.
+
+Exact argument contracts (`tools/list` publishes strict object schemas, with no
+additional properties; tokens are nonempty strings of at most 200 characters):
+
+| Tool/format | Required | Optional |
+| --- | --- | --- |
+| `snapshot_diagram` | `stateToken` | None |
+| `export_diagram`, SVG/PNG | `stateToken`, `format: "svg"` or `"png"` | `scale: 1` or `2`; `transparent: boolean`; `background: "diagram"` or `"white"`; `aspect: "content"` or `"16:9"`; `includeGrid: boolean`; `includeMarkdown: boolean` |
+| `export_diagram`, JSON | `stateToken`, `format: "json"` | `includeMarkdown: boolean` only |
+| `export_diagram`, Markdown | `stateToken`, `format: "markdown"` | Same image options as PNG; `includeMarkdown` may only be `false` |
+
+Defaults are the normal app exporters: scale 1, opaque diagram background,
+content bounds, normal document export-grid setting and no Markdown companion.
+Scale controls PNG rasterization (including Markdown's inline PNG); SVG remains
+vector, just as in the normal app export. Snapshot always uses these defaults.
+JSON is the normal editable native document accepted by Open JSON, not the
+architecture-skill import schema. Markdown is UTF-8 description followed by
+`\n\n![Diagram](data:image/png;base64,<PNG>)\n`; an absent description is empty.
+`includeMarkdown: true` returns a single stored ZIP with exactly two UTF-8 named
+members: `<stem>.<svg|png|json>` and `<stem>.md` containing the exact description.
+No companion option exists on snapshot; true is invalid for Markdown format.
+
+Example `tools/call` parameters, after reading the current token:
+
+```json
+{"name":"snapshot_diagram","arguments":{"stateToken":"<current token>"}}
+```
+
+```json
+{"name":"export_diagram","arguments":{"stateToken":"<current token>","format":"png","scale":2,"includeMarkdown":true}}
+```
+
+A successful result has exactly two `content` blocks, in this order:
+
+1. PNG/snapshot: `{"type":"image","mimeType":"image/png","data":"<base64>"}`.
+   SVG/JSON/Markdown:
+   `{"type":"resource","resource":{"uri":"<owned URI>","mimeType":"<MIME>","text":"<UTF-8 text>"}}`.
+   ZIP:
+   `{"type":"resource","resource":{"uri":"<owned URI>","mimeType":"application/zip","blob":"<base64>"}}`.
+2. `{"type":"text","text":"<JSON metadata>"}`, where metadata is **exactly**
+   `{"stateToken":"<captured token>","mimeType":"<MIME>","filename":"<safe name>","byteLength":123}`.
+   `byteLength` counts decoded bytes (UTF-8 for text), not base64 characters.
+
+MIME types are `image/png`, `image/svg+xml`, `application/json`, `text/markdown`
+and `application/zip`. Filenames use the shared safe title stem, extension
+`.png`, `.svg`, `.json`, `.md` or `.zip`, with `architecture` as the empty-title
+fallback. Resource URIs are inert
+`diagrammer://exports/<encodeURIComponent(stateToken)>/<filename>` identifiers:
+there is no resource-reading endpoint, external URL or server file behind them.
+
+All output uses one captured validated committed state and rechecks it after
+asynchronous rendering/packaging. It excludes selection-only bounds, drafts,
+presentation ink and UI chrome. Drafts/IME, modals, gestures, Present, pending
+layout/file/export work, stale/changed tokens, recovery, unavailable/reloading
+renderer, disconnect and expiry are explicit failures, not cached images.
+Settled read-only ownership permits output without taking ownership. Reads do
+not alter history, autosave, camera, selection, preferences or the document.
+
+The entire serialized `{ok:true,output:<MCP result>}` bridge envelope is limited
+to **8 MiB (8,388,608 bytes)**, including JSON escaping and base64 expansion.
+Binary output is budgeted before base64 allocation; oversized output fails
+explicitly. Existing PNG pixel/dimension caps, 5 MiB document and 64 KiB HTTP
+request-body limits remain. One broker operation runs at a time; the existing
+4-second broker and 5-second HTTP deadlines and transport limits are unchanged.
+No save dialog, download, clipboard write or arbitrary filesystem access is
+performed by either tool. Only the client decides what to do with returned bytes.
+
 ### Connect A Client
 
 Use your client's **Add MCP server** flow, select **HTTP / Streamable HTTP**,
@@ -196,13 +279,15 @@ this server uses stateless JSON responses over Streamable HTTP.
 This section was originally source-only; it is now included in Windows 0.3.0.
 The heading is retained for existing documentation links.
 
-Choose **About** beside **Help** at the top of the drawing tool rail. It shows
+In current source, choose **Settings menu → About**. Windows 0.3.0 retains
+the older About button beside Help at the top of the drawing tool rail. It shows
 Azure Diagram Studio's version, local-first purpose, original application logo,
 plain-text project/documentation references, independent/not-Microsoft identity and
 artwork/license qualifications. The version is read from package metadata; it
 is not proof of a particular build, architecture, digital signature or release.
 
-**Close About**, **Done** or Escape dismisses it and returns focus to About. Tab and
+**Close About**, **Done** or Escape dismisses it and returns focus to the
+Settings menu trigger (About in older releases). Tab and
 Shift+Tab stay inside the dialog. Its content scrolls on small/short screens,
 and the appearance follows the editor theme. Opening/closing does not edit or
 save the diagram, discard drafts or change the camera/selection/panels.
@@ -271,21 +356,31 @@ limits remain historical; they are not a requirement to recruit participants.
 
 ## First-Use UI Guide
 
-Choose the question-mark **Help** button at the top of the left tool rail.
-The ten numbered callouts cover starting and naming a diagram, adding components,
+In current local source, choose **Settings → Help** in the top menubar;
+**Settings** and **About** share that menu. **File** contains New diagram,
+Open JSON, Import skill JSON and Save JSON. **View** contains library/sidebar
+visibility, Properties/Markdown views, theme and existing fit commands.
+Only Undo, Redo, Export and Present are top action buttons. Auto-arrange and
+the square Sidebar button remain beside the canvas. The left rail contains
+diagram tools only. Older downloaded executables retain their original location.
+The eleven numbered callouts cover starting and naming a diagram, adding components,
 navigating, connecting and annotating, editing properties, arranging, saving
-editable JSON, exporting artwork and presenting. Each callout highlights the
+editable JSON, exporting artwork, presenting, and workspace-root/MCP settings.
+They include persisted Favorites, all four layouts and Markdown companions.
+Each callout highlights the
 corresponding control; **Next** and **Back** move through the guide without
 executing those actions. Close the guide to try them in the editor.
 
-In Windows 0.3.0 and current source, the same ten steps describe fresh empty startup and the
+In Windows 0.3.0, ten steps describe fresh empty startup and the
 unified picker, all eleven starters, the Markdown right bar with Edit/Preview,
 temporary presentation ink and where to find About. These wording updates do
 not add steps or change the actions they highlight. Historical 0.2.0 EXEs
-retain the earlier wording.
+retain the earlier wording. The current source's additional settings step and
+menu-trigger anchors do not change those historical executables.
 
 Use **Close guide**, Escape or the final **Finish** button to return to editing.
-Tab and Shift+Tab stay within the guide, and closing returns focus to Help.
+Tab and Shift+Tab stay within the guide, and closing returns focus to the
+Settings menu trigger in current source (the Help button in older releases).
 Library and Properties panels may open temporarily for a step; closing restores
 the previous panel choice without changing the document, selection, camera or
 pending label/title draft. The guide is available in Read-only mode, does not
@@ -301,7 +396,7 @@ the picker and leaves the empty canvas. No sample architecture is loaded by
 default. A failed or read-only recovery does not start a new writable diagram.
 
 Saved work, including an intentionally saved empty diagram, reopens as it was
-without the startup picker. To start again, use **New diagram** in the top bar
+without the startup picker. To start again, use **File → New diagram**
 or Commands; both open the same Blank-plus-templates chooser. Opening or
 canceling it does not replace existing work or commit a draft. Accepted
 replacement still uses the existing unsaved-work confirmation. This new startup
@@ -351,9 +446,10 @@ Raw HTML, scripts, embeds and all images are excluded; preview makes no automati
 external requests. Safe HTTP(S) links are displayed with no-opener new-tab
 behavior, subject to the existing desktop navigation policy.
 
-Choose **Open Markdown** (document icon) beside **Properties** in the drawing
-rail or canvas panel controls for the full-height Markdown view in the same
-right bar. Its Edit/Preview switch uses the same description and current mode,
+In current source, choose the square **Sidebar** button immediately after
+**Auto-arrange** at the canvas top right, then **Show Markdown** (document icon)
+for the Markdown view in the shared sidebar. **Show properties** returns to the
+other view. Its Edit/Preview switch uses the same description and current mode,
 not a second document field. Properties returns to the selected object or
 document context without clearing the selection or moving the camera.
 
@@ -361,7 +457,9 @@ Drag the bar's left separator to resize it, or focus **Resize right sidebar**
 and use Left/Right arrows (Shift for larger steps), Home or End. Width is kept
 for the editor session and clamped to the viewport, not saved in diagram JSON.
 Escape during an active separator drag restores its previous width. Close
-collapses the bar; Properties/Open Markdown reopens it. Long prose scrolls
+collapses the bar; **Sidebar** reopens the last view and preserves its Markdown
+draft. On narrow screens the workspace scrolls between the canvas, library and
+sidebar rather than overlapping or silently closing panels. Long prose scrolls
 vertically; code and wide tables scroll inside the bar, not across the page.
 
 Template guides use Overview, Flow, Decisions, Start Editing and Reference
@@ -388,7 +486,22 @@ Microsoft Apps includes five official architecture glyphs, seven bundled Microso
 
 Choose a service, then click the canvas to place it; alternatively drag it from the library. Select the placed component to edit **Label**, **Subtitle**, **Type**, **Status**, **Color** or **Hex color** in Properties. A familiar menu name and a raw icon-archive filename are not necessarily the same thing.
 
-Search also recognizes familiar aliases such as `APIM`, `AAD`, `Entra ID`, `ACA` and `AKS`. Use arrow keys and Enter to choose a result, or Escape to cancel. Favorites (up to 12) and recent successful insertions (up to 8) last only for the current editor session; clearing them does not change the diagram.
+Search also recognizes familiar aliases such as `APIM`, `AAD`, `Entra ID`, `ACA` and `AKS`. Use arrow keys and Enter to choose a result, or Escape to cancel. Recent successful insertions (up to 8) last only for the current editor session; clearing them does not change the diagram.
+
+**Newer source only:** Favorites (up to 12) is a peer category alongside
+Azure / Microsoft and Software. Use a component's existing star to add/remove
+it, then choose Favorites to browse or search only saved favorites. Category
+tabs support Left/Right and Home/End. Removing the last favorite keeps an
+actionable empty category; it does not switch categories unexpectedly.
+
+Favorites persist in the current browser/desktop app profile across reload and
+restart. They are not document data, Undo history or synchronized workspace-root
+files. Storage read/write failures display an error and a Retry favorites
+storage action; a failed write leaves membership unchanged. Malformed stored
+data is not silently replaced. Unavailable catalog IDs are omitted from visible
+results but preserved in storage. Clearing Favorites affects current available
+choices, not unrelated preferences or diagrams. Earlier published executables
+retain their session-only Favorites section until explicitly rebuilt.
 
 ## Import an Icon
 
@@ -400,9 +513,16 @@ Select the component and use **Clear custom icon** to restore its built-in type.
 
 ## Editor Theme
 
-The theme button is labeled **Switch to dark theme** in light mode and **Switch to light theme** in dark mode. On first load the editor follows the system's light/dark preference, unless you have explicitly saved a choice. Your choice is local to that browser/desktop profile, not part of a diagram. Changing it does not change document colors, JSON, SVG or PNG exports.
+The current **View** menu offers **Switch to dark theme** in light mode and **Switch to light theme** in dark mode (older releases use a theme button). On first load the editor follows the system's light/dark preference, unless you have explicitly saved a choice. Your choice is local to that browser/desktop profile, not part of a diagram. Changing it does not change document colors, JSON, SVG or PNG exports.
 
-The surrounding editor chrome follows the chosen theme. The diagram background defaults to white but can be changed independently in **Document properties**; Present and opaque diagram exports use that saved color.
+The surrounding editor chrome follows the chosen theme. In current source only,
+the light editing workspace uses a flat warm paper tone (#faf8f3) when no diagram
+background was explicitly chosen. This is not saved in JSON. Explicit colors
+(including explicit white), dark-theme workspaces, Present and export backgrounds
+are unchanged. The diagram/export background still defaults to white and can be
+changed independently in **Document properties**. Normal connections are now
+2.1 scene pixels rather than 1.6 in the editor and shared SVG/PNG renderer;
+selection, grid and object borders are not globally thickened.
 
 ## Background and Grid
 
@@ -453,13 +573,41 @@ For a same-parent selection, use **Align left**, **Align center** (horizontal ce
 
 These commands do not snap their results to the grid or run Auto-arrange. Mixed-parent selections, connections, negative distribution gaps, unchanged results and moves that would change containment are unavailable. They do not grow boundaries or resize content. An accepted action is one undoable move; editing remains disabled in Present and Read-only mode.
 
-Choose **Right layout** or **Down layout**, then **Auto-arrange**. Changing direction alone does not rearrange the document. Auto-arrange is explicit and undoable; it can replace carefully curated example routing. Use **Undo** to restore that layout. Annotations retain their canvas positions during arrangement.
+In current source, open **Auto-arrange** at the canvas top right and choose
+**Horizontal**, **Vertical**, **Horizontal groups stacked vertically**, or
+**Vertical groups side by side**. Opening the menu or pressing Escape changes
+nothing. Use arrows/Home/End to navigate and Enter/Space to choose. Grouped modes
+use existing boundary membership, not graph dependency levels: contents follow
+the named direction, while top-level boundary units follow the opposite axis.
+Nested hierarchy is retained; root ungrouped components are individual outer
+units. Without boundaries, grouped modes fall back to normal Horizontal/Vertical.
+ELK places the objects; a bounded routing stage then finds orthogonal paths
+around components and group headers without moving or resizing that placement.
+Stacked Auto-arrange fits group envelopes around their children, measured headers
+and usable connection corridors before routing; manually enlarged empty regions
+are not preserved by that explicit arrangement. Opening a diagram does not resize it.
+Explicit connection sides are retained, and labels follow the final routes.
+If a port is blocked or routing cannot complete within its bounds, the entire
+arrangement reports a failure without changing the document or Undo history.
+An arrangement is one undoable edit and can replace curated routing;
+**Undo** restores the exact previous geometry. Annotations retain their absolute
+canvas positions. The arrangement choice is transient, not a new JSON field.
 
 Arrangement now sizes boundaries from their contents and wrapped headers instead of inheriting obsolete expanded dimensions. Removing children and arranging again can shrink a boundary. Ordinary editing still does not rearrange unrelated objects.
 
-Use **Pan tool**, **Zoom in**, **Zoom out** and **Fit diagram** to navigate. **Fit selection** frames selected objects, including a selected boundary's descendants; it changes only the camera. Select objects for **Copy selection**, **Cut selection**, **Duplicate selection** or **Delete selection**; use **Paste selection** to paste within the editor. This selection clipboard is not a JSON file backup or a promise of cross-application clipboard transfer.
+Use **Pan tool**, **Zoom in**, **Zoom out** and **Fit diagram** to navigate. **Fit selection** frames selected objects, including a selected boundary's descendants; it changes only the camera. Select objects for **Copy selection**, **Cut selection**, **Duplicate selection** or **Delete selection**; paste with Ctrl/Cmd+V, the context menu or **Commands → Paste selection**. Dedicated Paste buttons are removed in current source; clipboard capabilities remain. This selection clipboard is not a JSON file backup or a promise of cross-application clipboard transfer.
 
-The inspector starts closed. On constrained screens, opening Properties or the library swaps the active panel. **Pin component library** allows both panels on desktop. On small/short screens, scroll the tool rail to reach remaining commands; mobile drawer navigation stays below the drawer. Icon descriptions appear on keyboard focus as well as hover, then dismiss on interaction, pointer leave, Escape or layout/mode changes rather than remaining pinned by mouse-created focus.
+The sidebar starts closed. **Add component** opens the component library, which
+stays open after insertion, selection and focus changes until **Close component
+library** is explicitly chosen. There is no library pin/unpin control.
+The former bottom three-button panel switcher and library ARCHITECTURE footer
+are removed in current source; Boundary/Text/Rectangle remain in the drawing
+rail and component results use the freed height. Both panels can stay open.
+On narrow/short screens, scroll the workspace between canvas and separate panel
+rows, and scroll the tool rail for remaining tools. Present and Help temporarily
+change panel visibility and restore explicit open/closed intent afterward.
+Icon descriptions appear on keyboard focus and hover, then dismiss on
+interaction, pointer leave, Escape or layout/mode changes.
 
 ## Present in a Meeting
 
@@ -527,9 +675,33 @@ The schema stays at version 1 with optional custom-icon, numeric-order, backgrou
 
 ## Export Pictures
 
+The Markdown formats and top-bar application controls below describe newer local
+source, not the existing 0.3.0 downloads or sealed 0.4.0 candidate.
+
 Open **Export** to preview the picture. Choose **All** or **Selection**, then **Content** or **16:9** framing. Selection includes descendants and internal connections, not unrelated objects or external connections; diagram metadata and the scoped visible legend remain included. Framing adds space without stretching artwork.
 
 Choose **Diagram**, **White** or **Transparent** background and optionally **Include grid**. These output settings do not change the saved diagram. Use **SVG**, **PNG 1x** or **PNG 2x** to download; **Copy image** copies a PNG for pasting. If clipboard access is denied, the app downloads a PNG and reports that it was not copied. Browser clipboard verification does not establish Teams/Office paste fidelity, which remains a manual check.
+
+For **Images (SVG / PNG)**, check **Include Markdown** to download one ZIP
+instead of a plain image. It contains exactly the selected image and a matching
+UTF-8 `.md` with the committed architecture description, preserving its newlines
+and inert source text. An empty description produces an empty companion. Both
+members use the same safe title stem. This checkbox defaults off each time the
+dialog opens, and never changes **Copy image**.
+
+Choose **Markdown with embedded PNG** for a single `.md`: the verbatim committed
+description followed by a separate `![Diagram](data:image/png;base64,...)`
+block. Choose **Markdown 1x** or **Markdown 2x**; scope, framing, grid and
+background/transparency still apply to that PNG. Switching to this format clears
+and hides **Include Markdown** rather than wrapping Markdown in a ZIP. Some
+Markdown viewers block data images: the image-plus-description ZIP is the
+portable alternative.
+
+These two new outputs ignore unfinished title, inline-label and Markdown drafts;
+exporting does not commit them. Ordinary plain-image export behavior is retained.
+Packaging rejects empty/invalid image output, unsafe names and size overflows
+(32 MiB per member or embedded Markdown output; 64 MiB per archive), reporting an
+error without downloading a partial file. No Markdown is executed or loaded.
 
 Use SVG for scalable diagrams and PNG for a fixed-size image. Large PNGs are capped at 8192 pixels per side and 16,777,216 total pixels; use 1x or SVG if the requested image is too large. Pictures do not replace the editable JSON backup.
 
@@ -546,3 +718,29 @@ This is a local drawing tool, not a cloud deployment, inventory, authentication 
 The catalogs are curated snapshots, not a promise of every service/SKU. Historical glyphs may remain in older documents without appearing as new choices. PowerPoint insertion fidelity and uncoached novice usability remain manually unverified.
 
 Azure Diagram Studio is independent and not endorsed by Microsoft or the named vendors. Microsoft glyphs are for permitted architecture/training/documentation use, not our product logo or a general marketing/sublicensing grant. Preserve the [third-party notices](../app/public/THIRD-PARTY-NOTICES.md), [Microsoft application sources and classifications](../app/public/MICROSOFT-APP-NOTICES.md), [vendor badge notices](../app/public/VENDOR-NOTICES.md) and [original terms](../app/public/licenses/). No project open-source license has been selected. Contributors must have rights to their uploaded artwork.
+
+## Workspace root (desktop source follow-up)
+
+Open **Settings menu → Settings**. **Workspace root** displays the absolute
+OS-resolved Documents/AzureDiagramStudio default. **Choose folder** saves a
+custom root in this app profile; cancellation leaves it unchanged. **Reset to
+default** explicitly saves the default again, and can repair corrupt root
+preferences. Read/write errors are displayed; a failed change does not claim
+to be saved.
+
+Save JSON and UI SVG/PNG/ZIP/embedded Markdown exports open a normal native
+save dialog, initially in a stable document-ID workspace folder under that
+root. You may cancel or choose another destination. Renaming a diagram does
+not move its workspace; distinct new diagrams use distinct folders even with
+equal titles. Changing the root affects later defaults only. Existing files,
+recovery, saved documents and profiles are not moved or migrated. Do not rely
+on recovery as a portable backup.
+
+Folders are created lazily on save/export, never by opening Settings or
+canceling New. If a custom root becomes unavailable, saving reports the failure;
+choose an available root rather than expecting silent fallback. Browser builds
+explain that root configuration requires desktop and keep normal browser
+downloads. MCP exports return bytes in memory and never save automatically
+under this root. Native dialogs remain human-unqualified in owner automation:
+the source acceptance runner mocks only native selection/confirmation while
+using real preload, main, filesystem and profile restart.

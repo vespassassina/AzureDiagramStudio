@@ -1,5 +1,12 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
+contextBridge.exposeInMainWorld('desktopWorkspace', Object.freeze({
+  read: () => ipcRenderer.invoke('workspace:read'),
+  choose: () => ipcRenderer.invoke('workspace:choose'),
+  reset: () => ipcRenderer.invoke('workspace:reset'),
+  save: request => ipcRenderer.invoke('workspace:save', request),
+}))
+
 // Fixed operations only. The launch token stays in main; copying is an explicit
 // Settings action, not a generic clipboard setter or a renderer-readable secret.
 contextBridge.exposeInMainWorld('desktopMcp', Object.freeze({

@@ -309,3 +309,159 @@ access, client registration, new dependencies or a release.
 
 Who: Product Owner explicitly expands editing scope; Orchestrator freezes the
 in-app mutation, concurrency and interaction acceptance contract.
+
+## 2026-10-28: Canonical UI Placement And Explicit State
+
+Context: the PO refined the desktop UI through DGM-134 through DGM-139, removing
+duplicate controls and library sections, separating application controls from
+diagram tools, grouping layout variants, requiring explicit panel open/close
+and persisted preferences. After the verified source preview opened, the PO
+approved the inferred rule with "save as repo design and as a global rule for
+agents.md".
+
+Decision: adopt [the UI design convention](ui-design.md), linked from repository
+AGENTS.md. Generalize the principle in the existing user-global agent
+instructions: one clear home per function, controls near their scope, space for
+the work, related choices grouped, predictable explicit state and honest
+persistence. Global guidance does not mandate Diagram Studio's exact placements.
+
+Consequences: future UI tasks consult the convention and preserve accessibility,
+responsive behavior, drafts/history and safety. This is not permission for
+unrelated redesign or data migration. Existing global instructions remain
+otherwise unchanged; no release, tag, version or commit is implied.
+
+Who: Product Owner explicitly authorizes repository and global guidance;
+Orchestrator records the approved rule and bounded application.
+
+## 2026-10-28: Conventional Menus And Strict Group Stacking
+
+Context: in the source preview the PO rejected staggered groups, requested
+File/View/Settings menus with a focused top action bar and bottom-only save
+status, then requested clearer lines, a paper-like workspace and updated Help.
+
+Decision: [DGM-137](specs/DGM-137.md) grouped layouts require true shared-axis
+stacking and consistent nested contents, not merely directional order.
+[DGM-140](specs/DGM-140.md) places file operations under File, view/preferences
+under View, and Settings/Help/About under Settings; only Undo/Redo/Export/Present
+remain top action buttons. The PO explicitly retained canvas Auto-arrange and
+Sidebar. [DGM-141](specs/DGM-141.md) uses shared 2.1px connection strokes and a
+light-only #faf8f3 unspecified workspace surface, preserving explicit diagram
+and export backgrounds. Help now describes the actual eleven-step workflow.
+
+Consequences: earlier direct-top-button placements are superseded, not the
+general canonical-home rule. Independent affected source acceptance and a new
+fresh-profile preview follow; old user work and immutable release artifacts
+remain untouched. No version, package, tag, publication or commit is implied.
+
+Who: Product Owner explicitly directs the refinements and confirms canvas
+control placement/background scope; Orchestrator records verified delivery.
+
+## 2026-10-28: Separate Fixed-Geometry Connection Routing
+
+Context: DGM-142 reproduces excessive route detours and header crossings in the
+exact Fabric starter. Three bounded ELK constraint candidates failed while
+strict placement stayed correct; no candidate was promoted.
+
+Decision: the PO explicitly approves keeping real ELK node/group placement and
+adding a dedicated obstacle-aware orthogonal routing stage without dependencies.
+[RFD 002](rfd/002-fixed-geometry-routing.md) and
+[DGM-142](specs/DGM-142.md) freeze the scope and acceptance.
+
+Consequences: placement geometry, hierarchy, explicit ports, arrows/labels,
+strict stack axes/gaps, worker/history guards and pre-GREEN quality bounds
+remain mandatory. Own bounded deterministic route/clearance tests and real
+visual/output acceptance. No data migration, version, package, release,
+client-configuration or security-policy change is authorized.
+
+Who: Product Owner chooses the routing architecture; Orchestrator records the
+approved trade-off and delegates implementation/independent verification.
+
+## 2026-10-28: Single Native Job Worker For Layout Ownership
+
+Context: DGM-142 cycle1 corrected dense channels and observer scheduling but
+native completed-worker targets persisted even without debugger attachment.
+Nested parent/ELK teardown was not reliably clean; target execution liveness
+versus Chromium bookkeeping remained unclassified.
+
+Decision: within the approved cancellable-worker boundary, execute the existing
+pinned bundled ELK and canonical routing inside one disposable native worker.
+Retain the original zero-worker oracle and all geometry/route/history guards.
+The construction-only version-specific environment adapter is restricted to
+that isolated job, with exact descriptor/dispatcher restoration and explicit
+failure tests; no dependency, CSP or public contract change.
+
+Consequences: independent cycle2/3 accepts native completion/error/cancel/
+deadline cleanup and exact296-route/entity parity. Revalidate the adapter and
+native teardown before any future engine/runtime upgrade. Do not claim the
+old native objects were benign or that automated acceptance qualifies a
+release or external clients. Cycle3 unused.
+
+Who: Orchestrator scopes the internal lifecycle repair under the PO-approved
+continuation; separate implementer repairs and independent verifier accepts.
+
+## 2026-10-28: Compact Group Envelopes Before Routing
+
+Context: the PO's new Fabric screenshot shows excessive empty group interiors.
+DGM-142 deliberately retained group dimensions, so route acceptance preserved
+the old envelope inflation. Source includes provisional ELK routes in module
+bounds even though final canonical routing discards those paths.
+
+Decision: the PO explicitly selects compacting groups and rerouting.
+[DGM-143](specs/DGM-143.md) permits content/header-fit group sizing, corrected
+local child offsets and compact root gaps before the routing stage. It
+supersedes the former geometry freeze for this explicit Auto-arrange action,
+not strict alignment, semantic/port/history preservation or final routing's
+immutable-input-geometry invariant.
+
+Consequences: add pre-GREEN child-hull margin and intergroup-gap bounds, not
+just route validity and old/new exact geometry. Preserve earlier evidence as
+bounded history. Independent actual output and visual acceptance remain
+mandatory; no release/dependency/schema/security change.
+
+Who: Product Owner approves the contract change; Orchestrator specifies it;
+separate implementation and verification retain their responsibilities.
+
+## 2026-10-28: Show Compact Layout Without Waiving PNG Qualification
+
+Context: DGM-143 compact Fabric sizing independently passes. The first fresh
+aggregate encounters a4000ms MCP PNG export timeout after six complete UI/HTTP
+cells. Bounded diagnostics do not reproduce or explain it, so there is no
+justified product repair or complete output acceptance.
+
+Decision: the PO selects "Open the layout preview; keep PNG qualification
+blocked (Recommended)". Show the exact tested ordinary-source app in a fresh
+manual profile, explicitly for layout inspection. Do not claim independent
+full PASS, erase the original failure, raise deadlines or rerun unchanged
+qualification for a favorable sample.
+
+Consequences: preview sequencing is decoupled from full output qualification
+for this PO inspection.143-IV-01 and missing cells remain blocked; speculative
+repair, release/publication and changes to technical gates are not authorized.
+Preserve earlier user windows and unsaved work.
+
+Who: Product Owner chooses partial preview; Orchestrator records and opens
+the provenance-checked candidate without changing code or acceptance results.
+
+## 2026-10-29: Publish Windows 0.5.0 And Install For Current User
+
+Context: current approved source changes include menus/Help, workspace root,
+Favorites, MCP visual/Markdown exports, compact group sizing and routing.
+Version0.4.0 remains an immutable source tag with unpublished blocked candidate;
+published Windows downloads are still0.3.0.
+
+Decision: the PO explicitly requests compiling/publishing0.5.0, then installing
+it on this PC and reporting its location. [DGM-144](specs/DGM-144.md) authorizes
+new version metadata, committed/pushed source, both existing Windows portable
+targets, exact-artifact independent qualification and new stable/latest public
+release. Retain the no-PR delivery policy and all old tags/releases.
+
+Consequences: fresh0.5.0 packages need their own passing runtime and complete
+public-download evidence. The unresolved historical MCP PNG deadline issue
+remains disclosed, not fixed by relabeling or deadline changes. Install the
+verified public ARM64 portable per user with a versioned Start menu shortcut;
+record actual paths and byte identity. No administrator access, new installer,
+dependency/security/CI change, signing or Mac publication is inferred.
+
+Who: Product Owner authorizes publication and local installation; Orchestrator
+owns source/sealing/publication/install, scoped owner builds, separate verifier
+qualifies packages and anonymous public downloads.

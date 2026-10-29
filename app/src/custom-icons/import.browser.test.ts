@@ -11,6 +11,18 @@ import { iconFixture, pngBytes, pngChunk } from './test-fixtures.ts'
 let server: ViteDevServer
 let browser: Browser
 let baseUrl: string
+const pendingRequests = new Map<object, string | undefined>()
+const connections = new Set<object>()
+
+function lifecycle(stage: string) {
+  console.info('DGM144 custom-icon lifecycle', JSON.stringify({
+    stage, at: new Date().toISOString(), workerPid: process.pid,
+    browserConnected: browser?.isConnected(),
+    pages: browser?.contexts().flatMap(context => context.pages()).length,
+    serverListening: server?.httpServer?.listening,
+    pendingRequests: [...pendingRequests.values()], connections: connections.size,
+  }))
+}
 
 async function preparePage(page: Page) {
   await page.goto(`${baseUrl}custom-icon-foundation`)
@@ -29,14 +41,25 @@ beforeAll(async () => {
       })
     } }],
   })
+  server.httpServer!.on('connection', socket => {
+    connections.add(socket)
+    socket.once('close', () => connections.delete(socket))
+  })
+  server.httpServer!.on('request', (request, response) => {
+    pendingRequests.set(request, request.url)
+    response.once('close', () => pendingRequests.delete(request))
+  })
   await server.listen()
   baseUrl = server.resolvedUrls!.local[0]
   browser = await chromium.launch({ channel: 'msedge', headless: true })
 }, 60000)
 
 afterAll(async () => {
+  lifecycle('browser-close-start')
   await browser?.close()
+  lifecycle('browser-close-complete; server-close-start')
   await server?.close()
+  lifecycle('server-close-complete')
 })
 
 test('should_decode_real_png_jpeg_webp_once_and_preserve_aspect_alpha_when_native_edge_imports', async () => {

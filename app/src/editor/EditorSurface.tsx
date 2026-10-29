@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import type { ButtonHTMLAttributes, CSSProperties, MouseEvent, ReactNode, ChangeEvent, FocusEvent, KeyboardEvent } from 'react'
 import { ReactFlow, Background, BackgroundVariant, ConnectionMode, Handle, Position, NodeResizer, NodeToolbar, useReactFlow, useStoreApi, getNodesBounds, getViewportForBounds } from '@xyflow/react'
 import type { Node, NodeProps, Edge, EdgeProps, NodeChange, Connection as FlowConnection } from '@xyflow/react'
-import { Moon, Sun, Scan, Pin, PinOff, MousePointer2, Hand, Boxes, Cable, Frame, Type, Square, Trash2, Copy, ClipboardPaste, Scissors, CopyPlus, Undo2, Redo2, Download, ChevronDown, X, Plus, Minus, Maximize2, PanelRight, PanelLeftClose, LayoutGrid, FilePlus2, FolderOpen, FileInput, Save, ArrowRight, ArrowDown, ArrowUp, SlidersHorizontal, CircleCheck, LoaderCircle, Group, Ungroup, BringToFront, SendToBack, ImagePlus, Command as CommandIcon } from 'lucide-react'
+import { Scan, MousePointer2, Hand, Boxes, Cable, Frame, Type, Square, Trash2, Copy, ClipboardPaste, Scissors, CopyPlus, Undo2, Redo2, Download, ChevronDown, X, Plus, Minus, Maximize2, PanelRight, PanelLeftClose, LayoutGrid, FilePlus2, ArrowRight, ArrowDown, ArrowUp, SlidersHorizontal, CircleCheck, LoaderCircle, Group, Ungroup, BringToFront, SendToBack, ImagePlus, Command as CommandIcon } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { ClipboardFragment, DocumentCommand, EditorProps, EntityPatch, ConnectionPatch, MetadataPatch } from '../contracts.ts'
 import type { ConnectionSide, Diagram, Entity, Point } from '../model.ts'
@@ -15,6 +15,7 @@ import { COLORS, genericLibrary, isColorKey, resolveColor } from '../catalog.ts'
 import { visualAssets } from '../assets.ts'
 import { alignmentPositions, canConnect, captureFragment, DROP_TYPE, freshIdMap, groupCommand, libraryItems, makeEntity, minimumSize, movePositions, nudgeCommand, parentChoices, previewDocument, readDrop, resizeCommand, selectionRoots, sideAtPoint, sides } from './interactions.ts'
 import { editorGridOffset, effectiveGrid, snapPoint } from '../grid.ts'
+import { frameResizeObserver } from './resize-observer.ts'
 import type { AddSide, AlignmentAction, LibraryItem, Tool } from './interactions.ts'
 import { addConnectedCommand } from './interactions.ts'
 import { CatalogAccordion, CatalogOptions, ComponentPicker } from './CatalogAccordion.tsx'
@@ -31,17 +32,18 @@ import { Presentation, Expand, Crosshair, ArrowLeft } from 'lucide-react'
 import { starterDocument } from '../app/session.ts'
 import { starterCatalog } from '../app/starters.ts'
 import type { StarterChoice } from '../app/starters.ts'
-import { CircleHelp } from 'lucide-react'
 import { HelpGuide } from './HelpGuide.tsx'
 import { AboutDialog } from './AboutDialog.tsx'
 import { SettingsDialog } from './SettingsDialog.tsx'
-import { Info } from 'lucide-react'
 import { ContextMenu } from './ContextMenu.tsx'
 import { PresentationMarkup } from './PresentationMarkup.tsx'
 import { FileText } from 'lucide-react'
 import { MarkdownDescription } from './MarkdownDescription.tsx'
 import type { MarkdownMode } from './MarkdownDescription.tsx'
 import { MarkdownSidebarResize } from './MarkdownSidebarResize.tsx'
+import { ArrangeMenu } from './ArrangeMenu.tsx'
+import { TopMenus } from './TopMenus.tsx'
+import type { TopMenu } from './TopMenus.tsx'
 
 type ArchitectureNode = Node<{ entity: Entity; backgroundColor: string; minWidth: number; minHeight: number; writable: boolean; presenting: boolean; startResize(): void; quickAddSourceId: string | null; onQuickAdd(side: AddSide): void; onDeleteComponent(): void }, 'architecture'>
 type ArchitectureEdge = Edge<{ connection: SceneConnection; backgroundColor: string }, 'architecture'>
@@ -51,7 +53,7 @@ type ConnectedPicker = { document: Diagram; revision: number; selection: string;
 type InlineEdit = { document: Diagram; revision: number; id: string; kind: 'entity' | 'connection'; value: string; multiline: boolean; error: string }
 type Viewport = { x: number; y: number; zoom: number }
 type CanvasContext = { document: Diagram; revision: number; writable: boolean; kind: 'pane' | 'entity' | 'connection'; id?: string; point: Point; screen: Point; origin: HTMLElement | null }
-type PresentationSnapshot = { document: Diagram; viewport: { x: number; y: number; zoom: number }; libraryRequested: boolean; inspectorRequested: boolean; libraryPinned: boolean; preferredPanel: 'library' | 'inspector'; inspectorIntent: boolean | null; sidebarView: 'properties' | 'markdown'; markdownMode: MarkdownMode; sidebarWidth: number; tool: Tool; selectedIds: string[]; selectedEdges: string[]; focus: HTMLElement | null; focusLabel: string | null }
+type PresentationSnapshot = { document: Diagram; viewport: { x: number; y: number; zoom: number }; libraryRequested: boolean; inspectorRequested: boolean; inspectorIntent: boolean | null; sidebarView: 'properties' | 'markdown'; markdownMode: MarkdownMode; sidebarWidth: number; tool: Tool; selectedIds: string[]; selectedEdges: string[]; focus: HTMLElement | null; focusLabel: string | null }
 const SAVE_LABELS = { loading: 'Loading local work', saving: 'Saving locally', saved: 'Saved on this device', error: 'Local save failed', 'read-only': 'Read-only' }
 const entersStarterChooser = (target: EventTarget | null) => target instanceof HTMLElement && target.getAttribute('aria-label') === 'New diagram'
 const tools: { tool: Tool; icon: LucideIcon; label: string }[] = [{ tool: 'select', icon: MousePointer2, label: 'Select tool' }, { tool: 'pan', icon: Hand, label: 'Pan tool' }, { tool: 'component', icon: Boxes, label: 'Add component' }, { tool: 'connector', icon: Cable, label: 'Connect components' }, { tool: 'boundary', icon: Frame, label: 'Add boundary' }, { tool: 'text', icon: Type, label: 'Add text' }, { tool: 'rectangle', icon: Square, label: 'Add rectangle' }]
@@ -85,11 +87,6 @@ function IconButton({ icon: Icon, label, active, className = '', ...props }: { i
     onPointerDown={event => { pointerFocus.current = true; focused.current = false; setAnchor(null); props.onPointerDown?.(event) }} onClick={event => { setAnchor(null); props.onClick?.(event) }}
     onFocus={event => { focused.current = !pointerFocus.current; if (event.currentTarget.closest('.tool-rail')) event.currentTarget.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }); if (focused.current) show(event.currentTarget); props.onFocus?.(event) }} onBlur={event => { focused.current = false; pointerFocus.current = false; setAnchor(null); props.onBlur?.(event) }}
     onMouseEnter={event => { hovered.current = true; show(event.currentTarget); props.onMouseEnter?.(event) }} onMouseLeave={event => { hovered.current = false; setAnchor(null); props.onMouseLeave?.(event) }}><Icon size={18} strokeWidth={1.7} /></button>{anchor && createPortal(<span id={tooltipId} role="tooltip" className={`action-tooltip ${anchor.above ? 'above' : ''}`} style={{ left: anchor.left, top: anchor.top }}>{label}</span>, document.body)}</>
-}
-function EditorThemeToggle() {
-  const { theme, toggleTheme, preferenceError } = useTheme()
-  const label = theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'
-  return <IconButton icon={theme === 'light' ? Moon : Sun} label={label} active={theme === 'dark'} className="theme-toggle" aria-description={preferenceError ?? undefined} data-preference-error={preferenceError ? 'true' : undefined} title={preferenceError ? `${label}. ${preferenceError}` : label} onClick={toggleTheme} />
 }
 function sameEntityPaint(before: Entity, after: Entity): boolean {
   return before.kind === after.kind && before.label === after.label && before.subtitle === after.subtitle && before.icon === after.icon && before.status === after.status && before.color === after.color && before.width === after.width && before.height === after.height && before.customIcon?.name === after.customIcon?.name && before.customIcon?.dataUrl === after.customIcon?.dataUrl && before.customIcon?.width === after.customIcon?.width && before.customIcon?.height === after.customIcon?.height
@@ -297,12 +294,6 @@ export default function EditorSurface(props: EditorProps) {
   const selectionAfterCommit = useRef<string[] | null>(null)
   const [tool, setTool] = useState<Tool>('select')
   const [template, setTemplate] = useState<LibraryItem>(genericLibrary[3])
-  const [favoriteIcons, setFavoriteIcons] = useState<string[]>([])
-  const toggleFavorite = useCallback((icon: string) => {
-    if (!libraryItems.some(item => item.icon === icon)) return
-    setFavoriteIcons(current => current.includes(icon) ? current.filter(key => key !== icon) : current.length < 12 ? [...current, icon] : current)
-  }, [])
-  const clearFavorites = useCallback(() => setFavoriteIcons([]), [])
   const [recentIcons, setRecentIcons] = useState<string[]>([])
   const pendingInsertions = useRef<{ documentId: string; revision: number; entityId: string; icon: string }[]>([])
   const clearRecents = useCallback(() => { pendingInsertions.current = []; setRecentIcons([]) }, [])
@@ -318,16 +309,23 @@ export default function EditorSurface(props: EditorProps) {
   const [sidebarView, setSidebarView] = useState<'properties' | 'markdown'>('properties')
   const [markdownMode, setMarkdownMode] = useState<MarkdownMode>('edit')
   const [sidebarWidth, setSidebarWidth] = useState(320)
+  const [sidebarSpace, setSidebarSpace] = useState(() => window.innerWidth - 56)
   const [presentationMarkdownOpen, setPresentationMarkdownOpen] = useState(false)
-  const sidebarMaximum = Math.max(240, Math.min(640, windowWidth - 56))
+  const sidebarMaximum = Math.max(240, Math.min(640, presenting ? windowWidth - 56
+    : windowWidth <= 900 ? Math.min(sidebarSpace, windowWidth - 56)
+      : windowWidth - 56 - (libraryRequested ? windowWidth <= 1200 ? 205 : 222 : 0) - 240))
   const visibleSidebarWidth = Math.min(sidebarMaximum, Math.max(240, sidebarWidth))
-  const [libraryPinned, setLibraryPinned] = useState(false)
-  const [preferredPanel, setPreferredPanel] = useState<'library' | 'inspector'>('library')
+  const [arrangeMenuOpen, setArrangeMenuOpen] = useState(false)
+  const [topMenuOpen, setTopMenuOpen] = useState<string | null>(null)
+  const { theme, toggleTheme, preferenceError } = useTheme()
   const inspectorIntent = useRef<boolean | null>(null)
-  const bothPanels = windowWidth > 1440 || (windowWidth > 900 && libraryPinned)
-  const libraryOpen = guidePanel === 'library' || (guidePanel !== 'inspector' && libraryRequested && (bothPanels || !inspectorRequested || preferredPanel === 'library'))
-  const inspectorOpen = guidePanel === 'inspector' || (guidePanel !== 'library' && inspectorRequested && (bothPanels || !libraryRequested || preferredPanel === 'inspector'))
+  const libraryOpen = guidePanel === 'library' || (guidePanel !== 'inspector' && libraryRequested)
+  const inspectorOpen = guidePanel === 'inspector' || (guidePanel !== 'library' && inspectorRequested)
   const [exportOpen, setExportOpen] = useState(false)
+  useEffect(() => {
+    if (!writable || presenting || props.isArranging || guideOpen || aboutOpen || commandsOpen || starterOpen || connectedPicker || exportOpen) setArrangeMenuOpen(false)
+    if (presenting || props.isArranging || guideOpen || aboutOpen || commandsOpen || starterOpen || connectedPicker || exportOpen) setTopMenuOpen(null)
+  }, [writable, presenting, props.isArranging, guideOpen, aboutOpen, commandsOpen, starterOpen, connectedPicker, exportOpen])
   const [exportPreset, setExportPreset] = useState<ExportPreset>({})
   const [zoom, setZoom] = useState(1)
   const [connectionStart, setConnectionStart] = useState<string | null>(null)
@@ -336,6 +334,21 @@ export default function EditorSurface(props: EditorProps) {
   const [isImportingIcon, setIsImportingIcon] = useState(false)
   const iconInput = useRef<HTMLInputElement>(null)
   const canvasElement = useRef<HTMLElement>(null)
+  useLayoutEffect(() => {
+    const canvas = canvasElement.current
+    if (!canvas || windowWidth > 900 || presenting) return
+    let previousWidth = -1
+    const measure = () => {
+      const available = Math.floor(canvas.getBoundingClientRect().width)
+      if (available < 240 || available === previousWidth) return
+      previousWidth = available
+      setSidebarSpace(current => current === available ? current : available)
+    }
+    measure()
+    const observer = frameResizeObserver(measure)
+    observer.observe(canvas)
+    return () => observer.disconnect()
+  }, [windowWidth, presenting, libraryOpen, inspectorOpen])
   const importEpoch = useRef(0)
   const importRequest = useRef(0)
   const mounted = useRef(true)
@@ -530,7 +543,7 @@ export default function EditorSurface(props: EditorProps) {
       setCanvasBounds(current => Object.keys(next).every(key => current[key as keyof typeof next] === next[key as keyof typeof next]) ? current : next)
     }
     measure()
-    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure)
+    const observer = frameResizeObserver(measure)
     observer?.observe(canvas); window.addEventListener('resize', measure)
     return () => { observer?.disconnect(); window.removeEventListener('resize', measure) }
   }, [inlineEdit?.id, windowWidth, libraryOpen, inspectorOpen])
@@ -597,7 +610,6 @@ export default function EditorSurface(props: EditorProps) {
         selectionAfterCommit.current = [entity.id]
       }
       setTool('select'); setConnectionStart(null)
-      if (window.innerWidth <= 900) { setLibraryOpen(false); setInspectorOpen(false) }
     } catch (error) {
       if (mounted.current && request === importRequest.current) setNotice(error instanceof Error ? error.message : 'Image import failed. Choose a valid supported image.')
     } finally {
@@ -631,48 +643,40 @@ export default function EditorSurface(props: EditorProps) {
     editMetadata({ grid: { ...grid, ...patch } }, typing)
   }
   function openLibrary() {
-    finish(); setLibraryRequested(true); setPreferredPanel('library')
-    if (!bothPanels) { setInspectorRequested(false); inspectorIntent.current = false }
+    setLibraryRequested(true)
+    if (windowWidth <= 900) requestAnimationFrame(() => editorElement.current?.querySelector<HTMLElement>('.library')?.scrollIntoView?.({ block: 'nearest' }))
   }
   function openInspector(explicit = true) {
     if (!explicit && (windowWidth <= 900 || inspectorIntent.current === false)) return
     setSidebarView('properties')
-    finish(); setInspectorRequested(true); setPreferredPanel('inspector')
+    finish(); setInspectorRequested(true)
     if (explicit) inspectorIntent.current = true
-    if (!bothPanels) setLibraryRequested(false)
   }
   function setLibraryOpen(open: boolean) {
     if (open) { openLibrary(); return }
     finish(); setLibraryRequested(false)
-    if (document.activeElement?.closest('.library')) canvasElement.current?.querySelector<HTMLButtonElement>('[aria-label="Open component library"]')?.focus()
+    if (document.activeElement?.closest('.library')) editorElement.current?.querySelector<HTMLButtonElement>('[aria-label="Add component"]')?.focus()
   }
   function setInspectorOpen(open: boolean) {
     if (open) { openInspector(); return }
     finish(); setInspectorRequested(false); inspectorIntent.current = false
-    if (document.activeElement?.closest('.inspector')) canvasElement.current?.querySelector<HTMLButtonElement>('[aria-label="Open properties"]')?.focus()
+    if (document.activeElement?.closest('.inspector')) canvasElement.current?.querySelector<HTMLButtonElement>('[aria-label="Sidebar"]')?.focus()
   }
   function showSidebar(view: 'properties' | 'markdown') {
     if (presentationActive.current) { setPresentationMarkdownOpen(true); return }
     if (composing.current || inlineComposing.current) return
-    setSidebarView(view); setInspectorRequested(true); setPreferredPanel('inspector'); inspectorIntent.current = true
-    if (!bothPanels) setLibraryRequested(false)
+    setSidebarView(view); setInspectorRequested(true); inspectorIntent.current = true
+    if (windowWidth <= 900) requestAnimationFrame(() => editorElement.current?.querySelector<HTMLElement>('.inspector')?.scrollIntoView?.({ block: 'nearest' }))
   }
   function closeSidebar() {
     const pending = transaction.current?.command
     const pendingDescription = pending?.type === 'metadata' && Object.hasOwn(pending.patch, 'description')
     if (!presentationActive.current && !pendingDescription && !finish()) return
-    const label = presenting || sidebarView === 'markdown' ? 'Open Markdown' : 'Open properties'
-    const scope = presenting ? '.presentation-controls' : '.canvas-navigation'
+    const label = presenting ? 'Open Markdown' : 'Sidebar'
+    const scope = presenting ? '.presentation-controls' : '.canvas-toolbar'
     editorElement.current?.querySelector<HTMLButtonElement>(`${scope} [aria-label="${label}"]`)?.focus({ preventScroll: true })
     if (presentationActive.current) setPresentationMarkdownOpen(false)
     else { setInspectorRequested(false); inspectorIntent.current = false }
-  }
-  function toggleLibraryPin() {
-    finish(); setLibraryPinned(!libraryPinned)
-    if (libraryPinned && windowWidth <= 1440 && inspectorRequested) {
-      if (preferredPanel === 'inspector') setLibraryRequested(false)
-      else { setInspectorRequested(false); inspectorIntent.current = false }
-    }
   }
   useEffect(() => {
     const resize = () => setWindowWidth(window.innerWidth)
@@ -685,6 +689,8 @@ export default function EditorSurface(props: EditorProps) {
     if (hidden) { finish(); canvasElement.current?.focus() }
   }, [libraryOpen, inspectorOpen])
   function chooseTool(next: Tool) {
+    if (presentationActive.current || guideActive.current) return
+    if (!writable && next === 'component') { openLibrary(); return }
     if (!writable && next !== 'select' && next !== 'pan') return
     finish(); setTool(next); setConnectionStart(null); setNotice('')
     if (next === 'connector') startResize()
@@ -739,12 +745,11 @@ export default function EditorSurface(props: EditorProps) {
       emit({ type: 'insertOnConnection', connectionId: connection.id, entity, upstreamId: nextId(), downstreamId: nextId() })
     } else emit({ type: 'addEntity', entity })
     selectionAfterCommit.current = [entity.id]; setTool('select'); setConnectionStart(null)
-    if (window.innerWidth <= 900) { setLibraryOpen(false); setInspectorOpen(false) }
   }
   function chooseComponent(item: LibraryItem) {
     if (!writable) return
     setTemplate(item)
-    setTool('component'); if (window.innerWidth <= 900) { setLibraryOpen(false); setInspectorOpen(false) }
+    setTool('component')
   }
   function chooseConnectedComponent(item: LibraryItem) {
     const picker = connectedPicker
@@ -915,7 +920,7 @@ export default function EditorSurface(props: EditorProps) {
     catch (error) { setNotice(error instanceof Error ? error.message : 'Edit could not be committed.'); return }
     if (!finishInline() || !finish()) return
     const focus = entryFocus.current ?? lastCommit.current?.focus ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null)
-    snapshot.current = { document: props.document, viewport: { ...getViewport() }, libraryRequested, inspectorRequested, libraryPinned, preferredPanel, inspectorIntent: inspectorIntent.current, sidebarView, markdownMode, sidebarWidth, tool, selectedIds: [...selectedIds], selectedEdges: [...selectedEdges], focus, focusLabel: focus?.getAttribute('aria-label') ?? null }
+    snapshot.current = { document: props.document, viewport: { ...getViewport() }, libraryRequested, inspectorRequested, inspectorIntent: inspectorIntent.current, sidebarView, markdownMode, sidebarWidth, tool, selectedIds: [...selectedIds], selectedEdges: [...selectedEdges], focus, focusLabel: focus?.getAttribute('aria-label') ?? null }
     entryFocus.current = null
     if (expected) { entryCommit.current = expected; setNotice('Edit has not yet been accepted.'); return }
     activatePresentation()
@@ -938,7 +943,7 @@ export default function EditorSurface(props: EditorProps) {
     if (ownsFullscreen.current && document.fullscreenElement) void document.exitFullscreen?.().catch(() => {})
     ownsFullscreen.current = false
     if (!restore || !saved) return
-    setLibraryRequested(saved.libraryRequested); setInspectorRequested(saved.inspectorRequested); setLibraryPinned(saved.libraryPinned); setPreferredPanel(saved.preferredPanel); inspectorIntent.current = saved.inspectorIntent
+    setLibraryRequested(saved.libraryRequested); setInspectorRequested(saved.inspectorRequested); inspectorIntent.current = saved.inspectorIntent
     setSidebarView(saved.sidebarView); setMarkdownMode(saved.markdownMode); setSidebarWidth(saved.sidebarWidth)
     setTool(storageWritable ? saved.tool : saved.tool === 'pan' ? 'pan' : 'select'); setSelectedIds(saved.selectedIds); setSelectedEdges(saved.selectedEdges)
     setZoom(saved.viewport.zoom); void setViewport(saved.viewport, { duration: 0 })
@@ -970,7 +975,7 @@ export default function EditorSurface(props: EditorProps) {
       let active = true
       const reframe = () => { if (active && presentationActive.current) currentFitCanvas.current(selectedIds.length > 0) }
       exitButton.current?.focus()
-      const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(reframe)
+      const observer = frameResizeObserver(reframe)
       if (canvas) {
         observer?.observe(canvas)
         for (const overlay of canvas.querySelectorAll<HTMLElement>('.canvas-heading, .presentation-controls, .canvas-bottom-chrome, .presentation-markup-toolbar')) observer?.observe(overlay)
@@ -1019,7 +1024,10 @@ export default function EditorSurface(props: EditorProps) {
     const bounds = included ? getNodesBounds(scene.entities.filter(entity => included.has(entity.id)).map(entity => ({ id: entity.id, position: entity.absolute, width: entity.width, height: entity.height, data: {} }))) : scene.contentBounds
     const viewport = getViewportForBounds(bounds, right - left, bottom - top, .001, selectionOnly ? 2 : .9, 0)
     const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-    void setViewport({ zoom: viewport.zoom, x: left + (right - left - bounds.width * viewport.zoom) / 2 - bounds.x * viewport.zoom, y: top + (bottom - top - bounds.height * viewport.zoom) / 2 - bounds.y * viewport.zoom }, { duration: presenting || reducedMotion ? 0 : 200 })
+    const next = { zoom: viewport.zoom, x: left + (right - left - bounds.width * viewport.zoom) / 2 - bounds.x * viewport.zoom, y: top + (bottom - top - bounds.height * viewport.zoom) / 2 - bounds.y * viewport.zoom }
+    const current = getViewport()
+    if (Math.abs(current.x - next.x) < 1e-6 && Math.abs(current.y - next.y) < 1e-6 && Math.abs(current.zoom - next.zoom) < 1e-6) return
+    void setViewport(next, { duration: presenting || reducedMotion ? 0 : 200 })
   }
   // Pseudocode: wait until React Flow is ready; skip while still showing the empty mount
   // placeholder; otherwise consume the one-shot and fit (a fresh blank consumes it with a no-op fit).
@@ -1068,7 +1076,7 @@ export default function EditorSurface(props: EditorProps) {
     const cancelActiveGesture = (event: globalThis.KeyboardEvent) => {
       if (event.key !== 'Escape' || !physicalPress.current || !engineGesture.current) return
       if (guideActive.current || presentationActive.current || composing.current || inlineComposing.current || inlineRef.current || event.isComposing || event.keyCode === 229) return
-      if (starterOpen || commandsOpen || connectedPicker || exportOpen || contextMenu || entryCommit.current) return
+      if (starterOpen || commandsOpen || connectedPicker || exportOpen || contextMenu || arrangeMenuOpen || topMenuOpen || entryCommit.current) return
       if ((event.target as HTMLElement)?.closest?.('input, textarea, select, [contenteditable="true"]')) return
       event.preventDefault(); event.stopPropagation()
       cancelGesture(); setTool('select'); setConnectionStart(null)
@@ -1093,10 +1101,12 @@ export default function EditorSurface(props: EditorProps) {
       if (connectedPicker) return
       if (exportOpen) { if (event.key === 'Escape') { event.preventDefault(); closeExport('escape') }; return }
       if (contextMenu) return
+      if (topMenuOpen) return
+      if (arrangeMenuOpen) { if (event.key === 'Escape') { event.preventDefault(); setArrangeMenuOpen(false) }; return }
       if (ownsFocus && (event.key === 'ContextMenu' || (event.key === 'F10' && event.shiftKey && !modifier && !event.altKey))) { event.preventDefault(); keyboardContext(active); return }
       if (modifier && key === 'k' && !event.altKey) { event.preventDefault(); openCommands(); return }
       if (key === 'f2' && !modifier && !event.altKey) { event.preventDefault(); if (writable) openInline(); return }
-      if (key === 'escape') { cancelGesture(); setTool('select'); setConnectionStart(null); setExportOpen(false); setLibraryOpen(false); setInspectorOpen(false); return }
+      if (key === 'escape') { cancelGesture(); setTool('select'); setConnectionStart(null); setExportOpen(false); setInspectorOpen(false); return }
       if (modifier && key === 'c') { event.preventDefault(); copySelection(); return }
       if (!writable) return
       if (modifier && key === 'z') { event.preventDefault(); if (event.shiftKey) redo(); else undo(); return }
@@ -1125,17 +1135,19 @@ export default function EditorSurface(props: EditorProps) {
   }), [ordered, scene, paint, measurements, selectedIds, writable, presenting, startResize, quickAddSourceId, openConnectedPicker, deleteComponent, gestureEpoch])
   const edges = useMemo<ArchitectureEdge[]>(() => scene.connections.map(item => ({ id: item.id, type: 'architecture', source: item.from, target: item.to, sourceHandle: item.sourceSide && item.sourceSide !== 'auto' ? item.sourceSide : sideAtPoint(diagram, item.from, item.start), targetHandle: item.targetSide && item.targetSide !== 'auto' ? item.targetSide : sideAtPoint(diagram, item.to, item.end), selected: !presenting && selectedEdges.includes(item.id), reconnectable: writable, data: { connection: item, backgroundColor: scene.connectionBackgrounds[item.id] }, zIndex: paint.connectionZIndex })), [scene, paint, diagram, selectedEdges, writable, presenting])
   const customBackground = !isWhiteBackground(scene.backgroundColor)
+  // Workspace appearance is deliberately separate from the canonical scene:
+  // explicit colors, Present, JSON and all export backgrounds stay unchanged.
+  const workspaceBackground = !presenting && theme === 'light' && diagram.backgroundColor === undefined ? '#faf8f3' : scene.backgroundColor
   const panelTitle = multiSelection ? 'Selection' : selected ? ({ component: 'Component', boundary: 'Boundary', text: 'Text', rectangle: 'Rectangle' })[selected.kind] : connection ? 'Connection' : 'Document'
   const field = (label: string, value: string, maxLength: number, onDraft: (value: string) => void, multiline = false) => <DraftField label={label} value={value} maxLength={maxLength} disabled={!writable} multiline={multiline} onDraft={onDraft} onFinish={() => finish()} onCancel={clearPreview} deferFinish={() => starterOpening.current} />
   const descriptionEditor = <MarkdownDescription value={diagram.description ?? ''} mode={markdownMode} writable={writable} presenting={presenting} onModeChange={setMarkdownMode} onDraft={value => editMetadata({ description: value === '' ? undefined : value }, true)} onFinish={() => finish()} onCancel={clearPreview} deferFinish={() => starterOpening.current} />
-  const descriptionDraft = transaction.current?.command.type === 'metadata' && Object.hasOwn(transaction.current.command.patch, 'description')
   const mcpInteraction = useRef<() => string | null>(() => 'Editor loading')
   mcpInteraction.current = () => {
     if (presentationActive.current || entryCommit.current) return 'Presentation'
     if (composing.current || inlineComposing.current) return 'IME composition'
     if (transaction.current || inlineRef.current || draft) return 'Unfinished edit'
     if (physicalPress.current || connectionStart) return 'Active gesture'
-    if (guideActive.current || guideOpening.current || guideOpen || aboutOpen || commandsOpen || starterOpen || connectedPicker || exportOpen || contextMenu) return 'Open modal or menu'
+    if (guideActive.current || guideOpening.current || guideOpen || aboutOpen || commandsOpen || starterOpen || connectedPicker || exportOpen || contextMenu || arrangeMenuOpen || topMenuOpen) return 'Open modal or menu'
     if (isImportingIcon) return 'Icon import in progress'
     if (document.activeElement instanceof HTMLElement && editorElement.current?.contains(document.activeElement) &&
         document.activeElement.matches('input, textarea, select, [contenteditable="true"]')) return 'Focused edit control'
@@ -1222,7 +1234,7 @@ export default function EditorSurface(props: EditorProps) {
   useLayoutEffect(() => {
     if (guideOpen || !guideReturn.current) return
     guideReturn.current = false
-    const help = editorElement.current?.querySelector<HTMLButtonElement>('[aria-label="Help"]')
+    const help = editorElement.current?.querySelector<HTMLButtonElement>('[aria-label="Settings menu"]')
     help?.focus({ preventScroll: true })
     guideActive.current = false
   }, [guideOpen])
@@ -1241,16 +1253,43 @@ export default function EditorSurface(props: EditorProps) {
   useLayoutEffect(() => {
     if (aboutOpen || !aboutReturn.current) return
     aboutReturn.current = false
-    const about = editorElement.current?.querySelector<HTMLButtonElement>(`[aria-label="${informationKind}"]`)
+    const about = editorElement.current?.querySelector<HTMLButtonElement>('[aria-label="Settings menu"]')
     about?.focus({ preventScroll: true })
     guideActive.current = false
   }, [aboutOpen, informationKind])
-  function markAboutOpening() {
-    if (!guideBlocked && !composing.current && !inlineComposing.current) guideOpening.current = true
+  function changeTopMenu(label: string | null) {
+    if (label && (presenting || commandsOpen || starterOpen || connectedPicker || exportOpen || entryCommit.current || guideOpen || aboutOpen || composing.current || inlineComposing.current || contextMenu)) return
+    if (label) setArrangeMenuOpen(false)
+    setTopMenuOpen(label)
   }
+  const viewAction = (run: () => void) => () => {
+    if (!presentationActive.current && !guideActive.current && !commandsOpen && !starterOpen && !connectedPicker && !exportOpen && !entryCommit.current && !composing.current && !inlineComposing.current) run()
+  }
+  const topMenus: TopMenu[] = [
+    { label: 'File', items: [
+      { label: 'New diagram', disabled: !writable, run: origin => openStarterChooser(origin) },
+      { label: 'Open JSON', disabled: !writable, run: () => fileAction(props.onOpen, true) },
+      { label: 'Import skill JSON', disabled: !writable, run: () => fileAction(props.onImport, true) },
+      { label: 'Save JSON', run: () => fileAction(props.onSaveJson) },
+    ] },
+    { label: 'View', items: [
+      { label: 'Component library', checked: libraryOpen, run: viewAction(() => setLibraryRequested(!libraryRequested)) },
+      { label: 'Sidebar', checked: inspectorOpen, run: viewAction(() => { setInspectorRequested(!inspectorRequested); inspectorIntent.current = !inspectorRequested }) },
+      { label: 'Show properties', checked: inspectorOpen && sidebarView === 'properties', run: viewAction(() => showSidebar('properties')) },
+      { label: 'Show Markdown', checked: inspectorOpen && sidebarView === 'markdown', run: viewAction(() => showSidebar('markdown')) },
+      { label: `Switch to ${theme === 'light' ? 'dark' : 'light'} theme`, checked: theme === 'dark', description: preferenceError ?? undefined, run: viewAction(toggleTheme) },
+      { label: 'Fit diagram', disabled: !scene.entities.length, run: viewAction(() => fitCanvas()) },
+      { label: 'Fit selection', disabled: !selectedIds.length, run: viewAction(() => fitCanvas(true)) },
+    ] },
+    { label: 'Settings', items: [
+      { label: 'Settings', disabled: guideBlocked, run: openSettings },
+      { label: 'Help', disabled: guideBlocked, run: openGuide },
+      { label: 'About', disabled: guideBlocked, run: openAbout },
+    ] },
+  ]
 
   return <div ref={editorElement} inert={guideOpen || aboutOpen} onPointerDownCapture={trackSecondary} onMouseDownCapture={trackSecondary} onPointerMoveCapture={moveSecondary} onMouseMoveCapture={moveSecondary} onContextMenuCapture={event => { if ((event.target as Element)?.closest?.('.canvas-surface') && !(event.target as Element)?.closest?.('input, textarea, select, [contenteditable="true"]')) event.preventDefault() }} onDragStartCapture={event => { if ((event.target as HTMLElement).closest('.library-item')) startResize() }} onCompositionStartCapture={() => { composing.current = true }} onCompositionEndCapture={() => { composing.current = false }} onBlurCapture={event => {
-    if (guideActive.current || guideOpening.current || (event.relatedTarget instanceof HTMLElement && ['Help', 'About', 'Settings'].includes(event.relatedTarget.getAttribute('aria-label') ?? ''))) event.stopPropagation()
+    if (guideActive.current || guideOpening.current || exportOpen || arrangeMenuOpen || topMenuOpen || (event.relatedTarget instanceof HTMLElement && (event.relatedTarget.closest('[data-markdown-ui], .application-menubar') || ['Help', 'About', 'Settings', 'Export', 'Auto-arrange'].includes(event.relatedTarget.getAttribute('aria-label') ?? '')))) event.stopPropagation()
   }} onClickCapture={event => { if (guideActive.current && !(event.target as HTMLElement).closest('.help-guide, .about-dialog')) event.stopPropagation() }} onFocusCapture={() => { keyboardOwner.current = true }} className={`app-shell${presenting ? ' presenting' : ''}`}>
     {guideOpen && <HelpGuide root={editorElement} onReveal={setGuidePanel} onClose={closeGuide} />}
     {aboutOpen && (informationKind === 'Settings' ? <SettingsDialog onClose={closeAbout} /> : <AboutDialog onClose={closeAbout} />)}
@@ -1261,18 +1300,18 @@ export default function EditorSurface(props: EditorProps) {
     <input ref={iconInput} type="file" aria-label="Import icon file" accept=".svg,.png,.jpg,.jpeg,.gif,.webp" hidden disabled={!writable} onChange={event => void importIconFile(event)} />
     {!presenting && <header className="topbar" inert={commandsOpen || starterOpen}>
       <div className="wordmark" aria-label="Azure Diagram Studio"><img className="brand-icon" src="./branding/logo.svg" alt="" width={36} height={36} /><span className="brand-name">Azure Diagram Studio</span></div>
-      <div className="document-bar"><span className="breadcrumb">Workspace /</span>{field('Document title', diagram.title, 120, value => editMetadata({ title: value }, true))}<span className={`session-state state-${props.saveState}`}><span />{SAVE_LABELS[props.saveState]}</span></div>
-      <div className="top-actions"><IconButton icon={FilePlus2} label="New diagram" disabled={!writable} onPointerDown={() => { starterOpening.current = true }} onClick={event => openStarterChooser(event.currentTarget)} /><IconButton icon={FolderOpen} label="Open JSON" disabled={!writable} onClick={() => fileAction(props.onOpen, true)} /><IconButton icon={FileInput} label="Import skill JSON" disabled={!writable} onClick={() => fileAction(props.onImport, true)} /><IconButton icon={Save} label="Save JSON" onClick={() => fileAction(props.onSaveJson)} /><span className="separator" /><IconButton icon={Undo2} label="Undo" disabled={!writable || !props.canUndo} onClick={undo} /><IconButton icon={Redo2} label="Redo" disabled={!writable || !props.canRedo} onClick={redo} /><button type="button" className="export-button" title="Export" aria-label="Export" aria-expanded={exportOpen} aria-disabled={props.isExporting || props.saveState === 'loading'} onClick={() => { if (!props.isExporting && props.saveState !== 'loading') setExportOpen(!exportOpen) }}>{props.isExporting ? <LoaderCircle size={16} className="spin" /> : <Download size={16} />}<span>Export</span><ChevronDown size={14} /></button></div>
-      <button type="button" className="present-button" aria-label="Present" title="Present" disabled={props.saveState === 'loading' || props.isArranging} onPointerDown={() => { entryFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null }} onMouseDown={event => event.preventDefault()} onClick={enterPresentation}><Presentation size={18} /><span>Present</span></button>
+      <div className="document-bar"><span className="breadcrumb">Workspace /</span>{field('Document title', diagram.title, 120, value => editMetadata({ title: value }, true))}</div>
+      <TopMenus menus={topMenus} open={topMenuOpen} onOpen={changeTopMenu} disabled={presenting || commandsOpen || starterOpen || !!connectedPicker || exportOpen || !!entryCommit.current || guideOpen || aboutOpen} />
+      <div className="top-actions"><IconButton icon={Undo2} label="Undo" disabled={!writable || !props.canUndo} onClick={undo} /><IconButton icon={Redo2} label="Redo" disabled={!writable || !props.canRedo} onClick={redo} /><button type="button" className="export-button" title="Export" aria-label="Export" aria-expanded={exportOpen} aria-disabled={props.isExporting || props.saveState === 'loading'} onClick={() => { if (!props.isExporting && props.saveState !== 'loading') { setTopMenuOpen(null); setExportOpen(!exportOpen) } }}>{props.isExporting ? <LoaderCircle size={16} className="spin" /> : <Download size={16} />}<span>Export</span><ChevronDown size={14} /></button>
+      <button type="button" className="present-button" aria-label="Present" title="Present" disabled={props.saveState === 'loading' || props.isArranging} onPointerDown={() => { entryFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null }} onMouseDown={event => event.preventDefault()} onClick={enterPresentation}><Presentation size={18} /><span>Present</span></button></div>
     </header>}
     <div className="workspace" inert={commandsOpen}>
-      {!presenting && <nav className="tool-rail" aria-label="Drawing tools"><IconButton icon={CircleHelp} label="Help" className="help-trigger" disabled={guideBlocked} onPointerDown={() => { if (!guideBlocked && !composing.current && !inlineComposing.current) guideOpening.current = true }} onMouseDown={event => event.preventDefault()} onClick={openGuide} /><IconButton icon={Info} label="About" className="about-trigger" disabled={guideBlocked} onPointerDown={markAboutOpening} onMouseDown={event => event.preventDefault()} onClick={openAbout} /><IconButton icon={SlidersHorizontal} label="Settings" className="settings-trigger" disabled={guideBlocked} onPointerDown={markAboutOpening} onMouseDown={event => event.preventDefault()} onClick={openSettings} />{tools.map(item => <IconButton key={item.tool} icon={item.icon} label={item.label} active={tool === item.tool} disabled={!writable && item.tool !== 'select' && item.tool !== 'pan'} onClick={() => chooseTool(item.tool)} />)}<IconButton icon={isImportingIcon ? LoaderCircle : ImagePlus} label="Import custom icon" disabled={!writable || isImportingIcon} onClick={openIconPicker} /><IconButton icon={CommandIcon} label="Commands" className="commands-trigger" onMouseDown={event => event.preventDefault()} onClick={openCommands} /><span className="rail-spacer" /><EditorThemeToggle /><IconButton icon={ClipboardPaste} label="Paste selection" disabled={!writable || !hasClipboard} onClick={() => paste()} /><IconButton icon={PanelRight} label="Document properties" data-markdown-ui onMouseDown={event => event.preventDefault()} onClick={() => sidebarView === 'markdown' || descriptionDraft ? showSidebar('properties') : documentProperties()} /><IconButton icon={FileText} label="Open Markdown" active={inspectorOpen && sidebarView === 'markdown'} data-markdown-ui onMouseDown={event => event.preventDefault()} onClick={() => showSidebar('markdown')} /></nav>}
+      {!presenting && <nav className="tool-rail" aria-label="Drawing tools">{tools.map(item => <IconButton key={item.tool} icon={item.icon} label={item.label} active={tool === item.tool} disabled={!writable && item.tool !== 'select' && item.tool !== 'pan' && item.tool !== 'component'} onClick={() => chooseTool(item.tool)} />)}<IconButton icon={isImportingIcon ? LoaderCircle : ImagePlus} label="Import custom icon" disabled={!writable || isImportingIcon} onClick={openIconPicker} /><IconButton icon={CommandIcon} label="Commands" className="commands-trigger" onMouseDown={event => event.preventDefault()} onClick={openCommands} /><span className="rail-spacer" /></nav>}
       <aside className={`library ${!presenting && libraryOpen ? 'open' : ''}`} aria-label="Component library" inert={presenting || !libraryOpen}>
-        <div className="panel-heading"><h2>Components</h2><div className="panel-actions">{windowWidth > 900 && <IconButton icon={libraryPinned ? PinOff : Pin} label={libraryPinned ? 'Unpin component library' : 'Pin component library'} active={libraryPinned} onClick={toggleLibraryPin} />}<IconButton icon={PanelLeftClose} label="Close component library" onClick={() => setLibraryOpen(false)} /></div></div>
-        <CatalogAccordion writable={writable} selectedIcon={tool === 'component' ? template.icon : null} favoriteIcons={favoriteIcons} onToggleFavorite={toggleFavorite} onClearFavorites={clearFavorites} recentIcons={recentIcons} onClearRecents={clearRecents} onChoose={chooseComponent} />
-        <div className="library-bottom"><span className="library-category">ARCHITECTURE</span>{tools.filter(item => ['boundary', 'text', 'rectangle'].includes(item.tool)).map(item => <button type="button" key={item.tool} title={item.label} disabled={!writable} onClick={() => { chooseTool(item.tool); if (window.innerWidth <= 900) { setLibraryOpen(false); setInspectorOpen(false) } }}><item.icon size={17} />{item.tool.charAt(0).toUpperCase() + item.tool.slice(1)}<Plus size={14} /></button>)}</div>
+        <div className="panel-heading"><h2>Components</h2><div className="panel-actions"><IconButton icon={PanelLeftClose} label="Close component library" onClick={() => setLibraryOpen(false)} /></div></div>
+        <CatalogAccordion writable={writable} selectedIcon={tool === 'component' ? template.icon : null} recentIcons={recentIcons} onClearRecents={clearRecents} onChoose={chooseComponent} />
       </aside>
-      <main ref={canvasElement} tabIndex={-1} className={`canvas-surface tool-${presenting ? 'pan' : tool}`} style={{ backgroundColor: scene.backgroundColor, '--canvas-surface': scene.backgroundColor, '--grid-dot': customBackground ? contrastInk('#c4d2ce', scene.backgroundColor, 3) : '#c4d2ce' } as CSSProperties} aria-label="Architecture canvas" onPointerMove={event => { if (presentationActive.current && pointerEnabled && canvasElement.current) { const bounds = canvasElement.current.getBoundingClientRect(); setPointer({ x: event.clientX - bounds.left, y: event.clientY - bounds.top }) } }} onDragOver={event => { if (writable && !presentationActive.current && event.dataTransfer.types.includes(DROP_TYPE)) { event.preventDefault(); event.dataTransfer.dropEffect = 'copy' } }} onDrop={event => {
+      <main ref={canvasElement} tabIndex={-1} className={`canvas-surface tool-${presenting ? 'pan' : tool}`} style={{ backgroundColor: workspaceBackground, '--canvas-surface': workspaceBackground, '--grid-dot': customBackground ? contrastInk('#c4d2ce', scene.backgroundColor, 3) : '#c4d2ce' } as CSSProperties} aria-label="Architecture canvas" onPointerMove={event => { if (presentationActive.current && pointerEnabled && canvasElement.current) { const bounds = canvasElement.current.getBoundingClientRect(); setPointer({ x: event.clientX - bounds.left, y: event.clientY - bounds.top }) } }} onDragOver={event => { if (writable && !presentationActive.current && event.dataTransfer.types.includes(DROP_TYPE)) { event.preventDefault(); event.dataTransfer.dropEffect = 'copy' } }} onDrop={event => {
         event.preventDefault()
         if (!writable || presentationActive.current || guideActive.current || blockedGesture()) return
         const item = readDrop(event.dataTransfer.getData(DROP_TYPE))
@@ -1280,7 +1319,12 @@ export default function EditorSurface(props: EditorProps) {
         insertComponent(item, screenToFlowPosition({ x: event.clientX, y: event.clientY }, { snapToGrid: false }))
       }}>
         <div className="canvas-heading" data-fit-chrome="top">{diagram.synthetic && <div className="canvas-kicker" style={customBackground ? { color: contrastInk('#849293', scene.backgroundColor, 7) } : undefined}><span className="synthetic-dot" />SYNTHETIC EXAMPLE</div>}<h1 style={customBackground ? { color: contrastInk('#203637', scene.backgroundColor, 7) } : undefined}>{diagram.title || 'Untitled architecture'}</h1>{diagram.subtitle && <div className="diagram-meta" style={customBackground ? { color: contrastInk('#849293', scene.backgroundColor, 7) } : undefined}>{diagram.subtitle}</div>}</div>
-        {!presenting && <div className="canvas-toolbar" data-fit-chrome="top"><div className="direction-control" role="group" aria-label="Layout direction"><IconButton icon={ArrowRight} label="Right layout" active={diagram.direction === 'RIGHT'} disabled={!writable} className={diagram.direction === 'RIGHT' ? 'chosen' : ''} onClick={() => editMetadata({ direction: 'RIGHT' })} /><IconButton icon={ArrowDown} label="Down layout" active={diagram.direction === 'DOWN'} disabled={!writable} className={diagram.direction === 'DOWN' ? 'chosen' : ''} onClick={() => editMetadata({ direction: 'DOWN' })} /></div><button type="button" className="arrange-button" title="Auto-arrange" aria-label="Auto-arrange" disabled={!writable || props.isArranging || !diagram.entities.some(entity => entity.kind === 'component' || entity.kind === 'boundary')} onClick={() => { if (!presentationActive.current && writable && finish()) props.onArrange(diagram.direction) }}>{props.isArranging ? <LoaderCircle size={15} className="spin" /> : <LayoutGrid size={15} />}<span>Auto-arrange</span></button></div>}
+        {!presenting && <div className="canvas-toolbar" data-fit-chrome="top">
+          <ArrangeMenu open={arrangeMenuOpen} onOpen={open => { if (!open || (!composing.current && !inlineComposing.current && !guideActive.current && !guideOpening.current && !presentationActive.current && !guideOpen && !aboutOpen && !commandsOpen && !starterOpen && !connectedPicker && !exportOpen)) setArrangeMenuOpen(open) }} disabled={!writable || props.isArranging || !diagram.entities.some(entity => entity.kind === 'component' || entity.kind === 'boundary')} busy={props.isArranging} onArrange={(direction, options) => {
+            if (!presentationActive.current && !guideActive.current && !guideOpening.current && !composing.current && !inlineComposing.current && !guideOpen && !aboutOpen && !commandsOpen && !starterOpen && !connectedPicker && !exportOpen && writable && !props.isArranging && finish()) props.onArrange(direction, options)
+          }} />
+          <IconButton icon={PanelRight} label="Sidebar" className="sidebar-trigger" active={inspectorOpen} aria-expanded={inspectorOpen} data-markdown-ui onMouseDown={event => event.preventDefault()} onClick={() => { if (!composing.current && !inlineComposing.current) { if (inspectorOpen) closeSidebar(); else showSidebar(sidebarView) } }} />
+        </div>}
         <ReactFlow<ArchitectureNode, ArchitectureEdge> nodes={nodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} zIndexMode="manual" elevateNodesOnSelect={false} elevateEdgesOnSelect={false} connectionMode={ConnectionMode.Loose} onNodesChange={updateNodes} onNodeDragStart={startResize} onNodeDrag={(_event, _node, moved) => moveNodes(moved, false)} onNodeDragStop={(_event, _node, moved) => moveNodes(moved, true)} onNodeClick={(event, node) => selectEntity(node.id, event)} onNodeDoubleClick={(event, node) => { event.preventDefault(); event.stopPropagation(); openInline(node.id, 'entity', event.currentTarget as HTMLElement) }} onEdgeDoubleClick={(event, edge) => { event.preventDefault(); event.stopPropagation(); openInline(edge.id, 'connection', event.currentTarget as HTMLElement) }} onEdgeClick={(event, edge) => { if (presentationActive.current) return; finish(); setSelectedIds([]); setSelectedEdges(current => event.shiftKey || event.ctrlKey || event.metaKey ? current.includes(edge.id) ? current.filter(id => id !== edge.id) : [...current, edge.id] : [edge.id]); openInspector(false) }} onEdgesChange={changes => { if (presentationActive.current) return; if (changes.some(change => change.type === 'select')) finish(); setSelectedEdges(current => { const next = new Set(current); for (const change of changes) if (change.type === 'select') { if (change.selected) next.add(change.id); else next.delete(change.id) } return [...next] }) }}
           onNodeContextMenu={(event, node) => openContext(event, 'entity', node.id)} onEdgeContextMenu={(event, edge) => openContext(event, 'connection', edge.id)} onPaneContextMenu={event => openContext(event, 'pane')}
           onPaneClick={insertAt} onConnectStart={startResize} onReconnectStart={startResize} onConnect={next => connect(next)} onReconnect={(edge, next) => connect(next, edge.id)} isValidConnection={next => !presentationActive.current && writable && !inlineRef.current && !blockedGesture() && canConnect(diagram, next.source, next.target)} onMove={updateCamera} onInit={() => { initialFrame.current.flowReady = true; settleInitialFrame() }} minZoom={0.001} maxZoom={2} snapToGrid={!presenting && grid.snap} snapGrid={[grid.spacing, grid.spacing]} panOnDrag={presenting || tool === 'pan' ? true : [1, 2]} elementsSelectable={!presenting} nodesFocusable={!presenting} edgesFocusable={!presenting} selectionOnDrag={!presenting && tool === 'select'} nodesDraggable={writable && !visibleInline && tool === 'select'} nodesConnectable={writable && !visibleInline} edgesReconnectable={writable && !visibleInline} deleteKeyCode={null}>
@@ -1289,10 +1333,9 @@ export default function EditorSurface(props: EditorProps) {
         {visibleInline && anchor && <InlineLabel key={`${visibleInline.kind}:${visibleInline.id}`} edit={visibleInline} style={{ width: inlineWidth, left: canvasBounds.width ? Math.max(4, Math.min(canvasBounds.width - inlineWidth - 4, inlineLeft)) : inlineLeft, top: canvasBounds.height ? Math.max(4, Math.min(canvasBounds.height - (visibleInline.multiline ? 108 : 44) - 4, inlineTop)) : inlineTop }} onDraft={draftInline} onFinish={() => finishInline(true)} onCancel={() => cancelInline()} onComposing={active => { inlineComposing.current = active }} deferFinish={() => starterOpening.current} />}
         <div className="canvas-bottom-chrome">
         {diagram.legendVisible && scene.legendItems.length > 0 && <div className="canvas-legend" style={customBackground ? { color: contrastInk('#7c8e90', scene.backgroundColor) } : undefined} data-fit-chrome="bottom" aria-label="Diagram legend" role="list">{scene.legendItems.map((item, index) => <span key={`${item.label}-${index}`} role="listitem"><i style={{ borderColor: contrastInk(resolveColor(item.color).main, scene.backgroundColor, 3), borderStyle: item.dashed ? 'dashed' : 'solid' }} />{item.label}</span>)}</div>}
-        {!presenting && (selectedIds.length > 0 || selectedEdges.length > 0) && <div className="canvas-selection-toolbar" data-fit-chrome="bottom" aria-label="Selection actions">{entityActions}<IconButton icon={ClipboardPaste} label="Paste clipboard" disabled={!writable || !hasClipboard} onClick={() => paste()} /><span className="separator" /><IconButton icon={Group} label="Group selection" disabled={!writable || !selectedIds.length} onClick={groupSelection} /><IconButton icon={Ungroup} label="Ungroup selection" disabled={!writable || !boundaries.length} onClick={ungroupSelection} />{connection && <IconButton icon={Plus} label={`Insert ${template.label} on connection`} disabled={!writable} onClick={() => insertComponent(template)} />}</div>}
+        {!presenting && (selectedIds.length > 0 || selectedEdges.length > 0) && <div className="canvas-selection-toolbar" data-fit-chrome="bottom" aria-label="Selection actions">{entityActions}<span className="separator" /><IconButton icon={Group} label="Group selection" disabled={!writable || !selectedIds.length} onClick={groupSelection} /><IconButton icon={Ungroup} label="Ungroup selection" disabled={!writable || !boundaries.length} onClick={ungroupSelection} />{connection && <IconButton icon={Plus} label={`Insert ${template.label} on connection`} disabled={!writable} onClick={() => insertComponent(template)} />}</div>}
         <div className="canvas-navigation">
         {presenting && <div className="presentation-status" data-fit-chrome="bottom" role="status" aria-live="polite">{notice || props.message || (props.readOnly ? 'Read-only' : '')}</div>}
-        {!presenting && <div className="mobile-controls" data-fit-chrome="bottom"><IconButton icon={Boxes} label="Open component library" active={libraryOpen} onClick={() => libraryOpen ? setLibraryOpen(false) : openLibrary()} /><IconButton icon={PanelRight} label="Open properties" active={inspectorOpen && sidebarView === 'properties'} data-markdown-ui onMouseDown={event => event.preventDefault()} onClick={() => inspectorOpen && sidebarView === 'properties' ? closeSidebar() : showSidebar('properties')} /><IconButton icon={FileText} label="Open Markdown" active={inspectorOpen && sidebarView === 'markdown'} data-markdown-ui onMouseDown={event => event.preventDefault()} onClick={() => showSidebar('markdown')} /></div>}
         <div className="zoom-controls" data-fit-chrome="bottom"><IconButton icon={Minus} label="Zoom out" onClick={() => void zoomOut({ duration: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 0 : 150 })} /><span>{Math.round(zoom * 100)}%</span><IconButton icon={Plus} label="Zoom in" onClick={() => void zoomIn({ duration: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 0 : 150 })} /><span className="separator" /><IconButton icon={Maximize2} label="Fit diagram" disabled={!scene.entities.length} onClick={() => fitCanvas()} /><IconButton icon={Scan} label="Fit selection" disabled={!selectedIds.length} onClick={() => fitCanvas(true)} /></div>
         </div></div>
         {presenting && <>
