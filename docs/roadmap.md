@@ -113,10 +113,55 @@ files, including App28; desktop85/85/checksums7/7/typecheck/build/stage PASS.
 All product/stage outputs match phaseA; no dependency drift. Wrapper's first
 exit1 was isolated to two parent-owned docs changing during the run, retained
 and reconciled without rewriting the failure. No product/test/tooling drift.
-Parent now seals/commits/pushes the approved source allowlist, then supplies
-the immutable SHA for sequential two-target packaging.
+Approved108-file source is committed and atomically pushed to feature/default:
+`41f615345c0d5df8b55d99c6628eb379b356fb28`, tree
+`e8d432666369a4b055bc36fc3ec2fb9fb2916581`; both remote refs read back exact.
+Both isolated ARM64/x64 portables are built from that immutable commit:
+403604764/404457642 bytes, unsigned, identical47-file ASAR. All15 build/static
+commands accepted and protected outputs preserved; build owner terminal-free.
+First independent ARM64 launch verifies actual runtime/security/ASAR identity,
+but144-IV-01 chooser assertion observes a saved-blank reload, not pristine
+navigation. Existing driver reloads unconditionally after DOMContentLoaded;
+autosave/recovery explains why that observation cannot prove a chooser defect.
+Directed observer corrections now prove pristine chooser/recovery and actual
+inline-SVG artwork. Latest native ARM64 attempt accepts four general stages;
+the export/clipboard stage stops before Copy image because the evidence driver
+omits Electron's clipboard capability. Actual JSON/SVG/PNG/ZIP/Markdown files
+were produced, but their enclosing stage is not accepted. No complete runtime
+cell is accepted; x64/MCP/routing cells remain unrun.
+The PO explicitly extended the three-correction limit for evidence-backed
+adapter-only fixes and complete verification before publication. Attempt5
+captures missing clipboard/dialog capabilities; 29 static assertions and
+adapter syntax checks pass, but the actual ARM64 run still lacks
+`clipboard.readImage`. Four stages pass and the clipboard stage remains
+blocked; static capture assertions did not prove runtime API capability.
+Actual Electron 44 has asynchronous clipboard read/write, not legacy image
+methods. Existing desktop security denies browser clipboard writes; the
+product's intended denial path saves a PNG. The PO explicitly chose to preserve
+that policy and verify/document the PNG fallback instead of a product/security
+change. Four independent MCP/routing cells in attempt8 all stop at stale
+post-replay startup-dialog assumptions before exercising their actual gates.
+Attempt9 runs all six cells once. ARM64 general reports 7/7 stages passed,
+but direct history invariance after fallback needs supplemental evidence.
+ARM64 routing fully passes 12 route cases and native cancellation/retry guards.
+ARM64 MCP-output hits an observer missing `hash` import after ten HTTP200 calls.
+x64 general/MCP stop at an initial-dialog state mismatch; x64 routing captures
+12 routes then the domain-max post-cancel retry hits the unchanged 4000ms MCP
+deadline with a worker still observed at failure (later closed).
+All owned processes/listeners are closed; first receipts remain intact.
+The PO explicitly chose to HOLD BOTH BUILDS and diagnose the x64 timeout,
+rather than publish ARM64 alone. Next: bounded timing/worker/broker diagnosis
+of that exact failed operation, not an unchanged favorable full-matrix retry.
+Observer fixes and missing coverage remain separate tasks; no product fix
+or deadline relaxation is inferred from this diagnosis authority. Original
+deadlines, security and downstream assertions remain; no product change,
+rebuild, gate waiver or unchanged favorable-sample retry is authorized.
+No0.5.0 tag yet; oldrefs untouched.
 No test/deadline/oracle relaxation, product speculation or unchanged full retry.
-No0.5.0 EXE, release or installation exists yet; exact install path pending.
+Publication is blocked pending diagnosis and the remaining exact-package gates,
+followed by sealed
+publication/public downloads/current-user installation. No0.5.0 release or
+installation exists yet; exact install path pending.
 
 Execute in order; skip only blocked dependencies, not acceptance criteria.
 Update this table before every handoff with evidence and the exact next action.

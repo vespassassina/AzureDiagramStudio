@@ -4,6 +4,11 @@
 Favorites, export and compact-layout changes described below.
 [DGM-144](specs/DGM-144.md) is qualifying new Windows ARM64/x64 packages;
 the existing0.3.0 download links remain authoritative until publication.
+The 0.5.0 Windows desktop retains its clipboard-denial policy: **Copy image**
+saves a plain PNG and reports that copying was unavailable or denied.
+**Include Markdown** does not turn that fallback into a ZIP. Open the saved
+PNG to copy or insert it with another application; do not change security
+permissions to bypass this policy.
 The historical source MCP PNG4000ms timeout remains a
 [known unresolved qualification limit](verification/DGM-143.md), not a fixed
 issue or an authorized deadline increase.

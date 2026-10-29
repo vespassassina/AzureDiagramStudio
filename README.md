@@ -82,6 +82,12 @@ explicit limits (32 MiB/member or embedded Markdown, 64 MiB/archive).
 Errors report without a partial download. These are source-only features, not
 updates to any published executable. MCP integration follows separately.
 
+The Windows desktop security policy denies browser clipboard writes.
+**Copy image** therefore saves a plain PNG and reports that the image was not
+copied; **Include Markdown** does not change this fallback into a ZIP.
+Open the saved PNG to copy or insert it using another application. No clipboard
+permission exception or security-policy change is included in 0.5.0.
+
 ## Windows 0.5.0 Release Preparation
 
 Current source is version **0.5.0**, incorporating conventional menus and the

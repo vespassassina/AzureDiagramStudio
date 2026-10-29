@@ -465,3 +465,47 @@ dependency/security/CI change, signing or Mac publication is inferred.
 Who: Product Owner authorizes publication and local installation; Orchestrator
 owns source/sealing/publication/install, scoped owner builds, separate verifier
 qualifies packages and anonymous public downloads.
+
+## 2026-10-29: Preserve Clipboard Denial And Qualify The PNG Fallback
+
+Context: DGM-144 packaged verification used obsolete Electron image-clipboard
+methods. Actual Electron 44 exposes asynchronous clipboard APIs, while the
+existing desktop policy denies browser clipboard writes. The product already
+reports denial and saves a PNG; unconditional clipboard-success assertions
+do not describe that intended policy-preserving path.
+
+Decision: the PO explicitly selects "Preserve security policy; verify and
+document the PNG fallback (Recommended)" rather than change the product for
+direct image copying. The PO also extends the prior three-correction limit
+for evidence-backed adapter-only fixes, with full verification before release.
+
+Consequences: retain security checks and qualify actual plain PNG bytes,
+truthful denied/fallback status, unchanged document/history, and the absence
+of Markdown ZIP wrapping for Copy image. Document this release limitation.
+No product or permission change, failed-evidence deletion, deadline increase,
+unverified publication or waiver of remaining platform/MCP/routing gates.
+See [DGM-144 acceptance](specs/DGM-144.md#po-selected-clipboard-policy-and-png-fallback).
+
+Who: Product Owner chooses the policy and acceptance behavior; Orchestrator
+records it, implementer adapts the observer, independent verifier checks the
+unchanged exact packages.
+
+## 2026-10-29: Hold Both Windows Builds For X64 Timeout Diagnosis
+
+Context: Attempt9 accepts ARM64 routing and reports passing ARM64 general
+stages with a remaining history-coverage gap. Other observer issues remain.
+The emulated x64 domain-max post-cancel arrange retry reaches the unchanged
+4000ms MCP deadline with a worker still observed at failure, unlike the stale
+observer blockers; the worker later closes and final cleanup is complete.
+
+Decision: the PO explicitly selects "Hold both builds and diagnose the x64
+timeout" rather than publish an ARM64-only release.
+
+Consequences: retain both exact EXEs and first failure; perform bounded
+timing/worker/broker diagnosis of the failing operation before further
+disposition. No public release, timeout increase, speculative product repair,
+favorable unchanged matrix retry or waiver of the remaining gates. Observer
+fixes and history coverage stay independently tracked.
+
+Who: Product Owner chooses the two-target hold; Orchestrator scopes diagnosis
+and records evidence-backed decisions before product changes.
