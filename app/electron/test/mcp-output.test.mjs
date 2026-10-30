@@ -84,3 +84,16 @@ test('should_cancel_output_on_disconnect_and_wall_clock_expiry_without_accepting
   assert.equal((await expired).ok, false)
   assert.equal(broker.complete(late, { ok: true, output: output() }), false)
 })
+test('should_keep_snapshot_and_export_at_the_default_four_second_broker_boundary', async t => {
+  t.mock.timers.enable({ apis: ['Date', 'setTimeout'] })
+  const exportOperation = { name: 'export_diagram', arguments: { stateToken: 'current', format: 'png' } }
+  for (const outputOperation of [operation, exportOperation]) {
+    let sent
+    const broker = createMutationBroker({ send: value => { sent = value } })
+    const started = Date.now(), pending = broker.request(outputOperation)
+    assert.equal(sent.deadline, started + 4_000)
+    t.mock.timers.tick(4_000)
+    assert.deepEqual(await pending, { ok: false, message: 'MCP operation timed out.' })
+    assert.equal(broker.complete(sent.id, { ok: true, output: output() }), false)
+  }
+})

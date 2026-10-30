@@ -509,3 +509,26 @@ fixes and history coverage stay independently tracked.
 
 Who: Product Owner chooses the two-target hold; Orchestrator scopes diagnosis
 and records evidence-backed decisions before product changes.
+
+## 2026-10-30: Use The Native Layout Budget For MCP Arrangement Only
+
+Context: Attempt12's instrumented emulated-x64 retry completed in 2755.6ms;
+the original 4022.6ms failure remains unexplained. The default 4000ms broker
+budget nevertheless differs from the native layout worker's existing15000ms
+cap. No PNG timeout cause or repair was established.
+
+Decision: the PO explicitly approves the arrange-only deadline change and
+rebuilding both packages. [DGM-145](specs/DGM-145.md) gives validated
+`arrange_diagram` a15000ms main-owned absolute budget. PNG, exports and other
+mutations keep4000ms. Existing override behavior and cancellation/stale-state
+guards remain unchanged.
+
+Consequences: implement and independently verify the exact boundaries with
+deterministic RED/GREEN evidence. Commit new source and rebuild both0.5.0
+packages without overwriting the old candidates. Requalify the new exact
+artifacts before publication/install. This is an approved behavioral contract
+change, not erasure of prior failures or a claim that host variance was fixed.
+
+Who: Product Owner approves the contract and two-target rebuild; Orchestrator
+specifies the task, implementer changes the broker/tests, independent verifier
+checks the contract and subsequent packaged behavior.

@@ -128,7 +128,7 @@ export function createSnapshotStore() {
 
 // A single in-flight operation avoids hidden reordering. IDs/deadlines belong to
 // main, are invalidated on unload and never accepted after expiry/cancellation.
-export function createMutationBroker({ send, cancel = () => {}, timeout = 4000 }) {
+export function createMutationBroker({ send, cancel = () => {}, timeout }) {
   let pending
   function clear(message = 'Workspace unavailable.') {
     if (!pending) return
@@ -144,9 +144,10 @@ export function createMutationBroker({ send, cancel = () => {}, timeout = 4000 }
     if (pending) return Promise.resolve({ ok: false, message: 'Another MCP operation is in progress.' })
     if (signal?.aborted) return Promise.resolve({ ok: false, message: 'MCP client disconnected.' })
     return new Promise(resolve => {
-      const id = randomUUID(), deadline = Date.now() + timeout
+      const budget = timeout === undefined ? operation.name === 'arrange_diagram' ? 15_000 : 4_000 : timeout
+      const id = randomUUID(), deadline = Date.now() + budget
       const aborted = () => clear('MCP client disconnected.')
-      const timer = setTimeout(() => clear('MCP operation timed out.'), timeout)
+      const timer = setTimeout(() => clear('MCP operation timed out.'), budget)
       pending = { id, deadline, operation, resolve, timer, removeAbort: () => signal?.removeEventListener('abort', aborted) }
       signal?.addEventListener('abort', aborted, { once: true })
       try { send({ id, deadline, operation }) }

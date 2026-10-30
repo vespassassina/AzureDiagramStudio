@@ -6,6 +6,7 @@ import { readFile } from 'node:fs/promises'
 import { runInNewContext } from 'node:vm'
 
 const operation = { name: 'edit_diagram', arguments: { stateToken: 'state:1', commands: [{ type: 'metadata', patch: { title: 'Edited' } }] } }
+const arrangeOperation = { name: 'arrange_diagram', arguments: { stateToken: 'state:1', direction: 'DOWN' } }
 test('should_validate_exact_bounded_mutation_schemas_and_reject_client_layout', () => {
   assert.equal(mutationTools.length, 5)
   assert.equal(validateMutation(operation), true)
@@ -39,6 +40,51 @@ test('should_correlate_serialize_and_reject_expired_disconnected_reload_requests
   const disconnected = broker.request(operation, controller.signal)
   controller.abort()
   assert.equal((await disconnected).ok, false)
+})
+
+test('should_keep_default_arrangement_active_until_the_native_layout_deadline_and_preserve_explicit_override', async t => {
+  t.mock.timers.enable({ apis: ['Date', 'setTimeout'] })
+  const sent = [], canceled = []
+  const broker = createMutationBroker({ send: value => sent.push(value), cancel: id => canceled.push(id) })
+  const started = Date.now()
+  const pending = broker.request(arrangeOperation)
+  assert.equal(sent[0].deadline, started + 15_000)
+  t.mock.timers.tick(4_000)
+  assert.equal(broker.active(sent[0].id), true)
+  assert.equal(broker.complete(sent[0].id, { ok: false, message: 'Layout rejected.' }), true)
+  assert.deepEqual(await pending, { ok: false, message: 'Layout rejected.' })
+
+  const expiring = broker.request(arrangeOperation)
+  const expiringId = sent[1].id
+  t.mock.timers.tick(15_000)
+  assert.deepEqual(await expiring, { ok: false, message: 'MCP operation timed out.' })
+  assert.deepEqual(canceled, [expiringId])
+  assert.equal(broker.active(expiringId), false)
+  assert.equal(broker.complete(expiringId, { ok: false, message: 'Late layout result.' }), false)
+
+  const controller = new AbortController()
+  const disconnected = broker.request(arrangeOperation, controller.signal)
+  const disconnectedId = sent[2].id
+  controller.abort()
+  assert.deepEqual(await disconnected, { ok: false, message: 'MCP client disconnected.' })
+  assert.equal(broker.complete(disconnectedId, { ok: false, message: 'Late disconnect result.' }), false)
+
+  const unloaded = broker.request(arrangeOperation)
+  const unloadedId = sent[3].id
+  broker.clear('Renderer reloaded.')
+  assert.deepEqual(await unloaded, { ok: false, message: 'Renderer reloaded.' })
+  assert.equal(broker.complete(unloadedId, { ok: false, message: 'Late unload result.' }), false)
+
+  const retry = broker.request(arrangeOperation)
+  assert.equal(broker.complete(sent[4].id, { ok: false, message: 'Retry accepted.' }), true)
+  assert.deepEqual(await retry, { ok: false, message: 'Retry accepted.' })
+
+  const overriddenSent = []
+  const overridden = createMutationBroker({ send: value => overriddenSent.push(value), timeout: 30 })
+  const overridePending = overridden.request(arrangeOperation)
+  assert.equal(overriddenSent[0].deadline, Date.now() + 30)
+  t.mock.timers.tick(30)
+  assert.deepEqual(await overridePending, { ok: false, message: 'MCP operation timed out.' })
 })
 
 test('should_expose_only_fixed_sandbox_preload_operations_and_dispose_mutation_listeners', async () => {

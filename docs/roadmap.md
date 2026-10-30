@@ -1,6 +1,6 @@
 # Diagrammer Roadmap and Delegation Plan
 
-Updated: 2026-10-29. Status: DGM-144 WINDOWS 0.5.0 BUILD / PUBLICATION / CURRENT-USER INSTALLATION AUTHORIZED; SOURCE PREPARATION ACTIVE. OLDER RELEASES/TAGS AND KNOWN PNG LIMIT REMAIN PRESERVED.
+Updated: 2026-10-30. Status: DGM-145 ARRANGE-ONLY BUDGET CHANGE AND TWO-TARGET REBUILD APPROVED; DGM-144 PUBLICATION / INSTALLATION STILL PENDING. OLDER RELEASES/TAGS AND KNOWN PNG LIMIT REMAIN PRESERVED.
 
 ## Current Execution Policy
 
@@ -149,16 +149,23 @@ x64 general/MCP stop at an initial-dialog state mismatch; x64 routing captures
 12 routes then the domain-max post-cancel retry hits the unchanged 4000ms MCP
 deadline with a worker still observed at failure (later closed).
 All owned processes/listeners are closed; first receipts remain intact.
-The PO explicitly chose to HOLD BOTH BUILDS and diagnose the x64 timeout,
-rather than publish ARM64 alone. Next: bounded timing/worker/broker diagnosis
-of that exact failed operation, not an unchanged favorable full-matrix retry.
-Observer fixes and missing coverage remain separate tasks; no product fix
-or deadline relaxation is inferred from this diagnosis authority. Original
+The PO explicitly chose to HOLD BOTH BUILDS and diagnose the x64 timeout.
+Attempt11 setup overlapped confirmed Modern Standby; no dense dispatch occurred.
+Attempt12's single instrumented retry completed in2755.6ms; original variance
+remains unexplained. The PO subsequently APPROVED [DGM-145](specs/DGM-145.md):
+only MCP arrangement receives the existing15000ms layout budget; all output/
+other mutation deadlines remain4000ms and safety guards unchanged.
+Implementation and independent source acceptance now PASS: owner desktop87,
+renderer94/native5; independent desktop24 and renderer/native99 plus exact
+all-tool clock-boundary probes. Only the broker changes production behavior;
+renderer source and native15s cap are unchanged. Commit accepted source, then
+rebuild BOTH targets into new candidates, retaining old41f6153 EXEs.
+Observer fixes and missing history coverage remain separately tracked. Original
 deadlines, security and downstream assertions remain; no product change,
 rebuild, gate waiver or unchanged favorable-sample retry is authorized.
 No0.5.0 tag yet; oldrefs untouched.
 No test/deadline/oracle relaxation, product speculation or unchanged full retry.
-Publication is blocked pending diagnosis and the remaining exact-package gates,
+Publication is blocked pending DGM-145, both rebuilds and exact-package gates,
 followed by sealed
 publication/public downloads/current-user installation. No0.5.0 release or
 installation exists yet; exact install path pending.
