@@ -337,3 +337,8 @@ Evidence: [DGM-144 retained runtime attempts](verification/DGM-144.md) and
   an otherwise correct broker deadline. Test a valid operation beyond the old
   transport bound, then an ordinary request on the same connection. Client
   keepalive buffering must not silently turn that reuse check into a new socket.
+- Immutable candidate roots do not necessarily contain ignored acceptance
+  fixtures. Bind each fixture to its authoritative origin, prove original
+  bytes/hashes and inspect the runner's actual working-directory resolution.
+  After an input-binding correction, run only the blocked cells and preserve
+  passing cells rather than restarting an unchanged full matrix.

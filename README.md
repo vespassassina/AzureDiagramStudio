@@ -15,7 +15,7 @@ A local architecture editor for Azure, Microsoft Fabric, Microsoft applications 
 
 ![The same native example in the dark editor theme](docs/images/studio-dark.png)
 
-In newer local source, **Auto-arrange** at the canvas top right opens four
+In Windows 0.5.0 and current source, **Auto-arrange** at the canvas top right opens four
 layouts: Horizontal, Vertical, Horizontal groups stacked vertically, and
 Vertical groups side by side. Grouped modes use existing boundaries, not
 dependency levels. The square **Sidebar** button immediately afterward switches
@@ -23,8 +23,8 @@ the shared Properties/Markdown sidebar; the views and draft remain available
 inside it. **Add component** opens the library until explicitly closed, with no
 pin control or duplicate ARCHITECTURE footer. Narrow screens scroll between
 canvas and open panel rows without overlap. Paste remains available through
-shortcuts, Commands and the context menu. These source changes do not update
-published executables.
+shortcuts, Commands and the context menu. Older published executables remain
+unchanged.
 
 Current-source Auto-arrange keeps ELK's node/group placement, then routes
 orthogonal connections around components and group headers without moving
@@ -42,7 +42,7 @@ work. Autosaved diagrams recover unchanged without an automatic picker, includin
 saved empty diagrams.
 
 Version 0.3.0 adds **About** beside the question-mark **Help** button.
-In newer local source, **Settings → Help / About / Settings** groups application
+In Windows 0.5.0, **Settings → Help / About / Settings** groups application
 information and preferences. **File** contains New/Open/Import/Save; **View**
 contains panel visibility, Properties/Markdown views, theme and fit commands.
 Only Undo, Redo, Export and Present remain top action buttons; Auto-arrange and
@@ -59,11 +59,11 @@ settings. Light workspaces use a subtle paper tone; custom diagram/export colors
 and dark theme are unchanged. Diagram connections are slightly thicker in both
 the editor and SVG/PNG. See the [short manual](docs/manual.md#about-source-only)
 for About and [first-use guidance](docs/manual.md#first-use-ui-guide).
-About, empty startup and the ten-step guide are included in the Windows
-**0.3.0** downloads below; the menus, eleven-step refresh and appearance changes are newer source only.
+Windows **0.5.0** includes the menus, eleven-step refresh and appearance changes.
+The historical **0.3.0** downloads retain About, empty startup and the ten-step guide.
 Historical 0.2.0 executables remain unchanged.
 
-## Diagram And Markdown Exports (New Source)
+## Diagram And Markdown Exports (Windows 0.5.0)
 
 In **Export**, the default-off **Include Markdown** option downloads one ZIP
 with the selected SVG/PNG and its matching UTF-8 description `.md`. Description
@@ -79,8 +79,8 @@ The ZIP option is not available for Markdown format.
 
 Packages use safe matching names, deterministic uncompressed ZIP records and
 explicit limits (32 MiB/member or embedded Markdown, 64 MiB/archive).
-Errors report without a partial download. These are source-only features, not
-updates to any published executable. MCP integration follows separately.
+Errors report without a partial download. These features ship in Windows 0.5.0;
+older executable assets remain unchanged. MCP integration is described below.
 
 The Windows desktop security policy denies browser clipboard writes.
 **Copy image** therefore saves a plain PNG and reports that the image was not
@@ -88,27 +88,49 @@ copied; **Include Markdown** does not change this fallback into a ZIP.
 Open the saved PNG to copy or insert it using another application. No clipboard
 permission exception or security-policy change is included in 0.5.0.
 
-## Windows 0.5.0 Release Preparation
+## Windows 0.5.0
 
-Current source is version **0.5.0**, incorporating conventional menus and the
+[Azure Diagram Studio 0.5.0 for Windows](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.5.0)
+is the current stable/latest release, incorporating conventional menus and the
 eleven-step Help guide, workspace-root settings, persisted Favorites, direct
 MCP/Markdown exports, compact grouped Auto-arrange and improved connections.
-Windows ARM64/x64 packaging and publication are being qualified under
-[DGM-144](docs/specs/DGM-144.md); **0.5.0 downloads are not published yet**.
-The links below remain the existing stable0.3.0 downloads until publication.
+Both exact portable EXEs passed independent general desktop, MCP-output and
+routing checks: six cells, including twelve routing cases per architecture.
+ARM64 ran natively; x64 ran under Windows ARM64 emulation, not native Intel/AMD.
+
+| Your PC | Download |
+| --- | --- |
+| Windows on ARM / Snapdragon | [ARM64 portable EXE](https://github.com/vespassassina/AzureDiagramStudio/releases/download/0.5.0/Azure-Diagram-Studio-0.5.0-win-arm64-portable.exe) |
+| Windows on Intel / AMD | [x64 portable EXE](https://github.com/vespassassina/AzureDiagramStudio/releases/download/0.5.0/Azure-Diagram-Studio-0.5.0-win-x64-portable.exe) |
+
+[SHA256 checksums](https://github.com/vespassassina/AzureDiagramStudio/releases/download/0.5.0/SHA256SUMS.txt)
+| [Source provenance](https://github.com/vespassassina/AzureDiagramStudio/releases/download/0.5.0/SOURCE-PROVENANCE.json)
+| [Verification report](docs/verification/DGM-144.md)
+
+Both EXEs are **unsigned**. Follow organizational policy; do not disable
+SmartScreen or other protections. Exact source is annotated tag `0.5.0` at
+`5201cd746a3984a771889f1e6dbbb02b6c2a1c4f`. Complete independent anonymous
+downloads of all four assets matched the sealed hashes, sidecar contents and
+source/tag/latest identity; older releases/tags were preserved.
+No automatic updater or profile migration is provided: keep editable JSON backups.
+The verified ARM64 portable was installed for the requesting Windows user at
+`%LOCALAPPDATA%\Programs\AzureDiagramStudio\Azure-Diagram-Studio-0.5.0-win-arm64-portable.exe`,
+with Start menu shortcut **Azure Diagram Studio 0.5.0**. This is a portable copy,
+not an MSI/Apps-and-Features entry; it does not overwrite older versions or migrate profiles.
 
 The historical source MCP PNG-export4000ms timeout remains unresolved; successful
 focused controls did not establish its cause or repair it. See
-[DGM-143](docs/verification/DGM-143.md). New exact-package qualification must
-retain the original deadline and disclose this known limit.
+[DGM-143](docs/verification/DGM-143.md). Fresh packaged output passes do not erase
+that failure. Only validated MCP arrangement has the approved 15000ms budget;
+other mutation/output brokers remain at4000ms, HTTP intake/other requests at5000ms.
 
 ## Windows 0.3.0
 
-The local MCP integration described below is a newer **source-only** feature;
-the existing 0.3.0 downloads have not been rebuilt with it.
+This historical release remains available unchanged. It does not contain the
+local MCP integration now shipped in0.5.0.
 
 [Azure Diagram Studio 0.3.0 for Windows](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.3.0)
-is the current stable release, with About, empty startup, the unified picker and
+is a historical stable release, with About, empty startup, the unified picker and
 updated guidance, alongside the existing editing, presentation and export tools.
 
 | Your PC | Download |
@@ -132,10 +154,10 @@ backups and use **Open JSON** to transfer editable work.
 
 ## Local MCP Server (New Source)
 
-Source version **0.4.0** includes this integration; its Git tag is a source
-milestone, not a new Windows binary release.
+Windows **0.5.0** includes this integration. The older **0.4.0** Git tag remains
+a source milestone, not a published Windows binary release.
 
-The desktop source adds a local MCP endpoint that starts automatically while
+The desktop app has a local MCP endpoint that starts automatically while
 Azure Diagram Studio is open. In **Settings**, use **Copy MCP address** and
 **Copy access token** to configure an HTTP-capable MCP client on the same
 computer. The access token changes when the app restarts.
@@ -149,7 +171,7 @@ or arbitrary file access. The listener binds to loopback only; authenticated
 requests and Host/Origin validation protect against accidental browser access.
 
 See [MCP setup and limits](docs/manual.md#local-mcp-server-new-source).
-Source-only MCP also supports **`snapshot_diagram`** (full committed PNG) and
+Windows0.5.0 MCP also supports **`snapshot_diagram`** (full committed PNG) and
 **`export_diagram`** (SVG, PNG, native editable JSON or Markdown with inline PNG).
 Both require the current `stateToken`. SVG/PNG/JSON can set `includeMarkdown:
 true` for one ZIP containing the diagram and companion description Markdown.

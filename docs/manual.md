@@ -1,9 +1,11 @@
 # Azure Diagram Studio: Short Manual
 
-**0.5.0 preparation:** current source includes the menu, Help, workspace,
+**Windows0.5.0:** the stable/latest release includes the menu, Help, workspace,
 Favorites, export and compact-layout changes described below.
-[DGM-144](specs/DGM-144.md) is qualifying new Windows ARM64/x64 packages;
-the existing0.3.0 download links remain authoritative until publication.
+[DGM-144](specs/DGM-144.md) records accepted exact-portable qualification on
+Windows ARM64 and ARM64-emulated x64. All four public assets were independently
+downloaded anonymously and verified. The native ARM64 portable is installed
+for the requesting user; paths and installation limits are below.
 The 0.5.0 Windows desktop retains its clipboard-denial policy: **Copy image**
 saves a plain PNG and reports that copying was unavailable or denied.
 **Include Markdown** does not turn that fallback into a ZIP. Open the saved
@@ -13,7 +15,7 @@ The historical source MCP PNG4000ms timeout remains a
 [known unresolved qualification limit](verification/DGM-143.md), not a fixed
 issue or an authorized deadline increase.
 
-This manual describes the [Windows 0.3.0 release](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.3.0), including About, empty startup, the unified picker, the ten-step Help guide, guided starters and Markdown sidebar. The [DGM-130 verification report](verification/DGM-130.md) identifies exact source `96c3e3f6c497eb008c767efd38f59f00f91d7cea`, both tested portables and verification limits. Earlier releases and local packages remain unchanged historical artifacts. Stable publication is not general platform or human certification.
+This manual describes the [Windows0.5.0 release](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.5.0), including conventional menus, the eleven-step Help guide, persistent Favorites, guided starters, Markdown sidebar and local MCP. The [DGM-144 verification report](verification/DGM-144.md) identifies exact source `5201cd746a3984a771889f1e6dbbb02b6c2a1c4f`, both tested portables and verification limits. Earlier releases and local packages remain unchanged historical artifacts. Stable publication is not general platform or human certification.
 
 The newer [guided starters and saved descriptions](verification/DGM-122.md),
 plus [Markdown Edit/Preview and the shared presentation sidebar](verification/DGM-124.md),
@@ -27,18 +29,39 @@ Older 0.2.0 binaries retain their earlier startup and guide behavior.
 
 ## Install and Launch
 
-Download from the [Windows 0.3.0 release](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.3.0), or use the [README download links](../README.md#windows-030). The source repository is public. Both portable files bundle the runtime and work without Node.js, a local server or a cloud account.
+Download from the [Windows0.5.0 release](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.5.0), or use the [README download links](../README.md#windows-050). The source repository is public. Both portable files bundle the runtime and work without Node.js, a local server or a cloud account.
 
 For the published Windows ARM64 prerelease, use [arm64-v0.2.0](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/arm64-v0.2.0) and its own checksum manifest. There is no 0.2.0 x64/Mac asset in that release. Its attached source candidate ZIP, not GitHub's automatic tag archives, contains that older verified candidate; at its publication no source branch was pushed. The later source milestone and local guide package do not replace those release assets.
 
 1. In Windows **Settings > System > About**, check **System type**. Choose **ARM64** for Windows on ARM/Snapdragon, or **x64** for Intel/AMD Windows PCs.
-2. Choose the matching `Azure-Diagram-Studio-0.3.0-win-{arch}-portable.exe` and [SHA256SUMS.txt](https://github.com/vespassassina/AzureDiagramStudio/releases/download/0.3.0/SHA256SUMS.txt) from the same release. Downloads are approximately 403-404 MB.
+2. Choose the matching `Azure-Diagram-Studio-0.5.0-win-{arch}-portable.exe` and [SHA256SUMS.txt](https://github.com/vespassassina/AzureDiagramStudio/releases/download/0.5.0/SHA256SUMS.txt) from the same release. Downloads are approximately403-404MB.
 3. Compare `Get-FileHash '.\your-downloaded-file.exe' -Algorithm SHA256` with the matching manifest entry. A mismatch means do not run the file.
 4. Launch the portable executable. No separate Node.js installation or cloud sign-in is needed for the packaged runtime. Unsigned executables can trigger SmartScreen: follow your organization's policy, and do not disable security protections.
 
+For the requesting PC, the verified public ARM64 executable was copied to
+`%LOCALAPPDATA%\Programs\AzureDiagramStudio\Azure-Diagram-Studio-0.5.0-win-arm64-portable.exe`.
+Open **Azure Diagram Studio 0.5.0** from Start; its versioned shortcut is in
+`%APPDATA%\Microsoft\Windows\Start Menu\Programs`.
+Installed-file SHA-256:
+`5fd2c2bc43613957e191f33a4fb51b087393788d6c8118277d354e8abd230e55`.
+The copied file and shortcut target/working directory were read back exactly.
+This is a per-user portable installation, not an MSI or Apps-and-Features entry.
+No elevation, old-version overwrite, profile migration, policy change or
+automatic launch was performed.
+
 Source/browser setup is in the [README](../README.md#build-from-source). Packaged offline launch, workers, image import, exports, themes and autosave/relaunch were tested. ARM64 ran natively; x64 ran under Windows ARM64 emulation rather than native Intel/AMD hardware. SmartScreen behavior and native save-dialog appearance remain manual checks. Browser diagrams do not automatically appear in desktop: Save JSON in the browser and Open JSON in the executable.
 
-Both 0.3.0 exact portables passed independent general and new-feature runtime
+Both0.5.0 exact portables passed independent general, MCP-output and routing
+qualification: six cells and twelve routing cases per architecture, with actual
+outputs, history/recovery and cancellation/retry. All exported fields match
+across architectures except independently generated root document UUIDs; binary
+outputs and Markdown match byte-for-byte. The approved MCP arrangement budget
+is15000ms end to end; other mutation/output brokers remain4000ms and HTTP
+ingress/other requests5000ms. See [DGM-144](verification/DGM-144.md).
+Complete anonymous downloads of both EXEs and both sidecars matched the
+published and sealed sizes/hashes. Provenance, checksum content, source/tag,
+stable/latest identity and all older release/tag identities were verified.
+The historical0.3.0 exact portables passed independent general and new-feature runtime
 checks: 14 successful sessions and 16 exports across both targets. Full anonymous
 public downloads matched sealed hashes; corrected provenance/checksum sidecars
 also passed independent content verification. See [DGM-130](verification/DGM-130.md).
@@ -82,9 +105,9 @@ account/permission change or signed release has been performed by this UI task.
 
 ## Local MCP Server (New Source)
 
-This feature is newer than the published Windows 0.3.0 executables. It requires
-a desktop build from source version 0.4.0 containing DGM-131; the 0.4.0 source
-tag does not replace the published Windows binaries. It is not a browser development server or
+This feature ships in Windows0.5.0. It is newer than the historical Windows0.3.0
+executables; the0.4.0 source tag did not publish new binaries.
+It is not a browser development server or
 an installed operating-system service.
 
 The local MCP server starts automatically when the owned desktop instance opens
@@ -684,8 +707,8 @@ The schema stays at version 1 with optional custom-icon, numeric-order, backgrou
 
 ## Export Pictures
 
-The Markdown formats and top-bar application controls below describe newer local
-source, not the existing 0.3.0 downloads or sealed 0.4.0 candidate.
+The Markdown formats and top-bar application controls below ship in Windows0.5.0
+and current source, not the historical0.3.0 downloads or sealed0.4.0 candidate.
 
 Open **Export** to preview the picture. Choose **All** or **Selection**, then **Content** or **16:9** framing. Selection includes descendants and internal connections, not unrelated objects or external connections; diagram metadata and the scoped visible legend remain included. Framing adds space without stretching artwork.
 

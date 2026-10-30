@@ -1,6 +1,6 @@
 # Diagrammer Roadmap and Delegation Plan
 
-Updated: 2026-10-30. Status: DGM-145 ARRANGE-ONLY BUDGET CHANGE AND TWO-TARGET REBUILD APPROVED; DGM-144 PUBLICATION / INSTALLATION STILL PENDING. OLDER RELEASES/TAGS AND KNOWN PNG LIMIT REMAIN PRESERVED.
+Updated: 2026-10-30. Status: DGM-144 STABLE/LATEST0.5.0 PUBLISHED / INDEPENDENT PUBLIC DOWNLOADS VERIFIED / CURRENT-USER ARM64 INSTALLED. OLDER RELEASES/TAGS AND KNOWN PNG LIMIT REMAIN PRESERVED.
 
 ## Current Execution Policy
 
@@ -186,21 +186,67 @@ and independent AC1-AC7 acceptance now PASS: desktop91/91, renderer/native99/99,
 real arrange>5000ms succeeds and a following request on the SAME socket
 expires at5000ms with cancellation. Only the test client's keepalive buffer
 was disabled to observe reuse; production policy is unchanged.
-Commit accepted repair, then rebuild both targets again into a new candidate;
+Accepted repair is committed/pushed/read back on both refs at
+`5201cd746a3984a771889f1e6dbbb02b6c2a1c4f`, tree
+`cda3b13497f61f32991818150ed4077167a8d135`.
+Both targets are rebuilt/static-qualified in `p145-b2` from that commit.
+ARM64:403605406bytes/SHA`5fd2c2bc43613957e191f33a4fb51b087393788d6c8118277d354e8abd230e55`;
+x64:404458284bytes/SHA`38bd94e4c8f8925aff706d307573ac3d6bef9e337279d8e715fead6de78352f0`.
+Both47-file ASARs match; only `electron/mcp.mjs` differs from B1 staged
+inputs, and all36 renderer outputs remain identical. All15 build/static
+commands are accepted; build owner is terminal-free. Handoff:
+`app/test-results/releases/0.5.0/rebuild-dgm145-transport/handoff.json`.
+Adapter owner ec4ec74c completed the actual R3 launch/reload observer rebind
+in `runtime-verifier-dgm145-transport`; syntax/binding checks pass and no
+runtime cell was launched by the owner. Independent verifier180455e6 ran
+all six fresh exact-portable cells serially: ARM64/x64 general and MCP-output
+PASS; both routing cells BLOCKED before routing assertions because fixture
+paths resolve to absent files beneath the candidate app. Original fixtures
+are present and hash-identified in the retained independent report.
+Adapter owner ec4ec74c corrected fixture bindings in fresh routing packet
+`runtime-verifier-dgm145-transport-routing-r2`, using the authoritative
+handoff root and preserving original fixture hashes/bytes. Syntax and binding
+checks pass; no routing runtime was run by the adapter owner. Independent
+verifier180455e6 validated binding and ran only the two blocked routing
+cells once, serially. Both pass12 routing cases, cancellation/retry and
+output parity. Four passing cells are retained without repetition: final6/6
+exact-portable cells PASS, report SHA
+`578568a3ecff206fe3560620df5d0dc58018f8f604c7703ace6498fede9db533`.
+Final cleanup confirms zero owned processes/listeners/errors.
+No product/deadline/oracle change.
+The prior ARM64 WMI timeout remains historical and
+unexplained; no observer deadline change or qualification waiver.
 5dc5a89 packages remain preserved but are not the complete release candidate.
 No blanket timeout increase.
 The two differing MCP JSON/ZIP outputs compare semantically equal except
 independently generated document UUIDs; all other fields/Markdown match.
 Old41f6153 EXEs and first evidence remain preserved.
-Observer fixes and missing history coverage remain separately tracked. Original
+Final packets accept observer corrections and direct fallback history coverage;
+earlier missing coverage/failures remain preserved historical records. Original
 deadlines, security and downstream assertions remain; no product change,
 rebuild, gate waiver or unchanged favorable-sample retry is authorized.
-No0.5.0 tag yet; oldrefs untouched.
 No test/deadline/oracle relaxation, product speculation or unchanged full retry.
-Publication is blocked pending DGM-145, both rebuilds and exact-package gates,
-followed by sealed
-publication/public downloads/current-user installation. No0.5.0 release or
-installation exists yet; exact install path pending.
+Accepted artifacts now have sealed provenance/checksums under
+`app/test-results/releases/0.5.0/sealed-transport`. Annotated `0.5.0` points to
+exact5201cd7; [release428859838](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.5.0)
+is published stable/latest, with all four uploaded sizes/digests read back.
+First draft readback by tag returned404; listing/release-ID readback verified
+the intact uploaded draft, then publication resumed without retag/reupload.
+Both first failure and successful continuation are retained. Independent
+verifier180455e6 fully downloaded all four assets anonymously and accepted
+sidecars/source/tag/latest/old-release preservation, report SHA
+`13b3070c93cce6e172306424159c3715537a223e08e145effa3cbd21ccb8b1a2`.
+Parent installed that verified native ARM64 public download at
+`%LOCALAPPDATA%\Programs\AzureDiagramStudio\Azure-Diagram-Studio-0.5.0-win-arm64-portable.exe`
+with versioned Start menu shortcut **Azure Diagram Studio 0.5.0**.
+Installed bytes/hash and shortcut target/working directory/empty arguments
+read back exactly; no elevation, old-version overwrite, launch, security
+change or profile migration. Exact paths are in the ignored
+`orchestrator/installation.json` receipt. This factual release/install closeout
+is delivered to both existing refs without moving `0.5.0`; its Git operation
+receipt records exact remote readback. Approved release/install queue complete.
+Hand off the release URL and actual installed EXE path; stop here.
+No next feature, rebuild, republish or automatic application launch is inferred.
 
 Execute in order; skip only blocked dependencies, not acceptance criteria.
 Update this table before every handoff with evidence and the exact next action.
