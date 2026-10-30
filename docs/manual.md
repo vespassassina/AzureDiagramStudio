@@ -237,8 +237,10 @@ Binary output is budgeted before base64 allocation; oversized output fails
 explicitly. Existing PNG pixel/dimension caps, 5 MiB document and 64 KiB HTTP
 request-body limits remain. One broker operation runs at a time. MCP
 `arrange_diagram` has a 15-second broker deadline matching its native layout
-job; PNG snapshots, exports and every other mutation retain the 4-second broker
-deadline. The 5-second HTTP deadline and transport limits are unchanged.
+job. After a fully validated authenticated arrangement request, its HTTP
+transport stays aligned with that 15-second broker window. PNG snapshots,
+exports and every other mutation retain the 4-second broker deadline; request
+intake and all other HTTP transport limits remain 5 seconds.
 No save dialog, download, clipboard write or arbitrary filesystem access is
 performed by either tool. Only the client decides what to do with returned bytes.
 

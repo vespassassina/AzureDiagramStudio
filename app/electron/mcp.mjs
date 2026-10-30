@@ -7,6 +7,7 @@ export const MCP_VERSIONS = Object.freeze(['2025-06-18', '2025-03-26'])
 const MAX_BODY_BYTES = 64 * 1024
 const MAX_IN_FLIGHT = 8
 const REQUEST_TIMEOUT_MS = 5000
+const ARRANGE_TIMEOUT_MS = 15000
 const emptySchema = { type: 'object', properties: {}, additionalProperties: false }
 const tools = [
   { name: 'get_document', description: 'Read the current committed diagram (not unfinished editor drafts).', inputSchema: emptySchema },
@@ -22,7 +23,7 @@ const content = value => ({ content: [{ type: 'text', text: JSON.stringify(value
 
 // Pseudocode: validate the RPC envelope and each method's parameters before
 // reading a single immutable store snapshot. Notifications never get RPC replies.
-async function dispatch(message, store, version, mutate, signal) {
+async function dispatch(message, store, version, mutate, signal, beginArrangement) {
   const validId = typeof message?.id === 'string' || (typeof message?.id === 'number' && Number.isSafeInteger(message.id))
   const notification = record(message) && !Object.hasOwn(message, 'id')
   if (!exact(message, ['jsonrpc', 'id', 'method', 'params']) || message.jsonrpc !== '2.0' ||
@@ -45,6 +46,7 @@ async function dispatch(message, store, version, mutate, signal) {
   if ([...mutationTools, ...outputTools].some(tool => tool.name === params.name)) {
     if (!validateMutation(params) && !validateOutputOperation(params)) return invalid()
     if (!store.available() || !mutate) return result({ content: [{ type: 'text', text: 'Current workspace is unavailable.' }], isError: true })
+    if (params.name === 'arrange_diagram') beginArrangement()
     const outcome = await mutate(params, signal)
     return outcome.ok ? result(outcome.output ?? content(outcome.value)) : result({ content: [{ type: 'text', text: outcome.message }], isError: true })
   }
@@ -91,7 +93,15 @@ export function createMcpServer({ version, store, mutate, port = DEFAULT_MCP_POR
     inFlight++
     const controller = new AbortController()
     response.once('close', () => { if (!response.writableEnded) controller.abort() })
-    const timer = setTimeout(() => { controller.abort(); if (!response.writableEnded) respond(response, 408, { error: 'Request timed out' }); request.destroy() }, REQUEST_TIMEOUT_MS)
+    let timer, arrangement
+    const expire = () => { controller.abort(); if (!response.writableEnded) respond(response, 408, { error: 'Request timed out' }); request.destroy() }
+    const armTimeout = timeout => { clearTimeout(timer); timer = setTimeout(expire, timeout) }
+    const beginArrangement = () => {
+      arrangement = true
+      request.socket.setTimeout(ARRANGE_TIMEOUT_MS)
+      armTimeout(ARRANGE_TIMEOUT_MS)
+    }
+    armTimeout(REQUEST_TIMEOUT_MS)
     try {
       let bytes = 0
       const chunks = []
@@ -102,11 +112,15 @@ export function createMcpServer({ version, store, mutate, port = DEFAULT_MCP_POR
       }
       let message
       try { message = JSON.parse(Buffer.concat(chunks).toString('utf8')) } catch { respond(response, 200, failure(null, -32700, 'Parse error')); return }
-      const reply = await dispatch(message, store, version, mutate, controller.signal)
+      const reply = await dispatch(message, store, version, mutate, controller.signal, beginArrangement)
       if (!response.writableEnded && !response.destroyed) respond(response, reply ? 200 : 202, reply ?? undefined)
     } catch {
       if (!response.writableEnded && !response.destroyed) respond(response, 400, { error: 'Request interrupted' })
-    } finally { clearTimeout(timer); inFlight-- }
+    } finally {
+      clearTimeout(timer)
+      if (arrangement && !request.socket.destroyed) request.socket.setTimeout(REQUEST_TIMEOUT_MS)
+      inFlight--
+    }
   }
   async function listen(listenPort) {
     await new Promise((resolve, reject) => {

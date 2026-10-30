@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { createServer, request as httpRequest } from 'node:http'
+import { readFile } from 'node:fs/promises'
 import { createMcpServer, DEFAULT_MCP_PORT } from '../mcp.mjs'
 import { createSnapshotStore, createMutationBroker, registerMcpBridge, trustedSender } from '../mcp-bridge.mjs'
 
@@ -8,6 +9,11 @@ const document = { schemaVersion: 1, id: 'test', title: 'Committed', subtitle: '
 const metadata = { catalog: [{ icon: 'service', label: 'Service', subtitle: '', category: 'Software', catalog: 'software', aliases: ['app'], keywords: [] }], templates: [{ key: 'web-api', label: 'Web/API', sourceCue: 'Synthetic example' }] }
 const snapshot = () => ({ document, stateToken: 'test:3', ...metadata })
 const rpc = (method, params, id = 1) => ({ jsonrpc: '2.0', id, method, ...(params === undefined ? {} : { params }) })
+const deferred = () => {
+  let resolve
+  const promise = new Promise(complete => { resolve = complete })
+  return { promise, resolve }
+}
 
 async function fixture(t, options = {}) {
   const store = createSnapshotStore()
@@ -79,6 +85,58 @@ test('should_accept_optional_stacked_arrangement_and_reject_unknown_modes_DGM137
     assert.ok(result.error || result.result.isError)
   }
   assert.equal(operations.length, accepted)
+})
+
+test('should_keep_valid_authenticated_arrangement_transport_alive_for_the_broker_deadline', async t => {
+  t.mock.timers.enable({ apis: ['Date', 'setTimeout'] })
+  const sent = deferred()
+  const broker = createMutationBroker({ send: request => sent.resolve(request) })
+  const { request } = await fixture(t, { mutate: broker.request })
+  const pending = request(rpc('tools/call', { name: 'arrange_diagram', arguments: { stateToken: 'test:3', direction: 'DOWN' } }))
+  const mutation = await sent.promise
+  t.mock.timers.tick(5_000)
+  assert.equal(broker.active(mutation.id), true)
+  assert.equal(broker.complete(mutation.id, { ok: true, value: { document, stateToken: 'test:4' } }), true)
+  const response = await pending
+  assert.equal(response.status, 200)
+  assert.deepEqual(JSON.parse((await response.json()).result.content[0].text), { document, stateToken: 'test:4' })
+})
+
+test('should_expire_and_cancel_arrangement_at_fifteen_seconds_without_accepting_a_late_result', async t => {
+  t.mock.timers.enable({ apis: ['Date', 'setTimeout'] })
+  const sent = deferred(), canceled = []
+  const broker = createMutationBroker({ send: request => sent.resolve(request), cancel: id => canceled.push(id) })
+  const { request } = await fixture(t, { mutate: broker.request })
+  const pending = request(rpc('tools/call', { name: 'arrange_diagram', arguments: { stateToken: 'test:3', direction: 'DOWN' } }))
+  const mutation = await sent.promise
+  t.mock.timers.tick(15_000)
+  assert.equal((await pending).status, 408)
+  assert.deepEqual(canceled, [mutation.id])
+  assert.equal(broker.active(mutation.id), false)
+  assert.equal(broker.complete(mutation.id, { ok: true, value: { document, stateToken: 'late' } }), false)
+})
+
+test('should_preserve_five_second_transport_for_non_arrangement_and_invalid_or_unauthenticated_calls', async t => {
+  t.mock.timers.enable({ apis: ['Date', 'setTimeout'] })
+  const pending = deferred()
+  const { request } = await fixture(t, { mutate: async (_operation, signal) => {
+    pending.resolve(signal)
+    return new Promise(() => {})
+  } })
+  const edit = request(rpc('tools/call', { name: 'edit_diagram', arguments: { stateToken: 'test:3', commands: [{ type: 'metadata', patch: { title: 'Delayed' } }] } }))
+  const signal = await pending.promise
+  t.mock.timers.tick(5_000)
+  assert.equal(signal.aborted, true)
+  assert.equal((await edit).status, 408)
+  assert.equal((await request(rpc('tools/call', { name: 'arrange_diagram', arguments: { stateToken: 'test:3' } }))).status, 200)
+  assert.equal((await request(rpc('tools/call', { name: 'arrange_diagram', arguments: { stateToken: 'test:3', direction: 'DOWN' } }), { authorization: '' })).status, 401)
+})
+
+test('should_keep_five_second_headers_body_and_idle_intake_limits', async () => {
+  const source = await readFile(new URL('../mcp.mjs', import.meta.url), 'utf8')
+  assert.match(source, /headersTimeout: REQUEST_TIMEOUT_MS, requestTimeout: REQUEST_TIMEOUT_MS/)
+  assert.match(source, /socket\.setTimeout\(REQUEST_TIMEOUT_MS, \(\) => socket\.destroy\(\)\)/)
+  assert.match(source, /armTimeout\(REQUEST_TIMEOUT_MS\)/)
 })
 
 test('should_return_output_content_directly_over_authenticated_HTTP_and_validate_arguments_before_dispatch_DGM135', async t => {

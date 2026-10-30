@@ -158,8 +158,40 @@ other mutation deadlines remain4000ms and safety guards unchanged.
 Implementation and independent source acceptance now PASS: owner desktop87,
 renderer94/native5; independent desktop24 and renderer/native99 plus exact
 all-tool clock-boundary probes. Only the broker changes production behavior;
-renderer source and native15s cap are unchanged. Commit accepted source, then
-rebuild BOTH targets into new candidates, retaining old41f6153 EXEs.
+renderer source and native15s cap are unchanged. Accepted source is committed
+and atomically pushed/read back on both refs at
+`5dc5a89c9a44da450d1b1d8ff70194b42ab045f5`, tree
+`ac16092ad857768cf9a1eb47aa71943c6810a627`.
+Both replacement targets are rebuilt/static-qualified in `p145-b1`:
+ARM64403604863bytes/SHA`898dd593b59a4d041135b160d4247fdbe54fb3c6b16ca801cd9e2b26837100f2`;
+x64404457743bytes/SHA`c5d813e220a2b68a960ddbfa2127beba1cf3d4d29bc9dee8a5a294c1a7206def`.
+Both47-file ASARs match; all36 renderer outputs remain byte-identical.
+Build owner is terminal-free. Parent rejected the first replacement adapter
+packet: its navigation callback was not invoked and its post-replay Blank
+selection masked the recovery assertion. Corrected `runtime-verifier-dgm145-r2`
+attempted to use firstWindow, but its wrapper ran after the driver's existing
+reload. Independent ARM64 general therefore stopped before its assertions;
+the other five cells share that precondition and were not launched. The earlier
+standalone proof did not exercise the same launch path and is not acceptance.
+Parent traced the exact order: offlineWindow reloads before returning to the
+common wrapper. R3 wires the real reload boundary; its six actual runtime
+cells now report4PASS/2BLOCKED. ARM64 MCP/routing and x64 general/MCP pass.
+ARM64 general is blocked by the10000ms WMI process observer. x64 routing
+returns HTTP408 at5052.2ms: parent identified `mcp.mjs`'s separate5000ms HTTP/
+socket timeout preempting the approved15000ms broker budget.
+DGM-145 is reopened for the coupled transport repair: only authenticated,
+fully validated arrangement may wait for its approved budget; all existing
+ingress/idle/other request and output safeguards remain. Coupled HTTP repair
+and independent AC1-AC7 acceptance now PASS: desktop91/91, renderer/native99/99,
+real arrange>5000ms succeeds and a following request on the SAME socket
+expires at5000ms with cancellation. Only the test client's keepalive buffer
+was disabled to observe reuse; production policy is unchanged.
+Commit accepted repair, then rebuild both targets again into a new candidate;
+5dc5a89 packages remain preserved but are not the complete release candidate.
+No blanket timeout increase.
+The two differing MCP JSON/ZIP outputs compare semantically equal except
+independently generated document UUIDs; all other fields/Markdown match.
+Old41f6153 EXEs and first evidence remain preserved.
 Observer fixes and missing history coverage remain separately tracked. Original
 deadlines, security and downstream assertions remain; no product change,
 rebuild, gate waiver or unchanged favorable-sample retry is authorized.

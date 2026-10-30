@@ -309,3 +309,31 @@ This records a coverage gap, not an accepted sizing repair.
   sizing. Obtain explicit authority before changing a frozen geometry contract;
   update its scope and measurable acceptance instead of weakening old tests
   or silently claiming the earlier requirement was different.
+
+## 2026-10-30: Verify The Actual Packaged Observer Path
+
+Evidence: [DGM-144 retained runtime attempts](verification/DGM-144.md) and
+[DGM-145 explicit deadline decision](specs/DGM-145.md).
+
+- Static source-string checks did not prove that the launch driver invoked a
+  navigation callback. A wrapper added after firstWindow could not observe
+  pristine startup because the driver had already reloaded. Prove the exact
+  common launch/firstWindow path used by acceptance, with ordered events at
+  the real reload boundary; a standalone alternate flow is not that proof.
+- Never dismiss a newly observed starter after reload and call it recovery.
+  Observe pristine startup separately, create a real blank through the UI,
+  await its committed storage record, then assert exact chooser-free recovery.
+- Inspect pinned runtime declarations and actual capabilities before adapting
+  APIs. Electron44 clipboard methods are asynchronous; adding an import did
+  not restore legacy image methods. Keep product security and truthful PNG
+  fallback behavior distinct from stale observer expectations.
+- Preserve failed logs and correlate large intervals with System power events.
+  Confirmed Modern Standby invalidates uninterrupted timing claims, not the
+  earlier unexplained failure or an unrelated acceptance gate.
+- Change a timing contract only with explicit PO authority. Arrangement's
+  approved15000ms budget does not extend PNG/export's4000ms budget or erase
+  historical timeout evidence.
+- Trace a budget through every layer: HTTP request/socket timers can preempt
+  an otherwise correct broker deadline. Test a valid operation beyond the old
+  transport bound, then an ordinary request on the same connection. Client
+  keepalive buffering must not silently turn that reuse check into a new socket.
