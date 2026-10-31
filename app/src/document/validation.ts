@@ -187,8 +187,8 @@ export function validateDocument(input: unknown): Result<Diagram> {
   }
   if (source.description !== undefined) diagram.description = reader.text(source.description, 'description', 20000)
   if (source.backgroundColor !== undefined) {
-    if (isHexColor(source.backgroundColor)) diagram.backgroundColor = source.backgroundColor
-    else reader.issue('backgroundColor', 'Expected #RGB or #RRGGBB')
+    if (isHexColor(source.backgroundColor) || source.backgroundColor === 'transparent') diagram.backgroundColor = source.backgroundColor
+    else reader.issue('backgroundColor', 'Expected #RGB, #RRGGBB, or transparent')
   }
   if (source.grid !== undefined) {
     const grid = reader.record(source.grid, 'grid')

@@ -360,6 +360,24 @@ body { color: var(--ink); }
 .background-controls { display: flex; align-items: center; gap: 8px; }
 .background-controls input[type='color'] { width: 44px; height: 44px; padding: 3px; border: 1px solid var(--control-line); border-radius: 4px; background: var(--field-surface); cursor: pointer; }
 .background-controls .icon-button { min-width: 44px; min-height: 44px; }
+.background-presets { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-bottom: 10px; }
+.background-preset { min-height: 36px; border: 1px solid var(--control-line); border-radius: 4px; background: var(--surface); color: var(--ink); font-size: 11px; }
+.background-preset[aria-pressed='true'] { background: var(--active-surface); color: var(--accent); font-weight: 600; }
+.background-swatches { display: grid; gap: 7px; margin-bottom: 10px; }
+.background-swatch-columns { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+.background-swatch-columns > div { display: grid; gap: 4px; }
+.background-standard-swatches { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 4px; }
+.background-swatch { display: grid; place-items: center; width: 100%; aspect-ratio: 1; min-width: 18px; border: 1px solid color-mix(in srgb, var(--swatch), #263c3e 28%); border-radius: 2px; background: var(--swatch); color: #ffffff; padding: 0; }
+.background-swatch[aria-pressed='true'] { outline: 2px solid #111111; outline-offset: -4px; box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px var(--focus); }
+.background-swatch[aria-pressed='true'] svg { color: #111111; filter: drop-shadow(0 1px 0 #ffffff); }
+.background-mixer { display: grid; gap: 8px; margin: 10px 0; }
+.background-mixer-channels { display: grid; gap: 6px; }
+.background-mixer-channel { display: grid; grid-template-columns: 32px minmax(0, 1fr) 54px; align-items: center; gap: 7px; color: var(--ink); font-size: 11px; }
+.background-mixer-channel input[type='range'] { width: 100%; accent-color: var(--accent); }
+.background-mixer-channel input[type='number'], .background-mixer-hex input { min-height: 34px; min-width: 0; padding: 0 8px; border: 1px solid var(--control-line); border-radius: 4px; background: var(--field-surface); color: var(--ink); font-size: 11px; }
+.background-mixer-hex { display: grid; grid-template-columns: 32px minmax(0, 1fr); align-items: center; gap: 7px; color: var(--ink); font-size: 11px; }
+.transparent-workspace { background-image: linear-gradient(45deg, #dce5df 25%, transparent 25%), linear-gradient(-45deg, #dce5df 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #dce5df 75%), linear-gradient(-45deg, transparent 75%, #dce5df 75%); background-position: 0 0, 0 8px, 8px -8px, -8px 0; background-size: 16px 16px; }
+.transparent-workspace .canvas-heading { padding: 8px 10px; border: 1px solid #526e67; border-radius: 4px; background: #ffffff; box-shadow: 0 3px 8px #233e3933; }
 .zoom-controls { box-shadow: 0 2px 6px var(--chrome-shadow); }
 .export-menu { box-shadow: 0 8px 24px var(--chrome-shadow); }
 .icon-button:disabled, .library-item:disabled, .library-bottom button:disabled,

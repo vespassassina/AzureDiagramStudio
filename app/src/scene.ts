@@ -5,7 +5,7 @@ import { GENERIC_ICONS, resolveColor, isIconKey, isColorKey } from './catalog.ts
 import { visualAssets } from './assets.ts'
 import { validateCustomIcon } from './custom-icons/contract.ts'
 import { connectionLabelSize, escapeXml, textLines, textWidth } from './render/text.ts'
-import { backgroundAt, compositeColor, contrastInk, effectiveBackground, isWhiteBackground } from './render/contrast.ts'
+import { backgroundAt, compositeColor, contrastInk, effectiveBackground, isTransparentBackground, isWhiteBackground } from './render/contrast.ts'
 export { COLORS, GENERIC_ICONS } from './catalog.ts'
 import { absolutePosition, measureEntity, entityTextGeometry, wrapText } from './model.ts'
 import { painterOrder } from './order.ts'
@@ -20,7 +20,7 @@ export type SceneConnection = Connection & { path: string; labelPosition: Point;
 export type Bounds = { x: number; y: number; width: number; height: number }
 type TextBlock = { lines: string[]; x: number; y: number; width: number; size: number; weight: number; color: string }
 type LegendItem = LegendEntry & Bounds & { lines: string[] }
-export type Scene = Pick<Diagram, 'title' | 'subtitle' | 'synthetic' | 'legendVisible' | 'legend'> & { grid: ReturnType<typeof effectiveGrid>; backgroundColor: string; entityBackgrounds: Record<string, string>; connectionBackgrounds: Record<string, string>; entities: SceneEntity[]; connections: SceneConnection[]; width: number; height: number; minX: number; minY: number; bounds: Bounds; contentBounds: Bounds; header: TextBlock[]; legendItems: LegendItem[]; padding: number }
+export type Scene = Pick<Diagram, 'title' | 'subtitle' | 'synthetic' | 'legendVisible' | 'legend'> & { grid: ReturnType<typeof effectiveGrid>; backgroundColor: string; contrastBackground: string; entityBackgrounds: Record<string, string>; connectionBackgrounds: Record<string, string>; entities: SceneEntity[]; connections: SceneConnection[]; width: number; height: number; minX: number; minY: number; bounds: Bounds; contentBounds: Bounds; header: TextBlock[]; legendItems: LegendItem[]; padding: number }
 export type Assets = { icons?: Record<string, string>; fontData?: string }
 
 const GENERIC_GLYPH_CACHE_LIMIT = 256
@@ -147,16 +147,17 @@ export function buildScene(diagram: Diagram): Scene {
   const content = unionBounds([...boxes, ...metadataBoxes, ...legendItems])
   const padding = 20
   const bounds = { x: content.x - padding, y: content.y - padding, width: Math.ceil(content.width + padding * 2), height: Math.ceil(content.height + padding * 2) }
-  const backgroundColor = effectiveBackground(diagram.backgroundColor)
-  const legacyWhite = isWhiteBackground(backgroundColor)
+  const contrastBackground = effectiveBackground(diagram.backgroundColor)
+  const backgroundColor = isTransparentBackground(diagram.backgroundColor) ? 'transparent' : contrastBackground
+  const legacyWhite = isWhiteBackground(contrastBackground)
   const entityBackgrounds = Object.fromEntries(entities.map(entity => {
     const text = entityTextGeometry(entity)
     const point = { x: entity.absolute.x + text.labelX, y: entity.absolute.y + text.labelY }
-    return [entity.id, legacyWhite || entity.kind === 'component' ? '#ffffff' : backgroundAt(entities, point, backgroundColor, entity.id)]
+    return [entity.id, legacyWhite || entity.kind === 'component' ? '#ffffff' : backgroundAt(entities, point, contrastBackground, entity.id)]
   }))
   const { background, boundaries } = painterOrder(entities)
-  const connectionBackgrounds = Object.fromEntries(connections.map(connection => [connection.id, legacyWhite ? '#ffffff' : backgroundAt([...background, ...boundaries], connection.labelPosition, backgroundColor)]))
-  return { title: diagram.title, subtitle: diagram.subtitle, grid: effectiveGrid(diagram.grid), backgroundColor, entityBackgrounds, connectionBackgrounds, synthetic: diagram.synthetic, legendVisible: diagram.legendVisible, legend: diagram.legend, entities, connections, minX: bounds.x, minY: bounds.y, width: bounds.width, height: bounds.height, bounds, contentBounds, header, legendItems, padding }
+  const connectionBackgrounds = Object.fromEntries(connections.map(connection => [connection.id, legacyWhite ? '#ffffff' : backgroundAt([...background, ...boundaries], connection.labelPosition, contrastBackground)]))
+  return { title: diagram.title, subtitle: diagram.subtitle, grid: effectiveGrid(diagram.grid), backgroundColor, contrastBackground, entityBackgrounds, connectionBackgrounds, synthetic: diagram.synthetic, legendVisible: diagram.legendVisible, legend: diagram.legend, entities, connections, minX: bounds.x, minY: bounds.y, width: bounds.width, height: bounds.height, bounds, contentBounds, header, legendItems, padding }
 }
 
 export function buildExportScene(diagram: Diagram, options: ExportSceneOptions = {}): Scene {
@@ -265,12 +266,12 @@ export function sceneLayers(scene: Scene) {
 }
 
 export function sceneMetadataMarkup(scene: Scene): string {
-  return scene.header.map(block => textLines(block.lines, block.x, block.y, block.size, block.color, block.width, block.weight)).join('') + scene.legendItems.map(item => `<path d="M ${item.x} ${item.y + 8} h 18" stroke="${contrastInk(resolveColor(item.color).main, scene.backgroundColor, 3)}" stroke-width="2"${item.dashed ? ' stroke-dasharray="5 3"' : ''}/>${textLines(item.lines, item.x + 26, item.y + 12, 11, contrastInk('#7c8e90', scene.backgroundColor), item.width - 26)}`).join('')
+  return scene.header.map(block => textLines(block.lines, block.x, block.y, block.size, block.color, block.width, block.weight)).join('') + scene.legendItems.map(item => `<path d="M ${item.x} ${item.y + 8} h 18" stroke="${contrastInk(resolveColor(item.color).main, scene.contrastBackground, 3)}" stroke-width="2"${item.dashed ? ' stroke-dasharray="5 3"' : ''}/>${textLines(item.lines, item.x + 26, item.y + 12, 11, contrastInk('#7c8e90', scene.contrastBackground), item.width - 26)}`).join('')
 }
 
 export function gridMarkup(scene: Scene, id: string): { pattern: string; fill: string } {
   const spacing = scene.grid.spacing
-  const ink = contrastInk('#c4d2ce', scene.backgroundColor, 3)
+  const ink = contrastInk('#c4d2ce', scene.contrastBackground, 3)
   const shape = scene.grid.style === 'dots' ? `<circle cx="0" cy="0" r="1" fill="${ink}"/>` : `<path d="M 0 ${spacing} V 0 H ${spacing}" fill="none" stroke="${ink}" stroke-width="0.5"/>`
   return { pattern: `<pattern id="${id}" x="0" y="0" width="${spacing}" height="${spacing}" patternUnits="userSpaceOnUse" overflow="visible">${shape}</pattern>`, fill: `<rect x="${scene.minX}" y="${scene.minY}" width="${scene.width}" height="${scene.height}" fill="url(#${id})"/>` }
 }
@@ -284,7 +285,8 @@ export function renderSvg(scene: Scene, assets: Assets = {}, transparent = false
   const markup = (entity: SceneEntity) => `<g transform="translate(${entity.absolute.x} ${entity.absolute.y})">${entityMarkup(entity, assets, scene.entityBackgrounds[entity.id])}</g>`
   const markers = scene.connections.map(connection => connectionMarkers(connection, scene.connectionBackgrounds[connection.id])).join('')
   const font = assets.fontData && /^data:font\/(?:ttf|otf|woff2?);base64,[a-z\d+/]*={0,2}$/i.test(assets.fontData) ? `@font-face{font-family:Plex;src:url('${assets.fontData}')} ` : ''
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${scene.width}" height="${scene.height}" viewBox="${scene.minX} ${scene.minY} ${scene.width} ${scene.height}"><defs>${MARKERS}${markers}${grid.pattern}<style>${font}text{font-family:Plex,'IBM Plex Sans',sans-serif}</style></defs>${transparent ? '' : `<rect x="${scene.minX}" y="${scene.minY}" width="${scene.width}" height="${scene.height}" fill="${isWhiteBackground(scene.backgroundColor) ? 'white' : scene.backgroundColor}"/>`}${grid.fill}${background.map(markup).join('')}${boundaries.map(markup).join('')}${scene.connections.map(connection => connectionMarkup(connection, scene.connectionBackgrounds[connection.id])).join('')}${foreground.map(markup).join('')}${sceneMetadataMarkup(scene)}</svg>`
+  const omitBackground = transparent || isTransparentBackground(scene.backgroundColor)
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${scene.width}" height="${scene.height}" viewBox="${scene.minX} ${scene.minY} ${scene.width} ${scene.height}"><defs>${MARKERS}${markers}${grid.pattern}<style>${font}text{font-family:Plex,'IBM Plex Sans',sans-serif}</style></defs>${omitBackground ? '' : `<rect x="${scene.minX}" y="${scene.minY}" width="${scene.width}" height="${scene.height}" fill="${isWhiteBackground(scene.backgroundColor) ? 'white' : scene.backgroundColor}"/>`}${grid.fill}${background.map(markup).join('')}${boundaries.map(markup).join('')}${scene.connections.map(connection => connectionMarkup(connection, scene.connectionBackgrounds[connection.id])).join('')}${foreground.map(markup).join('')}${sceneMetadataMarkup(scene)}</svg>`
 }
 
 export function pngDimensions(scene: Scene, scale: 1 | 2): { width: number; height: number } {

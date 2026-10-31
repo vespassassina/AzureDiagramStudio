@@ -165,6 +165,16 @@ test('should_preserve_routes_positions_history_and_reload_when_background_settin
   rejects(next, { type: 'metadata', patch: { backgroundColor: 'url(https://evil)' } }, 'invalid-command')
 })
 
+test('should_preserve_transparent_background_through_metadata_history_and_reload', () => {
+  const document = nested()
+  const next = applyCommand(document, { type: 'metadata', patch: { backgroundColor: 'transparent' } })
+  assert.equal(next.backgroundColor, 'transparent')
+  assert.deepEqual(parseDocument(JSON.stringify(next)), { ok: true, value: next })
+  const history = historyCommit({ past: [], present: document, future: [] }, next)
+  assert.equal(historyUndo(history).present.backgroundColor, undefined)
+  assert.equal(historyRedo(historyUndo(history)).present.backgroundColor, 'transparent')
+})
+
 test('should_change_grid_metadata_reversibly_without_geometry_or_route_loss', () => {
   const document = nested()
   document.connections[0] = { ...document.connections[0], points: [{ x: 900, y: 108 }, { x: 700, y: 208 }], labelPosition: { x: 800, y: 158 }, routeRevision: 0 }

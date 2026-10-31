@@ -558,7 +558,15 @@ selection, grid and object borders are not globally thickened.
 
 ## Background and Grid
 
-In **Document properties**, use the background color picker or hex input (`#RGB` or `#RRGGBB`). Reset restores the white default. Changing background does not move objects or change their saved colors.
+In current source, **Document properties** offers White, Paper, Transparent and
+Solid color presets, named swatches, and a compact in-app RGB mixer. The mixer
+keeps sliders, integer 0–255 channel fields and a validated `#RGB` or
+`#RRGGBB` field synchronized; invalid values show an error and do not commit.
+`#fff` and case variants identify the White preset. Reset restores the
+absent-field white default. Transparent uses a checkerboard only in the editor
+so it remains identifiable; JSON saves `transparent` and SVG/PNG exports do
+not include checkerboard pixels. Changing background does not move objects or
+change their saved colors. Existing installed releases are unchanged.
 
 **Show grid** and **Snap to grid** are independent. Choose **Dots** or **Lines** and integer **Grid spacing** from 4 to 128. Snapping uses a shared canvas origin, including nested objects; switching it off permits free placement without moving existing content. **Show grid in Present** and **Include grid in exports** are separate opt-ins. Auto-arrange is not quantized to this grid.
 

@@ -9,7 +9,7 @@ import type { ClipboardFragment, DocumentCommand, EditorProps, EntityPatch, Conn
 import type { ConnectionSide, Diagram, Entity, Point } from '../model.ts'
 import { buildScene, buildExportScene, pngDimensions, entityMarkup, connectionMarkup, connectionMarkers, MARKERS } from '../scene.ts'
 import { entityTextGeometry } from '../model.ts'
-import { contrastInk, fullHex, isHexColor, isWhiteBackground } from '../render/contrast.ts'
+import { contrastInk, fullHex, isHexColor, isTransparentBackground, isWhiteBackground } from '../render/contrast.ts'
 import type { SceneConnection } from '../scene.ts'
 import { COLORS, genericLibrary, isColorKey, resolveColor } from '../catalog.ts'
 import { visualAssets } from '../assets.ts'
@@ -59,6 +59,15 @@ const entersStarterChooser = (target: EventTarget | null) => target instanceof H
 const tools: { tool: Tool; icon: LucideIcon; label: string }[] = [{ tool: 'select', icon: MousePointer2, label: 'Select tool' }, { tool: 'pan', icon: Hand, label: 'Pan tool' }, { tool: 'component', icon: Boxes, label: 'Add component' }, { tool: 'connector', icon: Cable, label: 'Connect components' }, { tool: 'boundary', icon: Frame, label: 'Add boundary' }, { tool: 'text', icon: Type, label: 'Add text' }, { tool: 'rectangle', icon: Square, label: 'Add rectangle' }]
 const positions = { top: Position.Top, right: Position.Right, bottom: Position.Bottom, left: Position.Left }
 const addDirections: { side: AddSide; icon: LucideIcon }[] = [{ side: 'left', icon: ArrowLeft }, { side: 'right', icon: ArrowRight }, { side: 'top', icon: ArrowUp }, { side: 'bottom', icon: ArrowDown }]
+const backgroundSwatchColumns = [
+  [['Blue, Accent 1, Lighter 80%', '#ddebf7'], ['Blue, Accent 1, Lighter 60%', '#9dc3e6'], ['Blue, Accent 1, Lighter 40%', '#5b9bd5'], ['Blue, Accent 1', '#4472c4'], ['Blue, Accent 1, Darker 25%', '#2f5597']],
+  [['Orange, Accent 2, Lighter 80%', '#fce4d6'], ['Orange, Accent 2, Lighter 60%', '#f4b183'], ['Orange, Accent 2, Lighter 40%', '#ed7d31'], ['Orange, Accent 2', '#c55a11'], ['Orange, Accent 2, Darker 25%', '#843c0c']],
+  [['Gray, Accent 3, Lighter 80%', '#e7e6e6'], ['Gray, Accent 3, Lighter 60%', '#bfbfbf'], ['Gray, Accent 3, Lighter 40%', '#a5a5a5'], ['Gray, Accent 3', '#7f7f7f'], ['Gray, Accent 3, Darker 25%', '#595959']],
+  [['Gold, Accent 4, Lighter 80%', '#fff2cc'], ['Gold, Accent 4, Lighter 60%', '#ffd966'], ['Gold, Accent 4, Lighter 40%', '#ffc000'], ['Gold, Accent 4', '#bf9000'], ['Gold, Accent 4, Darker 25%', '#7f6000']],
+  [['Green, Accent 5, Lighter 80%', '#e2f0d9'], ['Green, Accent 5, Lighter 60%', '#a9d18e'], ['Green, Accent 5, Lighter 40%', '#70ad47'], ['Green, Accent 5', '#548235'], ['Green, Accent 5, Darker 25%', '#375623']],
+  [['Purple, Accent 6, Lighter 80%', '#e4dfec'], ['Purple, Accent 6, Lighter 60%', '#b4a7d6'], ['Purple, Accent 6, Lighter 40%', '#8064a2'], ['Purple, Accent 6', '#5b4975'], ['Purple, Accent 6, Darker 25%', '#3f3151']],
+] as const
+const standardBackgroundSwatches = [['Dark red', '#c00000'], ['Red', '#ff0000'], ['Orange', '#ed7d31'], ['Yellow', '#ffff00'], ['Green', '#00b050'], ['Cyan', '#00b0f0'], ['Blue', '#0070c0'], ['Purple', '#7030a0'], ['Black', '#000000'], ['Gray', '#7f7f7f']] as const
 
 function IconButton({ icon: Icon, label, active, className = '', ...props }: { icon: LucideIcon; label: string; active?: boolean } & Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'>) {
   const tooltipId = useId()
@@ -147,6 +156,48 @@ function HexField({ color, disabled, label = 'Hex color', onDraft, onFinish, onC
     if (isHexColor(next) && isColorKey(next)) onDraft(next)
     else onCancel()
   }} onBlur={finish} onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') { event.stopPropagation(); setValue(color.startsWith('#') ? color : ''); setError(false); onCancel() } }} />{error && <small id={errorId} className="field-error" role="alert">Use #RGB or #RRGGBB.</small>}</>
+}
+function BackgroundMixer({ color, disabled, onDraft, onFinish, onCancel }: { color?: string; disabled: boolean; onDraft(color: string): void; onFinish(): void; onCancel(): void }) {
+  const errorId = useId()
+  const normalized = fullHex(isHexColor(color) ? color : '#ffffff').toLowerCase()
+  const [hex, setHex] = useState(normalized)
+  const [channelDrafts, setChannelDrafts] = useState(() => normalized.slice(1).match(/../g)!.map(value => String(parseInt(value, 16))))
+  const [invalidChannel, setInvalidChannel] = useState<number | null>(null)
+  const [invalidHex, setInvalidHex] = useState(false)
+  useEffect(() => {
+    setHex(normalized)
+    setChannelDrafts(normalized.slice(1).match(/../g)!.map(value => String(parseInt(value, 16))))
+    setInvalidChannel(null); setInvalidHex(false)
+  }, [normalized])
+  const channels = normalized.slice(1).match(/../g)!.map(value => parseInt(value, 16))
+  const draft = (next: number[]) => onDraft(`#${next.map(value => value.toString(16).padStart(2, '0')).join('')}`)
+  function finish() {
+    if (!disabled && invalidChannel === null && !invalidHex) onFinish()
+    else if (!disabled) onCancel()
+  }
+  function updateChannel(index: number, value: string) {
+    if (disabled) return
+    const valid = /^\d+$/.test(value) && Number.isInteger(Number(value)) && Number(value) >= 0 && Number(value) <= 255
+    setChannelDrafts(current => current.map((item, currentIndex) => currentIndex === index ? value : item))
+    setInvalidChannel(valid ? null : index)
+    if (valid) draft(channels.map((channel, currentIndex) => currentIndex === index ? Number(value) : channel))
+  }
+  function updateHex(value: string) {
+    if (disabled) return
+    setHex(value)
+    const valid = isHexColor(value)
+    setInvalidHex(!valid)
+    if (valid) onDraft(fullHex(value).toLowerCase())
+  }
+  function cancel() {
+    setHex(normalized); setChannelDrafts(channels.map(String)); setInvalidChannel(null); setInvalidHex(false); onCancel()
+  }
+  const channelNames = ['Red', 'Green', 'Blue']
+  return <div className="background-mixer" role="group" aria-label="Custom RGB color mixer">
+    <div className="background-mixer-channels">{channelNames.map((name, index) => <label key={name} className="background-mixer-channel"><span>{name}</span><input aria-label={`${name} channel`} type="range" min={0} max={255} value={channels[index]} disabled={disabled} onChange={event => updateChannel(index, event.target.value)} onMouseUp={finish} onKeyUp={event => { if (event.key === 'Enter') finish(); if (event.key === 'Escape') cancel() }} /><input aria-label={`${name} channel value`} type="number" min={0} max={255} step={1} value={channelDrafts[index]} disabled={disabled} aria-invalid={invalidChannel === index} aria-describedby={invalidChannel === index ? errorId : undefined} onChange={event => updateChannel(index, event.target.value)} onBlur={finish} onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') { event.stopPropagation(); cancel(); event.currentTarget.blur() } }} /></label>)}</div>
+    <label className="background-mixer-hex"><span>Hex</span><input aria-label="Background hex color" value={hex} placeholder="#0078d4" maxLength={7} disabled={disabled} aria-invalid={invalidHex} aria-describedby={invalidHex ? errorId : undefined} onChange={event => updateHex(event.target.value)} onBlur={finish} onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') { event.stopPropagation(); cancel(); event.currentTarget.blur() } }} /></label>
+    {(invalidChannel !== null || invalidHex) && <small id={errorId} className="field-error" role="alert">{invalidChannel !== null ? 'Use an integer from 0 to 255.' : 'Use #RGB or #RRGGBB.'}</small>}
+  </div>
 }
 function StarterPreview({ choice }: { choice: StarterChoice }) {
   const document = starterDocument(choice.key)
@@ -1134,10 +1185,11 @@ export default function EditorSurface(props: EditorProps) {
     return { id: entity.id, type: 'architecture', position: { x: entity.x, y: entity.y }, parentId: entity.parentId ?? undefined, width: entity.width, height: entity.height, measured: measured && measured.canonicalWidth === entity.width && measured.canonicalHeight === entity.height ? { width: measured.width, height: measured.height } : { width: entity.width, height: entity.height }, style: { width: entity.width, height: entity.height }, selected: !presenting && selectedIds.includes(entity.id), data: { entity, backgroundColor: scene.entityBackgrounds[entity.id], minWidth: min.width, minHeight: min.height, writable, presenting, startResize, quickAddSourceId, onQuickAdd: openConnectedPicker, onDeleteComponent: deleteComponent }, zIndex: paint.nodeZIndices.get(entity.id)! }
   }), [ordered, scene, paint, measurements, selectedIds, writable, presenting, startResize, quickAddSourceId, openConnectedPicker, deleteComponent, gestureEpoch])
   const edges = useMemo<ArchitectureEdge[]>(() => scene.connections.map(item => ({ id: item.id, type: 'architecture', source: item.from, target: item.to, sourceHandle: item.sourceSide && item.sourceSide !== 'auto' ? item.sourceSide : sideAtPoint(diagram, item.from, item.start), targetHandle: item.targetSide && item.targetSide !== 'auto' ? item.targetSide : sideAtPoint(diagram, item.to, item.end), selected: !presenting && selectedEdges.includes(item.id), reconnectable: writable, data: { connection: item, backgroundColor: scene.connectionBackgrounds[item.id] }, zIndex: paint.connectionZIndex })), [scene, paint, diagram, selectedEdges, writable, presenting])
-  const customBackground = !isWhiteBackground(scene.backgroundColor)
+  const customBackground = !isWhiteBackground(scene.contrastBackground)
   // Workspace appearance is deliberately separate from the canonical scene:
   // explicit colors, Present, JSON and all export backgrounds stay unchanged.
   const workspaceBackground = !presenting && theme === 'light' && diagram.backgroundColor === undefined ? '#faf8f3' : scene.backgroundColor
+  const transparentWorkspace = !presenting && isTransparentBackground(scene.backgroundColor)
   const panelTitle = multiSelection ? 'Selection' : selected ? ({ component: 'Component', boundary: 'Boundary', text: 'Text', rectangle: 'Rectangle' })[selected.kind] : connection ? 'Connection' : 'Document'
   const field = (label: string, value: string, maxLength: number, onDraft: (value: string) => void, multiline = false) => <DraftField label={label} value={value} maxLength={maxLength} disabled={!writable} multiline={multiline} onDraft={onDraft} onFinish={() => finish()} onCancel={clearPreview} deferFinish={() => starterOpening.current} />
   const descriptionEditor = <MarkdownDescription value={diagram.description ?? ''} mode={markdownMode} writable={writable} presenting={presenting} onModeChange={setMarkdownMode} onDraft={value => editMetadata({ description: value === '' ? undefined : value }, true)} onFinish={() => finish()} onCancel={clearPreview} deferFinish={() => starterOpening.current} />
@@ -1311,14 +1363,14 @@ export default function EditorSurface(props: EditorProps) {
         <div className="panel-heading"><h2>Components</h2><div className="panel-actions"><IconButton icon={PanelLeftClose} label="Close component library" onClick={() => setLibraryOpen(false)} /></div></div>
         <CatalogAccordion writable={writable} selectedIcon={tool === 'component' ? template.icon : null} recentIcons={recentIcons} onClearRecents={clearRecents} onChoose={chooseComponent} />
       </aside>
-      <main ref={canvasElement} tabIndex={-1} className={`canvas-surface tool-${presenting ? 'pan' : tool}`} style={{ backgroundColor: workspaceBackground, '--canvas-surface': workspaceBackground, '--grid-dot': customBackground ? contrastInk('#c4d2ce', scene.backgroundColor, 3) : '#c4d2ce' } as CSSProperties} aria-label="Architecture canvas" onPointerMove={event => { if (presentationActive.current && pointerEnabled && canvasElement.current) { const bounds = canvasElement.current.getBoundingClientRect(); setPointer({ x: event.clientX - bounds.left, y: event.clientY - bounds.top }) } }} onDragOver={event => { if (writable && !presentationActive.current && event.dataTransfer.types.includes(DROP_TYPE)) { event.preventDefault(); event.dataTransfer.dropEffect = 'copy' } }} onDrop={event => {
+      <main ref={canvasElement} tabIndex={-1} className={`canvas-surface tool-${presenting ? 'pan' : tool} ${transparentWorkspace ? 'transparent-workspace' : ''}`} style={{ backgroundColor: workspaceBackground, '--canvas-surface': workspaceBackground, '--grid-dot': customBackground ? contrastInk('#c4d2ce', scene.contrastBackground, 3) : '#c4d2ce' } as CSSProperties} aria-label="Architecture canvas" onPointerMove={event => { if (presentationActive.current && pointerEnabled && canvasElement.current) { const bounds = canvasElement.current.getBoundingClientRect(); setPointer({ x: event.clientX - bounds.left, y: event.clientY - bounds.top }) } }} onDragOver={event => { if (writable && !presentationActive.current && event.dataTransfer.types.includes(DROP_TYPE)) { event.preventDefault(); event.dataTransfer.dropEffect = 'copy' } }} onDrop={event => {
         event.preventDefault()
         if (!writable || presentationActive.current || guideActive.current || blockedGesture()) return
         const item = readDrop(event.dataTransfer.getData(DROP_TYPE))
         if (!item) { setNotice('Drop a component from the library.'); return }
         insertComponent(item, screenToFlowPosition({ x: event.clientX, y: event.clientY }, { snapToGrid: false }))
       }}>
-        <div className="canvas-heading" data-fit-chrome="top">{diagram.synthetic && <div className="canvas-kicker" style={customBackground ? { color: contrastInk('#849293', scene.backgroundColor, 7) } : undefined}><span className="synthetic-dot" />SYNTHETIC EXAMPLE</div>}<h1 style={customBackground ? { color: contrastInk('#203637', scene.backgroundColor, 7) } : undefined}>{diagram.title || 'Untitled architecture'}</h1>{diagram.subtitle && <div className="diagram-meta" style={customBackground ? { color: contrastInk('#849293', scene.backgroundColor, 7) } : undefined}>{diagram.subtitle}</div>}</div>
+        <div className="canvas-heading" data-fit-chrome="top">{diagram.synthetic && <div className="canvas-kicker" style={customBackground ? { color: contrastInk('#849293', scene.contrastBackground, 7) } : undefined}><span className="synthetic-dot" />SYNTHETIC EXAMPLE</div>}<h1 style={customBackground ? { color: contrastInk('#203637', scene.contrastBackground, 7) } : undefined}>{diagram.title || 'Untitled architecture'}</h1>{diagram.subtitle && <div className="diagram-meta" style={customBackground ? { color: contrastInk('#849293', scene.contrastBackground, 7) } : undefined}>{diagram.subtitle}</div>}</div>
         {!presenting && <div className="canvas-toolbar" data-fit-chrome="top">
           <ArrangeMenu open={arrangeMenuOpen} onOpen={open => { if (!open || (!composing.current && !inlineComposing.current && !guideActive.current && !guideOpening.current && !presentationActive.current && !guideOpen && !aboutOpen && !commandsOpen && !starterOpen && !connectedPicker && !exportOpen)) setArrangeMenuOpen(open) }} disabled={!writable || props.isArranging || !diagram.entities.some(entity => entity.kind === 'component' || entity.kind === 'boundary')} busy={props.isArranging} onArrange={(direction, options) => {
             if (!presentationActive.current && !guideActive.current && !guideOpening.current && !composing.current && !inlineComposing.current && !guideOpen && !aboutOpen && !commandsOpen && !starterOpen && !connectedPicker && !exportOpen && writable && !props.isArranging && finish()) props.onArrange(direction, options)
@@ -1332,7 +1384,7 @@ export default function EditorSurface(props: EditorProps) {
         </ReactFlow>
         {visibleInline && anchor && <InlineLabel key={`${visibleInline.kind}:${visibleInline.id}`} edit={visibleInline} style={{ width: inlineWidth, left: canvasBounds.width ? Math.max(4, Math.min(canvasBounds.width - inlineWidth - 4, inlineLeft)) : inlineLeft, top: canvasBounds.height ? Math.max(4, Math.min(canvasBounds.height - (visibleInline.multiline ? 108 : 44) - 4, inlineTop)) : inlineTop }} onDraft={draftInline} onFinish={() => finishInline(true)} onCancel={() => cancelInline()} onComposing={active => { inlineComposing.current = active }} deferFinish={() => starterOpening.current} />}
         <div className="canvas-bottom-chrome">
-        {diagram.legendVisible && scene.legendItems.length > 0 && <div className="canvas-legend" style={customBackground ? { color: contrastInk('#7c8e90', scene.backgroundColor) } : undefined} data-fit-chrome="bottom" aria-label="Diagram legend" role="list">{scene.legendItems.map((item, index) => <span key={`${item.label}-${index}`} role="listitem"><i style={{ borderColor: contrastInk(resolveColor(item.color).main, scene.backgroundColor, 3), borderStyle: item.dashed ? 'dashed' : 'solid' }} />{item.label}</span>)}</div>}
+        {diagram.legendVisible && scene.legendItems.length > 0 && <div className="canvas-legend" style={customBackground ? { color: contrastInk('#7c8e90', scene.contrastBackground) } : undefined} data-fit-chrome="bottom" aria-label="Diagram legend" role="list">{scene.legendItems.map((item, index) => <span key={`${item.label}-${index}`} role="listitem"><i style={{ borderColor: contrastInk(resolveColor(item.color).main, scene.contrastBackground, 3), borderStyle: item.dashed ? 'dashed' : 'solid' }} />{item.label}</span>)}</div>}
         {!presenting && (selectedIds.length > 0 || selectedEdges.length > 0) && <div className="canvas-selection-toolbar" data-fit-chrome="bottom" aria-label="Selection actions">{entityActions}<span className="separator" /><IconButton icon={Group} label="Group selection" disabled={!writable || !selectedIds.length} onClick={groupSelection} /><IconButton icon={Ungroup} label="Ungroup selection" disabled={!writable || !boundaries.length} onClick={ungroupSelection} />{connection && <IconButton icon={Plus} label={`Insert ${template.label} on connection`} disabled={!writable} onClick={() => insertComponent(template)} />}</div>}
         <div className="canvas-navigation">
         {presenting && <div className="presentation-status" data-fit-chrome="bottom" role="status" aria-live="polite">{notice || props.message || (props.readOnly ? 'Read-only' : '')}</div>}
@@ -1382,8 +1434,7 @@ export default function EditorSurface(props: EditorProps) {
           {!selected && !connection && <>
             <Property label="Subtitle">{field('Document subtitle', diagram.subtitle, 200, value => editMetadata({ subtitle: value }, true))}</Property>
             <div className="property"><span>Architecture description (Markdown)</span>{!presenting && sidebarView === 'properties' && descriptionEditor}</div>
-            <div className="property"><span>Background</span><div className="background-controls"><input type="color" aria-label="Diagram background color" value={fullHex(scene.backgroundColor).toLowerCase()} disabled={!writable} onChange={event => { if (isHexColor(event.target.value)) editMetadata({ backgroundColor: event.target.value }, true); else { clearPreview(); setNotice('backgroundColor: Use #RGB or #RRGGBB.') } }} onBlur={() => finish()} onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); clearPreview() } if (event.key === 'Enter') event.currentTarget.blur() }} /><IconButton icon={Undo2} label="Reset diagram background" disabled={!writable} onMouseDown={event => event.preventDefault()} onClick={() => { clearPreview(); setBackgroundReset(value => value + 1); editMetadata({ backgroundColor: undefined }) }} /></div></div>
-            <Property label="Background hex color"><HexField key={`${props.document.id}:${backgroundReset}`} label="Background hex color" color={props.document.backgroundColor ?? '#ffffff'} disabled={!writable} onDraft={backgroundColor => editMetadata({ backgroundColor }, true)} onFinish={() => finish()} onCancel={clearPreview} /></Property>
+            <div className="property"><span>Background</span><div className="background-presets" role="group" aria-label="Diagram background presets">{[['White background', '#ffffff', isWhiteBackground(props.document.backgroundColor ?? '#ffffff')], ['Paper background', '#faf8f3', fullHex(props.document.backgroundColor ?? '').toLowerCase() === '#faf8f3'], ['Transparent background', 'transparent', props.document.backgroundColor === 'transparent'], ['Solid color background', '#4472c4', !!(isHexColor(props.document.backgroundColor) && !isWhiteBackground(props.document.backgroundColor) && fullHex(props.document.backgroundColor).toLowerCase() !== '#faf8f3')]].map(([label, color, selected]) => <button key={label as string} type="button" className={`background-preset ${selected ? 'picked' : ''}`} aria-label={label as string} aria-pressed={selected as boolean} disabled={!writable} onClick={() => editMetadata({ backgroundColor: color as string })}>{(label as string).replace(' background', '')}</button>)}</div><div className="background-swatches" role="group" aria-label="Solid background swatches"><div className="background-swatch-columns">{backgroundSwatchColumns.map((column, columnIndex) => <div key={columnIndex}>{column.map(([label, color]) => <button type="button" key={color} className="background-swatch" aria-label={label} title={`${label} (${color})`} aria-pressed={fullHex(props.document.backgroundColor ?? '').toLowerCase() === color} disabled={!writable} style={{ '--swatch': color } as CSSProperties} onClick={() => editMetadata({ backgroundColor: color })}>{fullHex(props.document.backgroundColor ?? '').toLowerCase() === color && <CircleCheck size={14} />}</button>)}</div>)}</div><div className="background-standard-swatches" aria-label="Standard colors">{standardBackgroundSwatches.map(([label, color]) => <button type="button" key={color} className="background-swatch" aria-label={label} title={`${label} (${color})`} aria-pressed={fullHex(props.document.backgroundColor ?? '').toLowerCase() === color} disabled={!writable} style={{ '--swatch': color } as CSSProperties} onClick={() => editMetadata({ backgroundColor: color })}>{fullHex(props.document.backgroundColor ?? '').toLowerCase() === color && <CircleCheck size={14} />}</button>)}</div></div><BackgroundMixer key={`${props.document.id}:${backgroundReset}`} color={diagram.backgroundColor} disabled={!writable} onDraft={backgroundColor => editMetadata({ backgroundColor }, true)} onFinish={() => finish()} onCancel={clearPreview} /><div className="background-controls"><input type="color" aria-label="Diagram background color" value={fullHex(scene.contrastBackground).toLowerCase()} disabled={!writable} onChange={event => { if (isHexColor(event.target.value)) editMetadata({ backgroundColor: event.target.value }, true); else { clearPreview(); setNotice('backgroundColor: Use #RGB or #RRGGBB.') } }} onBlur={() => finish()} onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); clearPreview() } if (event.key === 'Enter') event.currentTarget.blur() }} /><IconButton icon={Undo2} label="Reset diagram background" disabled={!writable} onMouseDown={event => event.preventDefault()} onClick={() => { clearPreview(); setBackgroundReset(value => value + 1); editMetadata({ backgroundColor: undefined }) }} /></div></div>
             <div className="grid-controls" role="group" aria-label="Grid settings">
               <label className="property-toggle"><input aria-label="Show grid" type="checkbox" checked={grid.visible} disabled={!writable} onChange={event => editGrid({ visible: event.target.checked })} />Show grid</label>
               <label className="property-toggle"><input aria-label="Snap to grid" type="checkbox" checked={grid.snap} disabled={!writable} onChange={event => editGrid({ snap: event.target.checked })} />Snap to grid</label>

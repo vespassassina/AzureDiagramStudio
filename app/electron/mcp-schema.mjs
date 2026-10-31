@@ -3,6 +3,7 @@ const id = { type: 'string', minLength: 1, maxLength: 160 }
 const number = { type: 'number' }
 const boolean = { type: 'boolean' }
 const enumeration = (...values) => ({ type: 'string', enum: values })
+const backgroundColor = { type: 'string', pattern: '^#(?:[\\da-fA-F]{3}|[\\da-fA-F]{6})$|^transparent$' }
 const object = (properties, required = Object.keys(properties)) => ({ type: 'object', properties, required, additionalProperties: false })
 const array = (items, maxItems = 1000) => ({ type: 'array', items, maxItems })
 const ids = array(id)
@@ -39,7 +40,7 @@ export const commandSchema = { oneOf: [
   command('ungroup', { boundaryIds: ids }),
   command('paste', { fragment: object({ entities: array(entity), connections: array(connection), origin: point }), idMap: { type: 'object', additionalProperties: id, maxProperties: 2000 }, offset: point }),
   command('metadata', { patch: object({
-    title: text, subtitle: text, description: { type: 'string', maxLength: 60000 }, backgroundColor: text,
+    title: text, subtitle: text, description: { type: 'string', maxLength: 60000 }, backgroundColor,
     grid: object({ visible: boolean, style: enumeration('dots', 'lines'), spacing: number, snap: boolean, present: boolean, export: boolean }),
     direction: enumeration('RIGHT', 'DOWN'), synthetic: boolean, legendVisible: boolean,
     legend: array(object({ label: text, color: text, dashed: boolean }, ['label', 'color'])),
@@ -73,7 +74,7 @@ export function matchesSchema(value, schema, depth = 0) {
   if (schema.const !== undefined && value !== schema.const) return false
   if (schema.enum && !schema.enum.includes(value)) return false
   if (schema.type === 'null') return value === null
-  if (schema.type === 'string') return typeof value === 'string' && value.length >= (schema.minLength ?? 0) && value.length <= (schema.maxLength ?? Infinity)
+  if (schema.type === 'string') return typeof value === 'string' && value.length >= (schema.minLength ?? 0) && value.length <= (schema.maxLength ?? Infinity) && (!schema.pattern || new RegExp(schema.pattern).test(value))
   if (schema.type === 'boolean') return typeof value === 'boolean'
   if (schema.type === 'number' || schema.type === 'integer') return typeof value === 'number' && Number.isFinite(value) && (schema.type !== 'integer' || Number.isSafeInteger(value))
   if (schema.type === 'array') return Array.isArray(value) && value.length >= (schema.minItems ?? 0) && value.length <= (schema.maxItems ?? Infinity) && value.every(item => matchesSchema(item, schema.items, depth + 1))

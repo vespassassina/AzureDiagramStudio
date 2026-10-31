@@ -64,6 +64,7 @@ const strings = value => Array.isArray(value) && value.length <= 100 && value.ev
 const exact = (value, keys) => record(value) && Object.keys(value).every(key => keys.includes(key))
 const finite = value => typeof value === 'number' && Number.isFinite(value)
 const point = value => exact(value, ['x', 'y']) && finite(value.x) && finite(value.y)
+const backgroundColor = value => typeof value === 'string' && (/^#(?:[\da-f]{3}|[\da-f]{6})$/i.test(value) || value === 'transparent')
 
 // The renderer runs the existing full domain validator. At the IPC boundary
 // independently require the known JSON shape and bounded sizes; retain parsed,
@@ -72,7 +73,7 @@ function validDocument(value) {
   if (!exact(value, ['schemaVersion', 'id', 'title', 'subtitle', 'description', 'backgroundColor', 'grid', 'synthetic', 'legendVisible', 'legend', 'revision', 'direction', 'entities', 'connections']) ||
       value.schemaVersion !== 1 || !string(value.id) || !string(value.title) || !string(value.subtitle) ||
       (value.description !== undefined && !string(value.description, MAX_DOCUMENT_BYTES)) ||
-      (value.backgroundColor !== undefined && !string(value.backgroundColor, 100)) ||
+      (value.backgroundColor !== undefined && !backgroundColor(value.backgroundColor)) ||
       !Number.isSafeInteger(value.revision) || value.revision < 0 || !['RIGHT', 'DOWN'].includes(value.direction) ||
       typeof value.synthetic !== 'boolean' || typeof value.legendVisible !== 'boolean' ||
       !Array.isArray(value.entities) || value.entities.length > 10000 || !Array.isArray(value.connections) || value.connections.length > 20000 ||

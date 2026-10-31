@@ -2,6 +2,7 @@ import { resolveColor } from '../catalog.ts'
 import type { Entity, Point } from '../model.ts'
 
 export const isHexColor = (value: unknown): value is string => typeof value === 'string' && /^#(?:[\da-f]{3}|[\da-f]{6})$/i.test(value)
+export const isTransparentBackground = (value: unknown): value is 'transparent' => value === 'transparent'
 export const effectiveBackground = (value?: string): string => isHexColor(value) ? value : '#ffffff'
 export const fullHex = (value: string): string => value.length === 4 ? `#${[...value.slice(1)].map(character => character.repeat(2)).join('')}` : value
 export const isWhiteBackground = (value: string): boolean => fullHex(effectiveBackground(value)).toLowerCase() === '#ffffff'

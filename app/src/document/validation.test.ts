@@ -77,16 +77,16 @@ test.each([null, [], 'dots', {}, { ...grid115, style: 'off' }, ...[3, 129, 8.5, 
   if (!result.ok) assert.ok(result.errors.some(error => error.path.startsWith('grid')))
 })
 
-test('should_preserve_background_when_valid_hex_is_reopened_and_omit_it_for_legacy_documents', () => {
+test('should_preserve_background_when_valid_hex_or_transparent_is_reopened_and_omit_it_for_legacy_documents', () => {
   const legacy = createDocument('background')
   assert.deepEqual(parseDocument(JSON.stringify(legacy)), { ok: true, value: legacy })
-  for (const backgroundColor of ['#abc', '#ABC', '#123abc', '#FFFFFF']) {
+  for (const backgroundColor of ['#abc', '#ABC', '#123abc', '#FFFFFF', 'transparent']) {
     const document = { ...legacy, backgroundColor }
     assert.deepEqual(parseDocument(JSON.stringify(document)), { ok: true, value: document })
   }
 })
 
-test.each(['white', 'transparent', '#abcd', '#12345678', '#ggg', ' #abc', '#abc\n', '#123456\r\n', 'url(https://evil)', 'var(--color)', '<script>', null])('should_reject_invalid_background_%s_without_discarding_it', backgroundColor => {
+test.each(['white', '#abcd', '#12345678', '#ggg', ' #abc', '#abc\n', '#123456\r\n', 'url(https://evil)', 'var(--color)', '<script>', null])('should_reject_invalid_background_%s_without_discarding_it', backgroundColor => {
   const result = validateDocument({ ...createDocument('background'), backgroundColor })
   assert.equal(result.ok, false)
   if (!result.ok) assert.ok(result.errors.some(error => error.path === 'backgroundColor'))

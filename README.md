@@ -12,6 +12,7 @@ A local architecture editor for Azure, Microsoft Fabric, Microsoft applications 
 - Local autosave, editable JSON backups and separate skill-JSON import.
 - Self-contained SVG with native text, embedded icons and font; PNG at 1x or 2x.
 - Local light/dark editor theme; document and export colors stay unchanged.
+- Document-background presets, named swatches and an in-app RGB mixer with numeric 0–255 channels and validated hex input.
 
 ![The same native example in the dark editor theme](docs/images/studio-dark.png)
 
@@ -52,10 +53,12 @@ plain-text project/documentation references, identity and artwork-rights informa
 the reminder to keep editable JSON backups. Close it or press Escape to return
 to the same diagram; it is also available in read-only sessions.
 
-The current eleven-step Help guide describes these menus, fresh empty startup,
+The current source eleven-step Help guide describes these menus, fresh empty startup,
 all eleven starters, persistent Favorites, Markdown Edit/Preview, true group
 stacking, export companions, temporary presentation markup and workspace-root/MCP
-settings. Light workspaces use a subtle paper tone; custom diagram/export colors
+settings. Document properties provides White, Paper, Transparent and Solid
+background choices, named swatches, and an in-app RGB mixer; the checkerboard is
+an editor-only transparency cue and never exports. Light workspaces use a subtle paper tone; custom diagram/export colors
 and dark theme are unchanged. Diagram connections are slightly thicker in both
 the editor and SVG/PNG. See the [short manual](docs/manual.md#about-source-only)
 for About and [first-use guidance](docs/manual.md#first-use-ui-guide).

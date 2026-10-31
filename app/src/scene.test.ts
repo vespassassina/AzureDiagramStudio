@@ -93,6 +93,17 @@ test.each(['#101010', '#172a4c', '#bd1636'])('should_adapt_background_%s_contras
   expect(JSON.stringify(document)).toBe(original)
 })
 
+test('should_preserve_transparent_scene_contrast_while_default_exports_omit_canvas_fill', () => {
+  const document = { ...documentWith([component('one')]), backgroundColor: 'transparent' }
+  const scene = buildScene(document)
+  const svg = renderSvg(buildExportScene(document))
+  expect(scene.backgroundColor).toBe('transparent')
+  expect(scene.entityBackgrounds.one).toBe('#ffffff')
+  expect(svg).not.toContain('fill="transparent"')
+  expect(svg).not.toContain('checkerboard')
+  expect(renderSvg(buildExportScene(document, { background: 'white' })).match(/<rect[^>]*fill="white"/g)).toHaveLength(2)
+})
+
 test('should_compose_nested_boundary_fills_for_annotation_and_connection_contrast', () => {
   const document = { ...documentWith([
     { ...component('outer'), kind: 'boundary' as const, width: 800, height: 600 },

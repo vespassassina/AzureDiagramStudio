@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { outputTools, validateOutputOperation } from '../mcp-schema.mjs'
+import { outputTools, validateMutation, validateOutputOperation } from '../mcp-schema.mjs'
 import { validateOutput, MAX_OUTPUT_BYTES, createMutationBroker } from '../mcp-bridge.mjs'
 
 const operation = { name: 'snapshot_diagram', arguments: { stateToken: 'current' } }
@@ -24,6 +24,17 @@ test('should_advertise_strict_read_only_output_tools_and_reject_invalid_options'
   ]) assert.equal(validateOutputOperation({ name: 'export_diagram', arguments: args }), false)
   assert.equal(validateOutputOperation({ ...operation, arguments: { stateToken: 'current', includeMarkdown: false } }), false)
   for (const format of ['svg', 'png', 'json', 'markdown']) assert.ok(validateOutputOperation({ name: 'export_diagram', arguments: { stateToken: 'current', format } }))
+})
+test('should_accept_only_hex_or_transparent_background_metadata_in_mcp_schema_and_json_output', () => {
+  const command = backgroundColor => ({ name: 'edit_diagram', arguments: { stateToken: 'current', commands: [{ type: 'metadata', patch: { backgroundColor } }] } })
+  for (const backgroundColor of ['#abc', '#A1B2C3', 'transparent']) assert.ok(validateMutation(command(backgroundColor)))
+  for (const backgroundColor of ['white', '#abcd', '#12345678', 'url(https://evil)']) assert.equal(validateMutation(command(backgroundColor)), false)
+  const transparent = { schemaVersion: 1, id: 'test', title: 'Committed', subtitle: '', backgroundColor: 'transparent', revision: 3, direction: 'RIGHT', synthetic: false, legendVisible: true, legend: [], entities: [], connections: [] }
+  const resource = { uri: 'diagrammer://exports/current/diagram.json', mimeType: 'application/json', text: JSON.stringify(transparent) }
+  const value = { content: [{ type: 'resource', resource }, { type: 'text', text: JSON.stringify({ stateToken: 'current', filename: 'diagram.json', mimeType: 'application/json', byteLength: Buffer.byteLength(resource.text) }) }] }
+  assert.ok(validateOutput(value, { name: 'export_diagram', arguments: { stateToken: 'current', format: 'json' } }))
+  resource.text = JSON.stringify({ ...transparent, backgroundColor: 'white' })
+  assert.equal(validateOutput(value, { name: 'export_diagram', arguments: { stateToken: 'current', format: 'json' } }), false)
 })
 test('should_validate_exact_output_metadata_token_mime_base64_size_and_resource_uri', () => {
   assert.ok(validateOutput(output(), operation))
