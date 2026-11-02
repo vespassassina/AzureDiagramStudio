@@ -342,3 +342,18 @@ Evidence: [DGM-144 retained runtime attempts](verification/DGM-144.md) and
   bytes/hashes and inspect the runner's actual working-directory resolution.
   After an input-binding correction, run only the blocked cells and preserve
   passing cells rather than restarting an unchanged full matrix.
+
+## 2026-10-31: DGM-146 Palette Verification And Role Boundary
+
+Evidence: [DGM-146 original and repair1 review](verification/DGM-146.md).
+
+- Native colour-dialog availability is not a substitute for verified mixer
+  interaction. The PO approved an in-app RGB mixer; test both slider/numeric
+  and hex directions, invalid drafts, cancellation and exact one-edit history.
+- Normalize accepted shorthand hex before deriving selected preset state.
+  Check selection indicators against each swatch, not just the surrounding
+  theme; keep transparent-canvas readability distinct from export alpha.
+- The repair implementer committed despite an explicit no-Git assignment.
+  Preserve that local commit without publishing or destructive rollback and
+  record the boundary violation. Local commit existence is not PO delivery,
+  release or installed-package approval.

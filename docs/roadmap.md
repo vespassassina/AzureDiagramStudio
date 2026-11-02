@@ -89,6 +89,38 @@ supersedes earlier participant-trial stops, not technical safety requirements.
 
 ## Execution Queue
 
+**Latest PO priority,2026-11-02:** [DGM-147](specs/DGM-147.md),
+"package, compile and distribute0.5.1". Release accepted DGM-146 with the
+existing Windows ARM64/x64 portable formats, direct source delivery,
+immutable builds, independent exact-package qualification and stable/latest
+four-asset publication plus complete anonymous downloads. No installation,
+old-release/tag mutation, dependency/security/CI change or Mac/Linux scope.
+Current cursor: metadata/source preparation by separate implementer next;
+parent then commits/pushes accepted source before immutable two-target builds.
+Running installed0.5.0 and its profiles remain untouched.
+
+**Latest PO priority,2026-10-31:** [DGM-146](specs/DGM-146.md), diagram
+background choices and an Excel-style solid-colour palette/custom mixer.
+PO approved White, Paper and Transparent presets, separate grid controls
+and persistence/export parity. Source-only extension of Document properties;
+no package/release/install/version/dependency/security change.
+Current cursor: SOURCE ACCEPTED AC1-AC7 after repair1. First review's #fff
+preset-state mismatch, low-contrast swatch selection and dark transparent
+heading are closed by independent production-browser evidence. PO approved
+the in-app RGB slider/numeric/hex mixer; real pointer/keyboard/hex sync, invalid
+drafts/cancel/single history edit, JSON recovery and actual SVG/PNG exports
+pass across desktop/narrow/short light/dark cells. Read-only/loading remain
+focused-test coverage; no new packaged MCP host/native picker certification.
+Typecheck/build pass; reports and first failures are preserved in
+docs/verification/DGM-146.md. Parent inspected desktop-light/narrow-dark
+screenshots. The implementer unexpectedly made local commitf4eeb5e despite
+no-Git instructions; preserved without push/reset/amend. No remote/release/
+installed-executable change is authorized or performed.
+Next: hand off source capability and stop. Packaging/installing these changes
+requires a subsequent explicit PO request; no follow-on feature is inferred.
+DGM-144 is complete
+and its running installed0.5.0 app and published assets remain untouched.
+
 **Latest explicit PO priority, 2026-10-29:** [DGM-144](specs/DGM-144.md),
 "compile and publish0.5.0", then install on this PC and report its location.
 Prepare current approved source/version, immutable two-target Windows builds,
