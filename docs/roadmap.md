@@ -1,6 +1,6 @@
 # Diagrammer Roadmap and Delegation Plan
 
-Updated: 2026-10-30. Status: DGM-144 STABLE/LATEST0.5.0 PUBLISHED / INDEPENDENT PUBLIC DOWNLOADS VERIFIED / CURRENT-USER ARM64 INSTALLED. OLDER RELEASES/TAGS AND KNOWN PNG LIMIT REMAIN PRESERVED.
+Updated: 2026-11-02. Status: DGM-147 STABLE/LATEST0.5.1 PUBLISHED / INDEPENDENT PUBLIC DOWNLOADS VERIFIED / NOT INSTALLED. INSTALLED0.5.0, OLDER RELEASES/TAGS AND KNOWN PNG LIMIT REMAIN PRESERVED.
 
 ## Current Execution Policy
 
@@ -95,8 +95,28 @@ existing Windows ARM64/x64 portable formats, direct source delivery,
 immutable builds, independent exact-package qualification and stable/latest
 four-asset publication plus complete anonymous downloads. No installation,
 old-release/tag mutation, dependency/security/CI change or Mac/Linux scope.
-Current cursor: metadata/source preparation by separate implementer next;
-parent then commits/pushes accepted source before immutable two-target builds.
+Current cursor: source preparation passed852 focused renderer tests,
+92 desktop tests,7 checksum tests, typecheck/build/stage with no dependency
+version drift. Accepted source is committed/pushed/read back on both refs at
+`3dc7579db438f7c0780ebab03f8f29b6e79daec4`, tree
+`7e638008a9b86f10db167c3927f7e3b342fb0631`. Both immutable Windows portables
+are built/static-qualified under `p147-b1`: ARM64403613917bytes and
+x64404466796bytes,47-file ASAR/stage and73-file payload equality.
+Build handoff: `app/test-results/releases/0.5.1/build/14-static-build-handoff.json`.
+Independent exact-portable acceptance passed ten general/MCP/routing/background
+UI/export cells across both architectures, including live transparent MCP
+outputs. Retain all original failures and adapter corrections.
+Annotated numeric `0.5.1` points to exact3dc7579; four assets are published
+stable/latest at https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.5.1.
+Independent verifier12c3711b accepted all four complete anonymous downloads,
+sidecar/source/tag/latest identity, five prior releases and nine prior tags.
+Release431256718 and all ten public checks PASS; evidence is under
+`app/test-results/releases/0.5.1/public-verifier-20261102-1017`.
+README/manual/spec and [verification report](verification/DGM-147.md) record
+the delivered state and native ARM64/emulated x64/unsigned limits.
+Final factual documentation is delivered to both existing refs without moving
+the immutable build tag. DGM-147 is complete.
+Next: await an explicit PO request; no installation or next feature inferred.
 Running installed0.5.0 and its profiles remain untouched.
 
 **Latest PO priority,2026-10-31:** [DGM-146](specs/DGM-146.md), diagram
@@ -114,10 +134,10 @@ focused-test coverage; no new packaged MCP host/native picker certification.
 Typecheck/build pass; reports and first failures are preserved in
 docs/verification/DGM-146.md. Parent inspected desktop-light/narrow-dark
 screenshots. The implementer unexpectedly made local commitf4eeb5e despite
-no-Git instructions; preserved without push/reset/amend. No remote/release/
-installed-executable change is authorized or performed.
-Next: hand off source capability and stop. Packaging/installing these changes
-requires a subsequent explicit PO request; no follow-on feature is inferred.
+no-Git instructions; preserved without reset/amend. This was the source-only
+acceptance boundary; the subsequent explicit DGM-147 request authorized source
+delivery and0.5.1 packaging/publication, not installation.
+Next: follow the DGM-147 cursor above; no follow-on feature is inferred.
 DGM-144 is complete
 and its running installed0.5.0 app and published assets remain untouched.
 

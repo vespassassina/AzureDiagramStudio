@@ -1,12 +1,12 @@
 # Azure Diagram Studio: Short Manual
 
-**Windows0.5.0:** the stable/latest release includes the menu, Help, workspace,
-Favorites, export and compact-layout changes described below.
-[DGM-144](specs/DGM-144.md) records accepted exact-portable qualification on
-Windows ARM64 and ARM64-emulated x64. All four public assets were independently
-downloaded anonymously and verified. The native ARM64 portable is installed
-for the requesting user; paths and installation limits are below.
-The 0.5.0 Windows desktop retains its clipboard-denial policy: **Copy image**
+**Windows0.5.1:** the stable/latest release adds diagram background presets,
+named swatches and an in-app RGB mixer to the menu, Help, workspace,
+Favorites, export and compact-layout features described below.
+[DGM-147](specs/DGM-147.md) records accepted exact-portable qualification on
+Windows ARM64 and ARM64-emulated x64. Version0.5.1 is not installed by this
+distribution; the previously installed0.5.0 portable remains unchanged.
+The Windows desktop retains its clipboard-denial policy: **Copy image**
 saves a plain PNG and reports that copying was unavailable or denied.
 **Include Markdown** does not turn that fallback into a ZIP. Open the saved
 PNG to copy or insert it with another application; do not change security
@@ -15,7 +15,7 @@ The historical source MCP PNG4000ms timeout remains a
 [known unresolved qualification limit](verification/DGM-143.md), not a fixed
 issue or an authorized deadline increase.
 
-This manual describes the [Windows0.5.0 release](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.5.0), including conventional menus, the eleven-step Help guide, persistent Favorites, guided starters, Markdown sidebar and local MCP. The [DGM-144 verification report](verification/DGM-144.md) identifies exact source `5201cd746a3984a771889f1e6dbbb02b6c2a1c4f`, both tested portables and verification limits. Earlier releases and local packages remain unchanged historical artifacts. Stable publication is not general platform or human certification.
+This manual describes the [Windows0.5.1 release](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.5.1), including conventional menus, the eleven-step Help guide, persistent Favorites, guided starters, Markdown sidebar, local MCP and background/RGB controls. The [DGM-147 verification report](verification/DGM-147.md) identifies exact source `3dc7579db438f7c0780ebab03f8f29b6e79daec4`, both tested portables and verification limits. Earlier releases and local packages remain unchanged historical artifacts. Stable publication is not general platform or human certification.
 
 The newer [guided starters and saved descriptions](verification/DGM-122.md),
 plus [Markdown Edit/Preview and the shared presentation sidebar](verification/DGM-124.md),
@@ -29,16 +29,17 @@ Older 0.2.0 binaries retain their earlier startup and guide behavior.
 
 ## Install and Launch
 
-Download from the [Windows0.5.0 release](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.5.0), or use the [README download links](../README.md#windows-050). The source repository is public. Both portable files bundle the runtime and work without Node.js, a local server or a cloud account.
+Download from the [Windows0.5.1 release](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.5.1), or use the [README download links](../README.md#windows-051). The source repository is public. Both portable files bundle the runtime and work without Node.js, a local server or a cloud account.
 
 For the published Windows ARM64 prerelease, use [arm64-v0.2.0](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/arm64-v0.2.0) and its own checksum manifest. There is no 0.2.0 x64/Mac asset in that release. Its attached source candidate ZIP, not GitHub's automatic tag archives, contains that older verified candidate; at its publication no source branch was pushed. The later source milestone and local guide package do not replace those release assets.
 
 1. In Windows **Settings > System > About**, check **System type**. Choose **ARM64** for Windows on ARM/Snapdragon, or **x64** for Intel/AMD Windows PCs.
-2. Choose the matching `Azure-Diagram-Studio-0.5.0-win-{arch}-portable.exe` and [SHA256SUMS.txt](https://github.com/vespassassina/AzureDiagramStudio/releases/download/0.5.0/SHA256SUMS.txt) from the same release. Downloads are approximately403-404MB.
+2. Choose the matching `Azure-Diagram-Studio-0.5.1-win-{arch}-portable.exe` and [SHA256SUMS.txt](https://github.com/vespassassina/AzureDiagramStudio/releases/download/0.5.1/SHA256SUMS.txt) from the same release. Downloads are approximately403-404MB.
 3. Compare `Get-FileHash '.\your-downloaded-file.exe' -Algorithm SHA256` with the matching manifest entry. A mismatch means do not run the file.
 4. Launch the portable executable. No separate Node.js installation or cloud sign-in is needed for the packaged runtime. Unsigned executables can trigger SmartScreen: follow your organization's policy, and do not disable security protections.
 
-For the requesting PC, the verified public ARM64 executable was copied to
+Version0.5.1 has not been installed under this distribution request.
+For the requesting PC, the previously verified public **0.5.0** ARM64 executable was copied to
 `%LOCALAPPDATA%\Programs\AzureDiagramStudio\Azure-Diagram-Studio-0.5.0-win-arm64-portable.exe`.
 Open **Azure Diagram Studio 0.5.0** from Start; its versioned shortcut is in
 `%APPDATA%\Microsoft\Windows\Start Menu\Programs`.
@@ -51,16 +52,20 @@ automatic launch was performed.
 
 Source/browser setup is in the [README](../README.md#build-from-source). Packaged offline launch, workers, image import, exports, themes and autosave/relaunch were tested. ARM64 ran natively; x64 ran under Windows ARM64 emulation rather than native Intel/AMD hardware. SmartScreen behavior and native save-dialog appearance remain manual checks. Browser diagrams do not automatically appear in desktop: Save JSON in the browser and Open JSON in the executable.
 
-Both0.5.0 exact portables passed independent general, MCP-output and routing
-qualification: six cells and twelve routing cases per architecture, with actual
-outputs, history/recovery and cancellation/retry. All exported fields match
-across architectures except independently generated root document UUIDs; binary
-outputs and Markdown match byte-for-byte. The approved MCP arrangement budget
+Both0.5.1 exact portables passed independent general, MCP-output, routing,
+background UI and actual background-export qualification: ten cells and twelve
+routing cases per architecture, with history/recovery and cancellation/retry.
+RGB slider/numeric/hex synchronization, invalid drafts/cancel/one-edit history,
+JSON recovery, transparent/Paper/custom SVG and PNG1x/2x, and explicit White
+override passed. Live packaged transparent MCP outputs also passed.
+Eleven UI export files and representative MCP PNG/SVG/Markdown and PNG/SVG ZIPs
+match byte-for-byte across architectures; JSON and JSON ZIP differ only in
+independently generated root document UUIDs. The approved MCP arrangement budget
 is15000ms end to end; other mutation/output brokers remain4000ms and HTTP
-ingress/other requests5000ms. See [DGM-144](verification/DGM-144.md).
+ingress/other requests5000ms. See [DGM-147](verification/DGM-147.md).
 Complete anonymous downloads of both EXEs and both sidecars matched the
 published and sealed sizes/hashes. Provenance, checksum content, source/tag,
-stable/latest identity and all older release/tag identities were verified.
+stable/latest identity, five prior releases and nine prior tags were verified.
 The historical0.3.0 exact portables passed independent general and new-feature runtime
 checks: 14 successful sessions and 16 exports across both targets. Full anonymous
 public downloads matched sealed hashes; corrected provenance/checksum sidecars
@@ -558,7 +563,7 @@ selection, grid and object borders are not globally thickened.
 
 ## Background and Grid
 
-In current source, **Document properties** offers White, Paper, Transparent and
+In Windows0.5.1 and current source, **Document properties** offers White, Paper, Transparent and
 Solid color presets, named swatches, and a compact in-app RGB mixer. The mixer
 keeps sliders, integer 0–255 channel fields and a validated `#RGB` or
 `#RRGGBB` field synchronized; invalid values show an error and do not commit.
@@ -566,7 +571,9 @@ keeps sliders, integer 0–255 channel fields and a validated `#RGB` or
 absent-field white default. Transparent uses a checkerboard only in the editor
 so it remains identifiable; JSON saves `transparent` and SVG/PNG exports do
 not include checkerboard pixels. Changing background does not move objects or
-change their saved colors. Existing installed releases are unchanged.
+change their saved colors. Older installed releases are unchanged. Retain
+editable backups before opening transparent documents with older clients,
+which may not accept the newer `transparent` value.
 
 **Show grid** and **Snap to grid** are independent. Choose **Dots** or **Lines** and integer **Grid spacing** from 4 to 128. Snapping uses a shared canvas origin, including nested objects; switching it off permits free placement without moving existing content. **Show grid in Present** and **Include grid in exports** are separate opt-ins. Auto-arrange is not quantized to this grid.
 

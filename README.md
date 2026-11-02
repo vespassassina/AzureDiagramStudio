@@ -53,7 +53,7 @@ plain-text project/documentation references, identity and artwork-rights informa
 the reminder to keep editable JSON backups. Close it or press Escape to return
 to the same diagram; it is also available in read-only sessions.
 
-The current source eleven-step Help guide describes these menus, fresh empty startup,
+The Windows 0.5.1 eleven-step Help guide describes these menus, fresh empty startup,
 all eleven starters, persistent Favorites, Markdown Edit/Preview, true group
 stacking, export companions, temporary presentation markup and workspace-root/MCP
 settings. Document properties provides White, Paper, Transparent and Solid
@@ -62,7 +62,8 @@ an editor-only transparency cue and never exports. Light workspaces use a subtle
 and dark theme are unchanged. Diagram connections are slightly thicker in both
 the editor and SVG/PNG. See the [short manual](docs/manual.md#about-source-only)
 for About and [first-use guidance](docs/manual.md#first-use-ui-guide).
-Windows **0.5.0** includes the menus, eleven-step refresh and appearance changes.
+Windows **0.5.1** adds the background presets, swatches and RGB mixer to the
+menus, eleven-step refresh and appearance changes shipped in **0.5.0**.
 The historical **0.3.0** downloads retain About, empty startup and the ten-step guide.
 Historical 0.2.0 executables remain unchanged.
 
@@ -91,32 +92,37 @@ copied; **Include Markdown** does not change this fallback into a ZIP.
 Open the saved PNG to copy or insert it using another application. No clipboard
 permission exception or security-policy change is included in 0.5.0.
 
-## Windows 0.5.0
+## Windows 0.5.1
 
-[Azure Diagram Studio 0.5.0 for Windows](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.5.0)
-is the current stable/latest release, incorporating conventional menus and the
+[Azure Diagram Studio 0.5.1 for Windows](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.5.1)
+is the current stable/latest release, adding White, Paper, Transparent and
+Solid backgrounds, named swatches and an in-app RGB slider/numeric/hex mixer.
+It retains conventional menus and the
 eleven-step Help guide, workspace-root settings, persisted Favorites, direct
 MCP/Markdown exports, compact grouped Auto-arrange and improved connections.
 Both exact portable EXEs passed independent general desktop, MCP-output and
-routing checks: six cells, including twelve routing cases per architecture.
+routing checks plus background controls and actual exports: ten cells,
+including twelve routing cases per architecture and live transparent MCP outputs.
 ARM64 ran natively; x64 ran under Windows ARM64 emulation, not native Intel/AMD.
 
 | Your PC | Download |
 | --- | --- |
-| Windows on ARM / Snapdragon | [ARM64 portable EXE](https://github.com/vespassassina/AzureDiagramStudio/releases/download/0.5.0/Azure-Diagram-Studio-0.5.0-win-arm64-portable.exe) |
-| Windows on Intel / AMD | [x64 portable EXE](https://github.com/vespassassina/AzureDiagramStudio/releases/download/0.5.0/Azure-Diagram-Studio-0.5.0-win-x64-portable.exe) |
+| Windows on ARM / Snapdragon | [ARM64 portable EXE](https://github.com/vespassassina/AzureDiagramStudio/releases/download/0.5.1/Azure-Diagram-Studio-0.5.1-win-arm64-portable.exe) |
+| Windows on Intel / AMD | [x64 portable EXE](https://github.com/vespassassina/AzureDiagramStudio/releases/download/0.5.1/Azure-Diagram-Studio-0.5.1-win-x64-portable.exe) |
 
-[SHA256 checksums](https://github.com/vespassassina/AzureDiagramStudio/releases/download/0.5.0/SHA256SUMS.txt)
-| [Source provenance](https://github.com/vespassassina/AzureDiagramStudio/releases/download/0.5.0/SOURCE-PROVENANCE.json)
-| [Verification report](docs/verification/DGM-144.md)
+[SHA256 checksums](https://github.com/vespassassina/AzureDiagramStudio/releases/download/0.5.1/SHA256SUMS.txt)
+| [Source provenance](https://github.com/vespassassina/AzureDiagramStudio/releases/download/0.5.1/SOURCE-PROVENANCE.json)
+| [Verification report](docs/verification/DGM-147.md)
 
 Both EXEs are **unsigned**. Follow organizational policy; do not disable
-SmartScreen or other protections. Exact source is annotated tag `0.5.0` at
-`5201cd746a3984a771889f1e6dbbb02b6c2a1c4f`. Complete independent anonymous
-downloads of all four assets matched the sealed hashes, sidecar contents and
-source/tag/latest identity; older releases/tags were preserved.
+SmartScreen or other protections. Exact source is annotated tag `0.5.1` at
+`3dc7579db438f7c0780ebab03f8f29b6e79daec4`.
+Independent full anonymous downloads of all four assets matched the sealed
+sizes/hashes and sidecar contents; source/tag/latest identity and all five prior
+releases and nine prior tags were preserved and verified.
 No automatic updater or profile migration is provided: keep editable JSON backups.
-The verified ARM64 portable was installed for the requesting Windows user at
+Version 0.5.1 has **not** been installed by this distribution.
+The previously verified **0.5.0** ARM64 portable remains installed for the requesting Windows user at
 `%LOCALAPPDATA%\Programs\AzureDiagramStudio\Azure-Diagram-Studio-0.5.0-win-arm64-portable.exe`,
 with Start menu shortcut **Azure Diagram Studio 0.5.0**. This is a portable copy,
 not an MSI/Apps-and-Features entry; it does not overwrite older versions or migrate profiles.
