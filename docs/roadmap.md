@@ -97,11 +97,18 @@ checks passed with no confirmed product defects. The historical grid browser
 test retains a superseded `move`-command oracle and is not reported as green.
 
 Both final portable candidates have been built in
-`app/test-results/releases/0.5.2/final-20261106/`; exact packaged runtime
-qualification is active before commit/merge/push/tag/publication.
+`app/test-results/releases/0.5.2/final-20261106/`. Exact packaged desktop/MCP
+checks passed on ARM64 and emulated x64: version, all 14 tools, three-page
+workbook mutation/full-root JSON, PNG and three-page PDF. PDF took 1,781 ms
+and 2,254 ms respectively. All 61 staged files match both ASARs.
 The PO approved publishing with native Visio interoperability explicitly
-unverified. Preserve the earlier Desktop test app and profile.
-No tag, upload or public release is yet claimed. Older diagnostic cursors
+unverified. Real native chooser interaction remains an evidence limitation,
+not a claimed pass. See `docs/verification/DGM-162.md`.
+Source milestone `341e238` is committed, fast-forward merged and pushed to
+the default branch. The final ARM64 app is deployed/open with a separate
+profile and stable port 37434; the earlier Desktop test app is preserved.
+The next delivery action is tag/publication and download hash verification.
+Older diagnostic cursors
 below are historical, not instructions to restart per-feature verification.
 
 **Current delivery decision, 2026-11-06:** the PO requested completing the
