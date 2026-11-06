@@ -1,0 +1,355 @@
+{
+  "schemaVersion": 1,
+  "id": "aws-mobile-graphql-backend-v1",
+  "title": "Mobile application backend with identity and GraphQL data access",
+  "subtitle": "A mobile client authenticates users and accesses data through a managed GraphQL/API layer backed by a multi-tenant data store. Synthetic Azure reference; no deployment is implied.",
+  "description": "### Problem\nA mobile application needs user authentication and a stable API surface for reading and updating application records without embedding direct database credentials in the client.\n\n### Flow and Azure mapping\nA mobile client signs in through Microsoft Entra External ID or another approved identity provider, then calls an API layer. The API validates identity and authorization, resolves the requested data operation, and accesses a backend store through managed identity. A GraphQL endpoint can be hosted as an application API or implemented with a selected Azure API product; an App Service or Functions backend can supply resolvers and Cosmos DB or Azure SQL can persist records.\n\n### Trade-offs and assumptions\nThe AWS source specifically combines Amplify, Cognito, AppSync GraphQL, and DynamoDB. Azure has no exact one-service substitution for that bundled developer experience; identity, schema/resolver execution, offline sync, and database behavior need separate choices. This is a conceptual backend design, not an endorsement of a particular mobile SDK or an assumption of offline synchronization.\n\nSource: [AWS Prescriptive Guidance](https://docs.aws.amazon.com/prescriptive-guidance/latest/patterns/build-a-serverless-react-native-mobile-app-by-using-aws-amplify.html).\n\n## Source provenance\n\n- Origin provider: AWS\n- Target: Azure conceptual adaptation\n- Primary source: [Build a serverless React Native mobile app by using AWS Amplify](https://docs.aws.amazon.com/prescriptive-guidance/latest/patterns/build-a-serverless-react-native-mobile-app-by-using-aws-amplify.html)\n- Reviewed: 2026-11-06\n\n## Catalog status\n\nThis is an original, editable Azure conceptual adaptation. It is synthetic reference material, not a deployed system, certified vendor architecture, or automatic deployment plan.\n\n## Mapping caveats\n\n- No direct service equivalence is asserted for AppSync, Cognito, or DynamoDB; GraphQL and offline-sync details need separate decisions.",
+  "synthetic": true,
+  "legendVisible": true,
+  "legend": [
+    {
+      "label": "Illustrative Azure flow",
+      "color": "#0078d4",
+      "meaning": "Original conceptual flow, not verified deployment connectivity."
+    },
+    {
+      "label": "Synthetic reference",
+      "color": "#62696c",
+      "dashed": true,
+      "meaning": "Editable starting point requiring workload-specific design."
+    }
+  ],
+  "revision": 1,
+  "direction": "RIGHT",
+  "entities": [
+    {
+      "id": "group-client",
+      "kind": "boundary",
+      "label": "Mobile client boundary",
+      "subtitle": "Untrusted client",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 61,
+      "y": 56,
+      "width": 312,
+      "height": 207,
+      "color": "azure"
+    },
+    {
+      "id": "group-azure-api",
+      "kind": "boundary",
+      "label": "Azure identity and API",
+      "subtitle": "Authenticated API boundary",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 791,
+      "y": 24,
+      "width": 1245,
+      "height": 358,
+      "color": "teal"
+    },
+    {
+      "id": "group-data",
+      "kind": "boundary",
+      "label": "Azure application data",
+      "subtitle": "Protected data plane",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 2457,
+      "y": 82,
+      "width": 312,
+      "height": 207,
+      "color": "amber"
+    },
+    {
+      "id": "mobile",
+      "kind": "component",
+      "label": "Mobile client",
+      "subtitle": "Generic iOS",
+      "parentId": "group-client",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 96,
+      "color": "azure",
+      "icon": "user",
+      "status": "synthetic"
+    },
+    {
+      "id": "identity",
+      "kind": "component",
+      "label": "User identity",
+      "subtitle": "Microsoft Entra External ID",
+      "parentId": "group-azure-api",
+      "layer": "foreground",
+      "x": 24,
+      "y": 231,
+      "width": 264,
+      "height": 103,
+      "color": "teal",
+      "icon": "user",
+      "status": "synthetic"
+    },
+    {
+      "id": "api",
+      "kind": "component",
+      "label": "GraphQL or application API",
+      "subtitle": "Azure API Management plus app backend",
+      "parentId": "group-azure-api",
+      "layer": "foreground",
+      "x": 24,
+      "y": 91,
+      "width": 264,
+      "height": 120,
+      "color": "teal",
+      "icon": "service",
+      "status": "synthetic"
+    },
+    {
+      "id": "resolver",
+      "kind": "component",
+      "label": "Request handlers",
+      "subtitle": "Azure Functions",
+      "parentId": "group-azure-api",
+      "layer": "foreground",
+      "x": 449,
+      "y": 103,
+      "width": 264,
+      "height": 96,
+      "color": "teal",
+      "icon": "function",
+      "status": "synthetic"
+    },
+    {
+      "id": "telemetry",
+      "kind": "component",
+      "label": "Application telemetry",
+      "subtitle": "Application Insights",
+      "parentId": "group-azure-api",
+      "layer": "foreground",
+      "x": 957,
+      "y": 87,
+      "width": 264,
+      "height": 96,
+      "color": "teal",
+      "icon": "queue",
+      "status": "synthetic"
+    },
+    {
+      "id": "db",
+      "kind": "component",
+      "label": "Application records",
+      "subtitle": "Azure Cosmos DB",
+      "parentId": "group-data",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 96,
+      "color": "amber",
+      "icon": "database",
+      "status": "synthetic"
+    }
+  ],
+  "connections": [
+    {
+      "id": "aws-mobile-graphql-backend-flow-1",
+      "from": "mobile",
+      "to": "identity",
+      "label": "sign in",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 349,
+          "y": 187
+        },
+        {
+          "x": 799,
+          "y": 187
+        },
+        {
+          "x": 799,
+          "y": 267
+        },
+        {
+          "x": 815,
+          "y": 267
+        }
+      ],
+      "labelPosition": {
+        "x": 574,
+        "y": 187
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-mobile-graphql-backend-flow-2",
+      "from": "identity",
+      "to": "mobile",
+      "label": "token",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 815,
+          "y": 287
+        },
+        {
+          "x": 365,
+          "y": 287
+        },
+        {
+          "x": 365,
+          "y": 207
+        },
+        {
+          "x": 349,
+          "y": 207
+        }
+      ],
+      "labelPosition": {
+        "x": 590,
+        "y": 287
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-mobile-graphql-backend-flow-3",
+      "from": "mobile",
+      "to": "api",
+      "label": "authorized query or mutation",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 349,
+          "y": 195
+        },
+        {
+          "x": 539.5,
+          "y": 195
+        },
+        {
+          "x": 539.5,
+          "y": 223
+        },
+        {
+          "x": 815,
+          "y": 223
+        }
+      ],
+      "labelPosition": {
+        "x": 677.25,
+        "y": 223
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-mobile-graphql-backend-flow-4",
+      "from": "api",
+      "to": "resolver",
+      "label": "route operation",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1079,
+          "y": 175
+        },
+        {
+          "x": 1240,
+          "y": 175
+        }
+      ],
+      "labelPosition": {
+        "x": 1159.5,
+        "y": 175
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-mobile-graphql-backend-flow-5",
+      "from": "resolver",
+      "to": "db",
+      "label": "managed-identity data access",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1504,
+          "y": 191
+        },
+        {
+          "x": 1740,
+          "y": 191
+        },
+        {
+          "x": 1740,
+          "y": 215
+        },
+        {
+          "x": 2465,
+          "y": 215
+        },
+        {
+          "x": 2465,
+          "y": 181
+        },
+        {
+          "x": 2481,
+          "y": 181
+        }
+      ],
+      "labelPosition": {
+        "x": 2102.5,
+        "y": 231
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-mobile-graphql-backend-flow-6",
+      "from": "resolver",
+      "to": "telemetry",
+      "label": "request and error telemetry",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1504,
+          "y": 159
+        },
+        {
+          "x": 1732,
+          "y": 159
+        },
+        {
+          "x": 1732,
+          "y": 195
+        },
+        {
+          "x": 1748,
+          "y": 195
+        }
+      ],
+      "labelPosition": {
+        "x": 1618,
+        "y": 159
+      },
+      "routeRevision": 1
+    }
+  ]
+}

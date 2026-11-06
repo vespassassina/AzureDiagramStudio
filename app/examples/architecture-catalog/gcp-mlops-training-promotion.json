@@ -1,0 +1,402 @@
+{
+  "schemaVersion": 1,
+  "id": "gcp-mlops-training-promotion-v1",
+  "title": "Continuous training pipeline with model validation and release gates",
+  "subtitle": "A model-training pipeline validates data, transforms features, trains and evaluates candidates, and promotes an approved model to serving. Synthetic Azure reference; no deployment is implied.",
+  "description": "### Problem\nRepeated model retraining needs consistent data validation, training and evaluation, reproducible artifacts, and a controlled route to online serving.\n\n### Flow and Azure mapping\nA data arrival or schedule triggers an Azure Machine Learning pipeline. It validates input data, transforms features, trains a candidate, evaluates it against criteria, and registers a versioned artifact. A release pipeline promotes a passing version into an inference environment such as managed online endpoints or AKS. Monitoring captures model and service signals and can inform future retraining decisions.\n\n### Trade-offs and assumptions\nThe Google source distinguishes continuous training on new data from CI/CD deployment of a changed pipeline implementation. Azure ML Pipelines and registries are candidates for the same responsibilities, but pipeline semantics and artifact formats differ. A promotion gate should not be implied to guarantee fairness, accuracy, or drift absence; the team must define measurable thresholds and human review where appropriate.\n\nSource: [Google Cloud Architecture Center](https://docs.cloud.google.com/architecture/architecture-for-mlops-using-tfx-kubeflow-pipelines-and-cloud-build?hl=en).\n\n## Source provenance\n\n- Origin provider: Google Cloud\n- Target: Azure conceptual adaptation\n- Primary source: [Architecture for MLOps using TFX, Vertex AI Pipelines, and Cloud Build](https://docs.cloud.google.com/architecture/architecture-for-mlops-using-tfx-kubeflow-pipelines-and-cloud-build?hl=en)\n- Reviewed: 2026-11-06\n\n## Supplementary context\n\n- [Best practices for implementing machine learning on Google Cloud](https://docs.cloud.google.com/architecture/ml-on-gcp-best-practices) — Reviewed: 2026-11-06; Supplementary provider context; not a copied diagram or implementation.\n\n## Catalog status\n\nThis is an original, editable Azure conceptual adaptation. It is synthetic reference material, not a deployed system, certified vendor architecture, or automatic deployment plan.\n\n## Mapping caveats\n\n- Model retraining on new data and redeployment of a changed pipeline are separate lifecycle paths.",
+  "synthetic": true,
+  "legendVisible": true,
+  "legend": [
+    {
+      "label": "Illustrative Azure flow",
+      "color": "#0078d4",
+      "meaning": "Original conceptual flow, not verified deployment connectivity."
+    },
+    {
+      "label": "Synthetic reference",
+      "color": "#62696c",
+      "dashed": true,
+      "meaning": "Editable starting point requiring workload-specific design."
+    }
+  ],
+  "revision": 1,
+  "direction": "RIGHT",
+  "entities": [
+    {
+      "id": "group-data",
+      "kind": "boundary",
+      "label": "Data foundation",
+      "subtitle": "Versioned input data",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 24,
+      "y": 31.5,
+      "width": 312,
+      "height": 216,
+      "color": "azure"
+    },
+    {
+      "id": "group-pipeline",
+      "kind": "boundary",
+      "label": "Azure ML pipeline",
+      "subtitle": "Training and evaluation",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 624,
+      "y": 24,
+      "width": 1921,
+      "height": 231,
+      "color": "teal"
+    },
+    {
+      "id": "group-release",
+      "kind": "boundary",
+      "label": "Model release and serving",
+      "subtitle": "Production deployment",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 2883,
+      "y": 24,
+      "width": 1213,
+      "height": 231,
+      "color": "amber"
+    },
+    {
+      "id": "data",
+      "kind": "component",
+      "label": "Versioned training data",
+      "subtitle": "Azure Data Lake Storage",
+      "parentId": "group-data",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 105,
+      "color": "azure",
+      "icon": "storage",
+      "status": "synthetic"
+    },
+    {
+      "id": "trigger",
+      "kind": "component",
+      "label": "Data or schedule trigger",
+      "subtitle": "Azure Machine Learning pipeline",
+      "parentId": "group-pipeline",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 120,
+      "color": "teal",
+      "icon": "model",
+      "status": "synthetic"
+    },
+    {
+      "id": "validate",
+      "kind": "component",
+      "label": "Data validation",
+      "subtitle": "Azure Machine Learning pipeline step",
+      "parentId": "group-pipeline",
+      "layer": "foreground",
+      "x": 410,
+      "y": 95.5,
+      "width": 264,
+      "height": 103,
+      "color": "teal",
+      "icon": "model",
+      "status": "synthetic"
+    },
+    {
+      "id": "transform",
+      "kind": "component",
+      "label": "Feature preparation",
+      "subtitle": "Azure Machine Learning pipeline step",
+      "parentId": "group-pipeline",
+      "layer": "foreground",
+      "x": 825,
+      "y": 95.5,
+      "width": 264,
+      "height": 103,
+      "color": "teal",
+      "icon": "model",
+      "status": "synthetic"
+    },
+    {
+      "id": "train",
+      "kind": "component",
+      "label": "Model training",
+      "subtitle": "Azure Machine Learning",
+      "parentId": "group-pipeline",
+      "layer": "foreground",
+      "x": 1207,
+      "y": 99,
+      "width": 264,
+      "height": 96,
+      "color": "teal",
+      "icon": "model",
+      "status": "synthetic"
+    },
+    {
+      "id": "evaluate",
+      "kind": "component",
+      "label": "Model evaluation gate",
+      "subtitle": "Azure Machine Learning evaluation",
+      "parentId": "group-pipeline",
+      "layer": "foreground",
+      "x": 1633,
+      "y": 95.5,
+      "width": 264,
+      "height": 103,
+      "color": "teal",
+      "icon": "model",
+      "status": "synthetic"
+    },
+    {
+      "id": "registry",
+      "kind": "component",
+      "label": "Versioned model registry",
+      "subtitle": "Azure Machine Learning registry",
+      "parentId": "group-release",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 120,
+      "color": "amber",
+      "icon": "database",
+      "status": "synthetic"
+    },
+    {
+      "id": "serve",
+      "kind": "component",
+      "label": "Online model endpoint",
+      "subtitle": "Azure Machine Learning endpoint",
+      "parentId": "group-release",
+      "layer": "foreground",
+      "x": 460,
+      "y": 95.5,
+      "width": 264,
+      "height": 103,
+      "color": "amber",
+      "icon": "model",
+      "status": "synthetic"
+    },
+    {
+      "id": "monitor",
+      "kind": "component",
+      "label": "Model and service monitoring",
+      "subtitle": "Azure Monitor",
+      "parentId": "group-release",
+      "layer": "foreground",
+      "x": 925,
+      "y": 94.5,
+      "width": 264,
+      "height": 105,
+      "color": "amber",
+      "icon": "model",
+      "status": "synthetic"
+    }
+  ],
+  "connections": [
+    {
+      "id": "gcp-mlops-training-promotion-flow-1",
+      "from": "data",
+      "to": "trigger",
+      "label": "new data",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 312,
+          "y": 171
+        },
+        {
+          "x": 648,
+          "y": 171
+        }
+      ],
+      "labelPosition": {
+        "x": 480,
+        "y": 171
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-mlops-training-promotion-flow-2",
+      "from": "trigger",
+      "to": "validate",
+      "label": "start run",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 912,
+          "y": 171
+        },
+        {
+          "x": 1034,
+          "y": 171
+        }
+      ],
+      "labelPosition": {
+        "x": 973,
+        "y": 171
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-mlops-training-promotion-flow-3",
+      "from": "validate",
+      "to": "transform",
+      "label": "validated data",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1298,
+          "y": 171
+        },
+        {
+          "x": 1449,
+          "y": 171
+        }
+      ],
+      "labelPosition": {
+        "x": 1373.5,
+        "y": 171
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-mlops-training-promotion-flow-4",
+      "from": "transform",
+      "to": "train",
+      "label": "features",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1713,
+          "y": 171
+        },
+        {
+          "x": 1831,
+          "y": 171
+        }
+      ],
+      "labelPosition": {
+        "x": 1772,
+        "y": 171
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-mlops-training-promotion-flow-5",
+      "from": "train",
+      "to": "evaluate",
+      "label": "candidate model",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 2095,
+          "y": 171
+        },
+        {
+          "x": 2257,
+          "y": 171
+        }
+      ],
+      "labelPosition": {
+        "x": 2176,
+        "y": 171
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-mlops-training-promotion-flow-6",
+      "from": "evaluate",
+      "to": "registry",
+      "label": "approved version",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 2521,
+          "y": 171
+        },
+        {
+          "x": 2907,
+          "y": 171
+        }
+      ],
+      "labelPosition": {
+        "x": 2714,
+        "y": 171
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-mlops-training-promotion-flow-7",
+      "from": "registry",
+      "to": "serve",
+      "label": "promote artifact",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 3171,
+          "y": 171
+        },
+        {
+          "x": 3343,
+          "y": 171
+        }
+      ],
+      "labelPosition": {
+        "x": 3257,
+        "y": 171
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-mlops-training-promotion-flow-8",
+      "from": "serve",
+      "to": "monitor",
+      "label": "predictions and health",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 3607,
+          "y": 171
+        },
+        {
+          "x": 3808,
+          "y": 171
+        }
+      ],
+      "labelPosition": {
+        "x": 3707.5,
+        "y": 171
+      },
+      "routeRevision": 1
+    }
+  ]
+}

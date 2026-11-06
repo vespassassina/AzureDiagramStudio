@@ -1,0 +1,419 @@
+{
+  "schemaVersion": 1,
+  "id": "ms-mainframe-change-data-capture-v1",
+  "title": "Mainframe change-data capture into Azure analytics and serving stores",
+  "subtitle": "A change capture path moves mainframe or midrange updates over private connectivity into Azure event, database, and analytics targets. Synthetic Azure reference; no deployment is implied.",
+  "description": "### Problem\nModernization and analytics programs often need timely copies of legacy records while avoiding repeated heavy reads against operational mainframe systems.\n\n### Flow and Azure mapping\nA source-side capture component reads transaction logs and stages changes. A replication service transports ordered change records across ExpressRoute or VPN to an Azure landing point. Azure Event Hubs can carry streaming updates; downstream consumers can materialize selected records into Azure SQL or land them in Data Lake Storage/OneLake for analytics. A mapping and validation layer adapts source formats and schemas before consumer use.\n\n### Trade-offs and assumptions\nThe Microsoft reference uses Precisely Connect for source capture, transport, and apply; Azure services alone do not automatically provide native mainframe log capture. This conceptual Azure-ready diagram therefore shows a generic, replaceable CDC connector as an external/partner component and highlights data consistency, schema conversion, initial-load coordination, replay, and source-system load as design decisions. It does not claim zero latency or exactly-once semantics.\n\nSource: [Microsoft Learn](https://learn.microsoft.com/en-us/azure/architecture/example-scenario/mainframe/mainframe-replication-precisely-connect).\n\n## Source provenance\n\n- Origin provider: Microsoft\n- Target: Azure conceptual adaptation\n- Primary source: [Replicate Mainframe Data by Using Precisely Connect](https://learn.microsoft.com/en-us/azure/architecture/example-scenario/mainframe/mainframe-replication-precisely-connect)\n- Reviewed: 2026-11-06\n\n## Catalog status\n\nThis is an original, editable Azure conceptual adaptation. It is synthetic reference material, not a deployed system, certified vendor architecture, or automatic deployment plan.\n\n## Mapping caveats\n\n- CDC capture is vendor- or source-specific; do not imply Event Hubs itself reads mainframe transaction logs.",
+  "synthetic": true,
+  "legendVisible": true,
+  "legend": [
+    {
+      "label": "Illustrative Azure flow",
+      "color": "#0078d4",
+      "meaning": "Original conceptual flow, not verified deployment connectivity."
+    },
+    {
+      "label": "Synthetic reference",
+      "color": "#62696c",
+      "dashed": true,
+      "meaning": "Editable starting point requiring workload-specific design."
+    }
+  ],
+  "revision": 1,
+  "direction": "RIGHT",
+  "entities": [
+    {
+      "id": "group-legacy-zone",
+      "kind": "boundary",
+      "label": "Legacy datacenter",
+      "subtitle": "Source system boundary",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 24,
+      "y": 29.5,
+      "width": 312,
+      "height": 231,
+      "color": "azure"
+    },
+    {
+      "id": "group-connector-zone",
+      "kind": "boundary",
+      "label": "Replication connector boundary",
+      "subtitle": "Third-party or custom CDC component",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 671,
+      "y": 41.5,
+      "width": 740,
+      "height": 207,
+      "color": "teal"
+    },
+    {
+      "id": "group-azure-zone",
+      "kind": "boundary",
+      "label": "Azure data landing and consumption",
+      "subtitle": "Cloud data plane",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 1743,
+      "y": 24,
+      "width": 1631,
+      "height": 332,
+      "color": "amber"
+    },
+    {
+      "id": "legacy",
+      "kind": "component",
+      "label": "Mainframe and midrange sources",
+      "subtitle": "Generic Db2, IMS, VSAM, and files",
+      "parentId": "group-legacy-zone",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 120,
+      "color": "azure",
+      "icon": "storage",
+      "status": "synthetic"
+    },
+    {
+      "id": "capture",
+      "kind": "component",
+      "label": "Source log capture",
+      "subtitle": "External CDC product",
+      "parentId": "group-connector-zone",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 96,
+      "color": "teal",
+      "icon": "function",
+      "status": "synthetic"
+    },
+    {
+      "id": "transport",
+      "kind": "component",
+      "label": "Private transport",
+      "subtitle": "ExpressRoute",
+      "parentId": "group-connector-zone",
+      "layer": "foreground",
+      "x": 452,
+      "y": 87,
+      "width": 264,
+      "height": 96,
+      "color": "teal",
+      "icon": "shield",
+      "status": "synthetic"
+    },
+    {
+      "id": "ingress",
+      "kind": "component",
+      "label": "Change event ingress",
+      "subtitle": "Azure Event Hubs",
+      "parentId": "group-azure-zone",
+      "layer": "foreground",
+      "x": 24,
+      "y": 104.5,
+      "width": 264,
+      "height": 96,
+      "color": "amber",
+      "icon": "queue",
+      "status": "synthetic"
+    },
+    {
+      "id": "transform",
+      "kind": "component",
+      "label": "Schema mapping and validation",
+      "subtitle": "Azure Functions",
+      "parentId": "group-azure-zone",
+      "layer": "foreground",
+      "x": 442,
+      "y": 100,
+      "width": 264,
+      "height": 105,
+      "color": "amber",
+      "icon": "function",
+      "status": "synthetic"
+    },
+    {
+      "id": "sql",
+      "kind": "component",
+      "label": "Operational replica",
+      "subtitle": "Azure SQL Database",
+      "parentId": "group-azure-zone",
+      "layer": "foreground",
+      "x": 907,
+      "y": 87,
+      "width": 264,
+      "height": 96,
+      "color": "amber",
+      "icon": "database",
+      "status": "synthetic"
+    },
+    {
+      "id": "lake",
+      "kind": "component",
+      "label": "Historical analytics data",
+      "subtitle": "Azure Data Lake Storage",
+      "parentId": "group-azure-zone",
+      "layer": "foreground",
+      "x": 907,
+      "y": 203,
+      "width": 264,
+      "height": 105,
+      "color": "amber",
+      "icon": "storage",
+      "status": "synthetic"
+    },
+    {
+      "id": "analytics",
+      "kind": "component",
+      "label": "Analytics consumers",
+      "subtitle": "Fabric",
+      "parentId": "group-azure-zone",
+      "layer": "foreground",
+      "x": 1343,
+      "y": 103,
+      "width": 264,
+      "height": 96,
+      "color": "amber",
+      "icon": "user",
+      "status": "synthetic"
+    }
+  ],
+  "connections": [
+    {
+      "id": "ms-mainframe-change-data-capture-flow-1",
+      "from": "legacy",
+      "to": "capture",
+      "label": "transaction logs",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 312,
+          "y": 176.5
+        },
+        {
+          "x": 695,
+          "y": 176.5
+        }
+      ],
+      "labelPosition": {
+        "x": 503.5,
+        "y": 176.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-mainframe-change-data-capture-flow-2",
+      "from": "capture",
+      "to": "transport",
+      "label": "ordered changes",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 959,
+          "y": 176.5
+        },
+        {
+          "x": 1123,
+          "y": 176.5
+        }
+      ],
+      "labelPosition": {
+        "x": 1041,
+        "y": 176.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-mainframe-change-data-capture-flow-3",
+      "from": "transport",
+      "to": "ingress",
+      "label": "private delivery",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1387,
+          "y": 176.5
+        },
+        {
+          "x": 1767,
+          "y": 176.5
+        }
+      ],
+      "labelPosition": {
+        "x": 1577,
+        "y": 176.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-mainframe-change-data-capture-flow-4",
+      "from": "ingress",
+      "to": "transform",
+      "label": "change stream",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 2031,
+          "y": 176.5
+        },
+        {
+          "x": 2185,
+          "y": 176.5
+        }
+      ],
+      "labelPosition": {
+        "x": 2108,
+        "y": 176.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-mainframe-change-data-capture-flow-5",
+      "from": "transform",
+      "to": "sql",
+      "label": "mapped records",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 2449,
+          "y": 136
+        },
+        {
+          "x": 2634,
+          "y": 136
+        },
+        {
+          "x": 2634,
+          "y": 195
+        },
+        {
+          "x": 2650,
+          "y": 195
+        }
+      ],
+      "labelPosition": {
+        "x": 2541.5,
+        "y": 136
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-mainframe-change-data-capture-flow-6",
+      "from": "transform",
+      "to": "lake",
+      "label": "history and snapshots",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 2449,
+          "y": 217
+        },
+        {
+          "x": 2634,
+          "y": 217
+        },
+        {
+          "x": 2634,
+          "y": 239
+        },
+        {
+          "x": 2650,
+          "y": 239
+        }
+      ],
+      "labelPosition": {
+        "x": 2541.5,
+        "y": 217
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-mainframe-change-data-capture-flow-7",
+      "from": "lake",
+      "to": "analytics",
+      "label": "curated datasets",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 2914,
+          "y": 239
+        },
+        {
+          "x": 3070,
+          "y": 239
+        },
+        {
+          "x": 3070,
+          "y": 191
+        },
+        {
+          "x": 3086,
+          "y": 191
+        }
+      ],
+      "labelPosition": {
+        "x": 2992,
+        "y": 239
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-mainframe-change-data-capture-flow-8",
+      "from": "sql",
+      "to": "analytics",
+      "label": "operational query",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 2914,
+          "y": 195
+        },
+        {
+          "x": 3070,
+          "y": 195
+        },
+        {
+          "x": 3070,
+          "y": 159
+        },
+        {
+          "x": 3086,
+          "y": 159
+        }
+      ],
+      "labelPosition": {
+        "x": 2992,
+        "y": 195
+      },
+      "routeRevision": 1
+    }
+  ]
+}

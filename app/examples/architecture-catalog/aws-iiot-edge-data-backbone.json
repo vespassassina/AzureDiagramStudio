@@ -1,0 +1,362 @@
+{
+  "schemaVersion": 1,
+  "id": "aws-iiot-edge-data-backbone-v1",
+  "title": "Industrial edge-to-cloud data backbone for operational insights",
+  "subtitle": "Layered ingestion, edge buffering, cloud data management, and analytics support operational use cases across industrial sites. Synthetic Azure reference; no deployment is implied.",
+  "description": "### Problem\nIndustrial organizations need a repeatable, modular way to collect IT/OT data at multiple facilities, preserve local operation during connectivity interruptions, and make selected data useful to cloud analytics teams.\n\n### Flow and Azure mapping\nSensors, PLCs, historians, MES, and enterprise systems feed a site ingestion layer. Azure IoT Operations or a site gateway can normalize and buffer data locally; Azure Arc provides management where applicable. A secure site-to-cloud connection forwards selected telemetry to Azure Event Hubs or Data Lake Storage. Fabric, Azure Data Explorer, or Databricks supports analytics and downstream business applications. Identity, patching, logging, and configuration management are cross-cutting responsibilities.\n\n### Trade-offs and assumptions\nThe source is a functional blueprint, not a concrete AWS service diagram. Azure service choices are explicit adaptation proposals. Local autonomy, data residency, semantic models, buffering limits, and industrial protocol support vary by site. Don't overstate edge operation during disconnection or imply a single cloud platform covers PLC control and safety functions.\n\nSource: [AWS Prescriptive Guidance](https://docs.aws.amazon.com/prescriptive-guidance/latest/strategy-iiot-transformation/phase-3.html).\n\n## Source provenance\n\n- Origin provider: AWS\n- Target: Azure conceptual adaptation\n- Primary source: [Phase 3: Defining a blueprint — Building an industrial Internet of Things digital transformation strategy](https://docs.aws.amazon.com/prescriptive-guidance/latest/strategy-iiot-transformation/phase-3.html)\n- Reviewed: 2026-11-06\n\n## Catalog status\n\nThis is an original, editable Azure conceptual adaptation. It is synthetic reference material, not a deployed system, certified vendor architecture, or automatic deployment plan.\n\n## Mapping caveats\n\n- The source is conceptual and names no single prescribed service topology; local buffering, control, and protocols must be validated.",
+  "synthetic": true,
+  "legendVisible": true,
+  "legend": [
+    {
+      "label": "Illustrative Azure flow",
+      "color": "#0078d4",
+      "meaning": "Original conceptual flow, not verified deployment connectivity."
+    },
+    {
+      "label": "Synthetic reference",
+      "color": "#62696c",
+      "dashed": true,
+      "meaning": "Editable starting point requiring workload-specific design."
+    }
+  ],
+  "revision": 1,
+  "direction": "RIGHT",
+  "entities": [
+    {
+      "id": "group-site",
+      "kind": "boundary",
+      "label": "Industrial site",
+      "subtitle": "OT and edge zone",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 24,
+      "y": 24,
+      "width": 1232,
+      "height": 231,
+      "color": "azure"
+    },
+    {
+      "id": "group-network",
+      "kind": "boundary",
+      "label": "Secure hybrid connection",
+      "subtitle": "Site-to-cloud boundary",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 1645,
+      "y": 31.5,
+      "width": 312,
+      "height": 216,
+      "color": "teal"
+    },
+    {
+      "id": "group-cloud",
+      "kind": "boundary",
+      "label": "Azure data and insight services",
+      "subtitle": "Cloud platform",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 2321,
+      "y": 24,
+      "width": 1636,
+      "height": 231,
+      "color": "amber"
+    },
+    {
+      "id": "equipment",
+      "kind": "component",
+      "label": "Sensors and control systems",
+      "subtitle": "Generic PLC, SCADA, DCS, historian",
+      "parentId": "group-site",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 120,
+      "color": "azure",
+      "icon": "service",
+      "status": "synthetic"
+    },
+    {
+      "id": "site-ingest",
+      "kind": "component",
+      "label": "Site ingestion and normalization",
+      "subtitle": "Azure IoT Operations",
+      "parentId": "group-site",
+      "layer": "foreground",
+      "x": 479,
+      "y": 94.5,
+      "width": 264,
+      "height": 105,
+      "color": "azure",
+      "icon": "shield",
+      "status": "synthetic"
+    },
+    {
+      "id": "buffer",
+      "kind": "component",
+      "label": "Local store and forward",
+      "subtitle": "Site-local storage",
+      "parentId": "group-site",
+      "layer": "foreground",
+      "x": 944,
+      "y": 94.5,
+      "width": 264,
+      "height": 105,
+      "color": "azure",
+      "icon": "storage",
+      "status": "synthetic"
+    },
+    {
+      "id": "connect",
+      "kind": "component",
+      "label": "Secure site connectivity",
+      "subtitle": "ExpressRoute",
+      "parentId": "group-network",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 105,
+      "color": "teal",
+      "icon": "api",
+      "status": "synthetic"
+    },
+    {
+      "id": "stream",
+      "kind": "component",
+      "label": "Cloud event intake",
+      "subtitle": "Azure Event Hubs",
+      "parentId": "group-cloud",
+      "layer": "foreground",
+      "x": 24,
+      "y": 99,
+      "width": 264,
+      "height": 96,
+      "color": "amber",
+      "icon": "queue",
+      "status": "synthetic"
+    },
+    {
+      "id": "lake",
+      "kind": "component",
+      "label": "Cloud data management",
+      "subtitle": "Azure Data Lake Storage",
+      "parentId": "group-cloud",
+      "layer": "foreground",
+      "x": 507,
+      "y": 99,
+      "width": 264,
+      "height": 96,
+      "color": "amber",
+      "icon": "storage",
+      "status": "synthetic"
+    },
+    {
+      "id": "analytics",
+      "kind": "component",
+      "label": "Operational analytics",
+      "subtitle": "Fabric",
+      "parentId": "group-cloud",
+      "layer": "foreground",
+      "x": 914,
+      "y": 99,
+      "width": 264,
+      "height": 96,
+      "color": "amber",
+      "icon": "database",
+      "status": "synthetic"
+    },
+    {
+      "id": "users",
+      "kind": "component",
+      "label": "Operations and data teams",
+      "subtitle": "Generic applications and dashboards",
+      "parentId": "group-cloud",
+      "layer": "foreground",
+      "x": 1348,
+      "y": 87,
+      "width": 264,
+      "height": 120,
+      "color": "amber",
+      "icon": "user",
+      "status": "synthetic"
+    }
+  ],
+  "connections": [
+    {
+      "id": "aws-iiot-edge-data-backbone-flow-1",
+      "from": "equipment",
+      "to": "site-ingest",
+      "label": "industrial telemetry",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 312,
+          "y": 171
+        },
+        {
+          "x": 503,
+          "y": 171
+        }
+      ],
+      "labelPosition": {
+        "x": 407.5,
+        "y": 171
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-iiot-edge-data-backbone-flow-2",
+      "from": "site-ingest",
+      "to": "buffer",
+      "label": "normalized event data",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 767,
+          "y": 171
+        },
+        {
+          "x": 968,
+          "y": 171
+        }
+      ],
+      "labelPosition": {
+        "x": 867.5,
+        "y": 171
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-iiot-edge-data-backbone-flow-3",
+      "from": "buffer",
+      "to": "connect",
+      "label": "forward when connected",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1232,
+          "y": 171
+        },
+        {
+          "x": 1669,
+          "y": 171
+        }
+      ],
+      "labelPosition": {
+        "x": 1450.5,
+        "y": 171
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-iiot-edge-data-backbone-flow-4",
+      "from": "connect",
+      "to": "stream",
+      "label": "secure cloud delivery",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1933,
+          "y": 171
+        },
+        {
+          "x": 2345,
+          "y": 171
+        }
+      ],
+      "labelPosition": {
+        "x": 2139,
+        "y": 171
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-iiot-edge-data-backbone-flow-5",
+      "from": "stream",
+      "to": "lake",
+      "label": "stream and batch landing",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 2609,
+          "y": 171
+        },
+        {
+          "x": 2828,
+          "y": 171
+        }
+      ],
+      "labelPosition": {
+        "x": 2718.5,
+        "y": 171
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-iiot-edge-data-backbone-flow-6",
+      "from": "lake",
+      "to": "analytics",
+      "label": "curated data",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 3092,
+          "y": 171
+        },
+        {
+          "x": 3235,
+          "y": 171
+        }
+      ],
+      "labelPosition": {
+        "x": 3163.5,
+        "y": 171
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-iiot-edge-data-backbone-flow-7",
+      "from": "analytics",
+      "to": "users",
+      "label": "KPIs and insights",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 3499,
+          "y": 171
+        },
+        {
+          "x": 3669,
+          "y": 171
+        }
+      ],
+      "labelPosition": {
+        "x": 3584,
+        "y": 171
+      },
+      "routeRevision": 1
+    }
+  ]
+}

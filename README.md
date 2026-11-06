@@ -4,6 +4,32 @@
 
 A local architecture editor for Azure, Microsoft Fabric, Microsoft applications and software systems. Draw with architecture glyphs, clearly identified named badges or your own authorized images; describe ownership boundaries, connect components and export without a cloud account. The public source repository is [vespassassina/AzureDiagramStudio](https://github.com/vespassassina/AzureDiagramStudio).
 
+## Current source UI follow-up
+
+The source now uses **File > Add Diagram** to browse architectures and append
+the selected diagram to the current workbook instead of replacing it.
+**Add New Page** and the trailing page-strip **+** create a blank page directly.
+The page strip has a trailing
+**+** and per-page **X**, without an ellipsis menu. Non-empty page removal
+asks for confirmation, supports Undo, and cannot remove the last page.
+
+Rename through the page tab, double-click the canvas title, or select and
+click the workbook breadcrumb again. Inline rename commits on click-away or
+Enter; Escape cancels. Page styles use individual tabs and aligned appearance
+columns, and Select uses a white arrow cursor.
+
+The architecture catalog has **35 starters**: the existing 11 plus 24 original
+Azure conceptual architectures, with eight Microsoft-origin, eight AWS-origin
+and eight Google Cloud-origin patterns. Browse workload categories on the left,
+then inspect the selected diagram at readable native scale on the right with
+zoom, scrolling and Fit. Markdown explains the design, source attribution,
+review date and cross-cloud limitations; it accompanies the added page.
+
+These verified source follow-ups
+([workbook UI](docs/verification/DGM-163.md),
+[architecture catalog](docs/verification/DGM-164.md)) are not part of the
+published 0.5.2 executables.
+
 ## 0.5.2
 
 The 0.5.2 source includes multi-page workbooks with page tabs, shared history,

@@ -1,0 +1,579 @@
+{
+  "schemaVersion": 1,
+  "id": "ms-appservice-multiregion-recovery-v1",
+  "title": "Multi-region web application recovery with active-active routing",
+  "subtitle": "Identical independent web deployments serve through Azure Front Door, with health-based traffic exclusion when a region is impaired. Synthetic Azure reference; no deployment is implied.",
+  "description": "### Problem\nA single-region web application can become unavailable during a regional outage even when its regional deployment is otherwise highly available.\n\n### Flow and Azure mapping\nDeploy independent, equivalent App Service plans and web apps in two regions. Azure Front Door distributes normal traffic across both origins and uses health probes to stop routing to an impaired origin. Restrict direct public app access so requests traverse the edge entry point. Keep application state in suitable external data services and deploy configuration consistently through repeatable CI/CD.\n\n### Trade-offs and assumptions\nActive-active costs more and requires both regions to be ready for normal load and failover load. Data replication, consistency, session handling, and failback behavior are not solved by the web tier alone. The reference compares active-active, active-passive, and passive-cold options; this specific candidate selects active-active for exploration and makes no RTO/RPO promise. A database or storage layer needs its own recovery design.\n\nSource: [Microsoft Learn](https://learn.microsoft.com/en-us/azure/architecture/web-apps/guides/multi-region-app-service/multi-region-app-service).\n\n## Source provenance\n\n- Origin provider: Microsoft\n- Target: Azure conceptual adaptation\n- Primary source: [Multiple-region Architectures for Azure App Service Disaster Recovery](https://learn.microsoft.com/en-us/azure/architecture/web-apps/guides/multi-region-app-service/multi-region-app-service)\n- Reviewed: 2026-11-06\n\n## Supplementary context\n\n- [Two zones or three? A design framework for zone-resilient Azure workloads](https://azure.microsoft.com/en-us/blog/two-zones-or-three-a-design-framework-for-zone-resilient-azure-workloads/) — Reviewed: 2026-11-06; Clarifies that availability-zone protection is component-specific and does not replace a separate multi-region recovery design.\n\n## Catalog status\n\nThis is an original, editable Azure conceptual adaptation. It is synthetic reference material, not a deployed system, certified vendor architecture, or automatic deployment plan.\n\n## Mapping caveats\n\n- State replication and failover must be selected independently; Front Door health routing alone does not provide application-data recovery.",
+  "synthetic": true,
+  "legendVisible": true,
+  "legend": [
+    {
+      "label": "Illustrative Azure flow",
+      "color": "#0078d4",
+      "meaning": "Original conceptual flow, not verified deployment connectivity."
+    },
+    {
+      "label": "Synthetic reference",
+      "color": "#62696c",
+      "dashed": true,
+      "meaning": "Editable starting point requiring workload-specific design."
+    }
+  ],
+  "revision": 1,
+  "direction": "RIGHT",
+  "entities": [
+    {
+      "id": "group-edge",
+      "kind": "boundary",
+      "label": "Global edge",
+      "subtitle": "Public ingress",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 621,
+      "y": 460,
+      "width": 720,
+      "height": 229,
+      "color": "azure"
+    },
+    {
+      "id": "group-region-a",
+      "kind": "boundary",
+      "label": "Azure region A",
+      "subtitle": "Regional failure domain",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 1710,
+      "y": 487,
+      "width": 312,
+      "height": 207,
+      "color": "teal"
+    },
+    {
+      "id": "group-region-b",
+      "kind": "boundary",
+      "label": "Azure region B",
+      "subtitle": "Regional failure domain",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 1710,
+      "y": 240,
+      "width": 312,
+      "height": 207,
+      "color": "amber"
+    },
+    {
+      "id": "group-control",
+      "kind": "boundary",
+      "label": "Deployment and operations",
+      "subtitle": "Management plane",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 1029,
+      "y": 24,
+      "width": 312,
+      "height": 332,
+      "color": "rose"
+    },
+    {
+      "id": "frontdoor",
+      "kind": "component",
+      "label": "Global routing and WAF",
+      "subtitle": "Azure Front Door",
+      "parentId": "group-edge",
+      "layer": "foreground",
+      "x": 24,
+      "y": 98,
+      "width": 264,
+      "height": 96,
+      "color": "azure",
+      "icon": "api",
+      "status": "synthetic"
+    },
+    {
+      "id": "health",
+      "kind": "component",
+      "label": "Origin health checks",
+      "subtitle": "Azure Front Door probes",
+      "parentId": "group-edge",
+      "layer": "foreground",
+      "x": 432,
+      "y": 98,
+      "width": 264,
+      "height": 96,
+      "color": "azure",
+      "icon": "api",
+      "status": "synthetic"
+    },
+    {
+      "id": "app1",
+      "kind": "component",
+      "label": "Web app region A",
+      "subtitle": "Azure App Service",
+      "parentId": "group-region-a",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 96,
+      "color": "teal",
+      "icon": "server",
+      "status": "synthetic"
+    },
+    {
+      "id": "app2",
+      "kind": "component",
+      "label": "Web app region B",
+      "subtitle": "Azure App Service",
+      "parentId": "group-region-b",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 96,
+      "color": "amber",
+      "icon": "server",
+      "status": "synthetic"
+    },
+    {
+      "id": "pipeline",
+      "kind": "component",
+      "label": "Deployment pipeline",
+      "subtitle": "Azure DevOps",
+      "parentId": "group-control",
+      "layer": "foreground",
+      "x": 24,
+      "y": 212,
+      "width": 264,
+      "height": 96,
+      "color": "rose",
+      "icon": "function",
+      "status": "synthetic"
+    },
+    {
+      "id": "monitor",
+      "kind": "component",
+      "label": "Availability monitoring",
+      "subtitle": "Application Insights",
+      "parentId": "group-control",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 105,
+      "color": "rose",
+      "icon": "service",
+      "status": "synthetic"
+    },
+    {
+      "id": "users",
+      "kind": "component",
+      "label": "Global users",
+      "subtitle": "Generic clients",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 24,
+      "y": 558,
+      "width": 264,
+      "height": 96,
+      "color": "source",
+      "icon": "user",
+      "status": "synthetic"
+    },
+    {
+      "id": "state",
+      "kind": "component",
+      "label": "Shared or replicated state",
+      "subtitle": "Azure SQL",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 2356,
+      "y": 536,
+      "width": 264,
+      "height": 105,
+      "color": "source",
+      "icon": "database",
+      "status": "synthetic"
+    }
+  ],
+  "connections": [
+    {
+      "id": "ms-appservice-multiregion-recovery-flow-1",
+      "from": "users",
+      "to": "frontdoor",
+      "label": "HTTPS requests",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 288,
+          "y": 606
+        },
+        {
+          "x": 645,
+          "y": 606
+        }
+      ],
+      "labelPosition": {
+        "x": 466.5,
+        "y": 606
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-appservice-multiregion-recovery-flow-2",
+      "from": "frontdoor",
+      "to": "health",
+      "label": "probe origins",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 909,
+          "y": 586
+        },
+        {
+          "x": 1037,
+          "y": 586
+        },
+        {
+          "x": 1037,
+          "y": 606
+        },
+        {
+          "x": 1053,
+          "y": 606
+        }
+      ],
+      "labelPosition": {
+        "x": 973,
+        "y": 586
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-appservice-multiregion-recovery-flow-3",
+      "from": "health",
+      "to": "app1",
+      "label": "health state",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1317,
+          "y": 622
+        },
+        {
+          "x": 1718,
+          "y": 622
+        },
+        {
+          "x": 1718,
+          "y": 586
+        },
+        {
+          "x": 1734,
+          "y": 586
+        }
+      ],
+      "labelPosition": {
+        "x": 1517.5,
+        "y": 622
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-appservice-multiregion-recovery-flow-4",
+      "from": "health",
+      "to": "app2",
+      "label": "health state",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1317,
+          "y": 590
+        },
+        {
+          "x": 1702,
+          "y": 590
+        },
+        {
+          "x": 1702,
+          "y": 371
+        },
+        {
+          "x": 1734,
+          "y": 371
+        }
+      ],
+      "labelPosition": {
+        "x": 1509.5,
+        "y": 590
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-appservice-multiregion-recovery-flow-5",
+      "from": "frontdoor",
+      "to": "app1",
+      "label": "route traffic",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 909,
+          "y": 622
+        },
+        {
+          "x": 1045,
+          "y": 622
+        },
+        {
+          "x": 1045,
+          "y": 662
+        },
+        {
+          "x": 1710,
+          "y": 662
+        },
+        {
+          "x": 1710,
+          "y": 604
+        },
+        {
+          "x": 1734,
+          "y": 604
+        }
+      ],
+      "labelPosition": {
+        "x": 1377.5,
+        "y": 662
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-appservice-multiregion-recovery-flow-6",
+      "from": "frontdoor",
+      "to": "app2",
+      "label": "route traffic",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 909,
+          "y": 610
+        },
+        {
+          "x": 1045,
+          "y": 610
+        },
+        {
+          "x": 1045,
+          "y": 547
+        },
+        {
+          "x": 1571.5,
+          "y": 547
+        },
+        {
+          "x": 1571.5,
+          "y": 391
+        },
+        {
+          "x": 1734,
+          "y": 391
+        }
+      ],
+      "labelPosition": {
+        "x": 1439.875,
+        "y": 547
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-appservice-multiregion-recovery-flow-7",
+      "from": "app1",
+      "to": "state",
+      "label": "application state",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1998,
+          "y": 586
+        },
+        {
+          "x": 2340,
+          "y": 586
+        },
+        {
+          "x": 2340,
+          "y": 609
+        },
+        {
+          "x": 2356,
+          "y": 609
+        }
+      ],
+      "labelPosition": {
+        "x": 2169,
+        "y": 586
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-appservice-multiregion-recovery-flow-8",
+      "from": "app2",
+      "to": "state",
+      "label": "application state",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1998,
+          "y": 411
+        },
+        {
+          "x": 2340,
+          "y": 411
+        },
+        {
+          "x": 2340,
+          "y": 568
+        },
+        {
+          "x": 2356,
+          "y": 568
+        }
+      ],
+      "labelPosition": {
+        "x": 2169,
+        "y": 411
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-appservice-multiregion-recovery-flow-9",
+      "from": "pipeline",
+      "to": "app1",
+      "label": "same release",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1317,
+          "y": 300
+        },
+        {
+          "x": 1382.375,
+          "y": 300
+        },
+        {
+          "x": 1382.375,
+          "y": 638
+        },
+        {
+          "x": 1718,
+          "y": 638
+        },
+        {
+          "x": 1718,
+          "y": 622
+        },
+        {
+          "x": 1734,
+          "y": 622
+        }
+      ],
+      "labelPosition": {
+        "x": 1438.375,
+        "y": 469
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-appservice-multiregion-recovery-flow-10",
+      "from": "pipeline",
+      "to": "app2",
+      "label": "same release",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1317,
+          "y": 320
+        },
+        {
+          "x": 1710,
+          "y": 320
+        },
+        {
+          "x": 1710,
+          "y": 379
+        },
+        {
+          "x": 1734,
+          "y": 379
+        }
+      ],
+      "labelPosition": {
+        "x": 1513.5,
+        "y": 320
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-appservice-multiregion-recovery-flow-11",
+      "from": "app1",
+      "to": "monitor",
+      "label": "availability telemetry",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1734,
+          "y": 640
+        },
+        {
+          "x": 1349,
+          "y": 640
+        },
+        {
+          "x": 1349,
+          "y": 204
+        },
+        {
+          "x": 1317,
+          "y": 204
+        }
+      ],
+      "labelPosition": {
+        "x": 1265.5,
+        "y": 422
+      },
+      "routeRevision": 1
+    }
+  ]
+}

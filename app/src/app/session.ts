@@ -4,7 +4,7 @@ import type { Diagram, Direction } from '../model.ts'
 import type { DocumentCommand, DocumentExportOptions, DocumentStorage, ExportOptions, ExportSceneOptions, SaveState, StarterKey, WorkbookUiCommand } from '../contracts.ts'
 import {
   MAX_WORKBOOK_BYTES, activePage, addWorkbookPage, changedPageIds, createWorkbook, hasPage, isWorkbook, parseWorkspace, promoteWorkbook,
-  reorderWorkbookPages, replaceWorkspacePage, updateWorkbookMetadata, validateWorkspace, workspaceCommit, workspaceHistory, workspacePages, workspaceRedo, workspaceUndo,
+  reorderWorkbookPages, removeWorkbookPage, replaceWorkspacePage, updateWorkbookMetadata, validateWorkspace, workspaceCommit, workspaceHistory, workspacePages, workspaceRedo, workspaceUndo,
 } from '../workbook.ts'
 import type { WorkspaceDocument, WorkspaceHistory } from '../workbook.ts'
 import type { LayoutResult } from '../layout.ts'
@@ -226,6 +226,29 @@ export function createSession(dependencies: SessionDependencies) {
         const next = addWorkbookPage(book, title ? { ...page, title } : page)
         accept(workspaceCommit(history, next))
         selectPage(page.id)
+        return true
+      }
+      if (operation.type === 'addStarterPage') {
+        const book = isWorkbook(root) ? root : promoteWorkbook(dependencies.newId(), root)
+        const bundled = starterDocument(operation.key)
+        const candidate = validateDocument({ ...bundled, id: dependencies.newId() })
+        if (!candidate.ok) throw new Error(candidate.errors.map(issue => `${issue.path}: ${issue.message}`).join('; '))
+        const next = addWorkbookPage(book, candidate.value)
+        accept(workspaceCommit(history, next))
+        selectPage(candidate.value.id)
+        return true
+      }
+      if (operation.type === 'removePage') {
+        if (!isWorkbook(root)) throw new Error('A standalone diagram cannot remove its only page')
+        const index = root.pages.findIndex(page => page.id === operation.pageId)
+        const wasActive = activePageId === operation.pageId
+        const next = removeWorkbookPage(root, operation.pageId)
+        accept(workspaceCommit(history, next))
+        if (wasActive) {
+          const replacement = next.pages[index] ?? next.pages[index - 1] ?? next.pages[0]
+          activePageId = replacement.id
+        }
+        publish({ message: '' })
         return true
       }
       if (operation.type === 'renamePage') {

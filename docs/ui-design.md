@@ -37,12 +37,18 @@ Use explicit, predictable state and persist meaningful preferences.
 - **Preserve interaction quality.** Simplifying controls must retain keyboard
   access, focus return, draft/history/selection preservation, responsive hit
   targets, themes and existing safety guards.
+- **Commit predictable text edits.** Inline single-line renames commit on
+  click-away as on Enter; Escape cancels without a later blur committing the
+  abandoned draft. Respect IME composition, validation and the user's next
+  focus target. Multiline newlines and explicit dialog Apply/Cancel remain
+  distinct from inline rename.
 
 ## Diagram Studio Placement
 
 | Scope | Canonical location |
 | --- | --- |
-| New/Open/Import/Save | Top File menu |
+| Workbook creation/Load/Save, Add New Page, Add Diagram | Top File menu in workbook/page groups; page-strip + creates a blank page directly |
+| Architecture selection and preview zoom | Add Diagram catalog; workload hierarchy left, selected diagram/Markdown right, zoom/scroll/Fit beside preview |
 | Panel visibility, Properties/Markdown, theme, existing fit commands | Top View menu |
 | Settings, Help, About | Top Settings menu |
 | Undo, Redo, Export, Present | Only top action buttons |
@@ -52,6 +58,8 @@ Use explicit, predictable state and persist meaningful preferences.
 | Properties and architecture Markdown | Shared sidebar, opened by the square Sidebar button after Auto-arrange |
 | Horizontal/vertical/group-stacked layout variants | Auto-arrange dropdown |
 | Diagram, Markdown and companion-file output choices | Export dialog and matching MCP export capabilities |
+| Page navigation/removal/reorder | Bottom page tabs, trailing + and per-tab X; no ellipsis menu |
+| Page/workbook rename | Page tab or canvas page title; workbook breadcrumb for root title |
 
 These placements are product-specific applications, not a global mandate that
 every application use the same toolbar arrangement.

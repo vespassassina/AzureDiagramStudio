@@ -286,13 +286,10 @@ test('should_resolve_current_package_version_and_report_it_when_verifying_deskto
 test('should_choose_blank_at_each_new_diagram_site_when_the_current_chooser_opens', async () => {
   const source = await readFile(new URL('../../scripts/verify-desktop.mjs', import.meta.url), 'utf8')
   const chooser = await readFile(new URL('../../src/editor/EditorSurface.tsx', import.meta.url), 'utf8')
-  assert.match(chooser, /<h2 id=\{titleId\}>New diagram<\/h2>/)
+  assert.match(chooser, /<h2 id=\{titleId\}>Add diagram<\/h2>/)
   assert.match(chooser, /aria-label="Blank"[^>]*onClick=\{\(\) => onChoose\(null\)\}/)
-  const sites = [...source.matchAll(/await page\.getByRole\('button', \{ name: 'New diagram', exact: true \}\)\.click\(\)/g)]
-  assert.equal(sites.length, 3)
-  for (const site of sites) {
-    assert.match(source.slice(site.index + site[0].length), /^\s*await page\.getByRole\('dialog', \{ name: 'New diagram', exact: true \}\)\.getByRole\('button', \{ name: 'Blank', exact: true \}\)\.click\(\)/)
-  }
+  assert.match(source, /async function addBlankDiagram\(page\) \{\s+await page\.getByRole\('menuitem', \{ name: 'File menu', exact: true \}\)\.click\(\)\s+const dialog = page\.getByRole\('dialog', \{ name: 'Add diagram', exact: true \}\)\s+await page\.getByRole\('menuitem', \{ name: 'Add Diagram', exact: true \}\)\.click\(\)\s+await dialog\.getByRole\('button', \{ name: 'Blank', exact: true \}\)\.click\(\)\s+await dialog\.getByRole\('button', \{ name: 'Add Diagram', exact: true \}\)\.click\(\)\s+\}/)
+  assert.equal(source.split('await addBlankDiagram(page)').length - 1, 3)
 })
 
 test('should_use_current_exact_export_names_in_the_export_dialog_when_downloading', async () => {

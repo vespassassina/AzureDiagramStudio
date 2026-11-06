@@ -1,0 +1,410 @@
+{
+  "schemaVersion": 1,
+  "id": "gcp-secure-event-driven-functions-v1",
+  "title": "Private event-triggered function with controlled service access",
+  "subtitle": "A storage or messaging event triggers a function that accesses an internal service over a private network under constrained identity. Synthetic Azure reference; no deployment is implied.",
+  "description": "### Problem\nA background action should run in response to a storage or messaging event and reach an internal service without exposing the function or its dependencies as public endpoints.\n\n### Flow and Azure mapping\nA private storage upload or event source emits a notification to Event Grid or Service Bus. An Azure Function consumes the event using a managed identity and connects through private networking to the target data service. Secrets belong in Key Vault; network egress is limited and monitored. Separate development, test, and production environments use isolated resource scopes and controlled release paths.\n\n### Trade-offs and assumptions\nThe Google blueprint uses Shared VPC, VPC Service Controls, Cloud KMS, Secret Manager, and Cloud Run functions. Azure Functions, Private Link, managed identity, Key Vault, and networking policies are conceptual counterparts, not feature parity claims. Exact trigger types and private reachability depend on the Azure service integration. Keep retries, poison-message handling, idempotency, and outbound allowlists visible in detailed diagrams.\n\nSource: [Google Cloud Architecture Center](https://docs.cloud.google.com/architecture/blueprints/serverless-functions-blueprint).\n\n## Source provenance\n\n- Origin provider: Google Cloud\n- Target: Azure conceptual adaptation\n- Primary source: [Deploy a secured serverless architecture using Cloud Run functions](https://docs.cloud.google.com/architecture/blueprints/serverless-functions-blueprint)\n- Reviewed: 2026-11-06\n\n## Catalog status\n\nThis is an original, editable Azure conceptual adaptation. It is synthetic reference material, not a deployed system, certified vendor architecture, or automatic deployment plan.\n\n## Mapping caveats\n\n- The exact private endpoint, trigger, and secret integration are service-dependent; the source's Google controls are not Azure controls.",
+  "synthetic": true,
+  "legendVisible": true,
+  "legend": [
+    {
+      "label": "Illustrative Azure flow",
+      "color": "#0078d4",
+      "meaning": "Original conceptual flow, not verified deployment connectivity."
+    },
+    {
+      "label": "Synthetic reference",
+      "color": "#62696c",
+      "dashed": true,
+      "meaning": "Editable starting point requiring workload-specific design."
+    }
+  ],
+  "revision": 1,
+  "direction": "RIGHT",
+  "entities": [
+    {
+      "id": "group-producer",
+      "kind": "boundary",
+      "label": "Event producer boundary",
+      "subtitle": "Source environment",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 24,
+      "y": 57.30000000000001,
+      "width": 312,
+      "height": 207,
+      "color": "azure"
+    },
+    {
+      "id": "group-function-zone",
+      "kind": "boundary",
+      "label": "Azure serverless environment",
+      "subtitle": "Application workload",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 682,
+      "y": 24,
+      "width": 1200,
+      "height": 459,
+      "color": "teal"
+    },
+    {
+      "id": "group-private-data",
+      "kind": "boundary",
+      "label": "Private service boundary",
+      "subtitle": "Non-public dependency",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 2292,
+      "y": 319.5,
+      "width": 770,
+      "height": 214,
+      "color": "amber"
+    },
+    {
+      "id": "source",
+      "kind": "component",
+      "label": "Private event source",
+      "subtitle": "Azure Blob Storage",
+      "parentId": "group-producer",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 96,
+      "color": "azure",
+      "icon": "storage",
+      "status": "synthetic"
+    },
+    {
+      "id": "event",
+      "kind": "component",
+      "label": "Event routing",
+      "subtitle": "Event Grid",
+      "parentId": "group-function-zone",
+      "layer": "foreground",
+      "x": 24,
+      "y": 120.3,
+      "width": 264,
+      "height": 96,
+      "color": "teal",
+      "icon": "queue",
+      "status": "synthetic"
+    },
+    {
+      "id": "function",
+      "kind": "component",
+      "label": "Event handler",
+      "subtitle": "Azure Functions",
+      "parentId": "group-function-zone",
+      "layer": "foreground",
+      "x": 395,
+      "y": 120.3,
+      "width": 264,
+      "height": 96,
+      "color": "teal",
+      "icon": "queue",
+      "status": "synthetic"
+    },
+    {
+      "id": "identity",
+      "kind": "component",
+      "label": "Workload identity",
+      "subtitle": "Managed identity",
+      "parentId": "group-function-zone",
+      "layer": "foreground",
+      "x": 912,
+      "y": 212,
+      "width": 264,
+      "height": 96,
+      "color": "teal",
+      "icon": "shield",
+      "status": "synthetic"
+    },
+    {
+      "id": "secret",
+      "kind": "component",
+      "label": "Secret and key management",
+      "subtitle": "Azure Key Vault",
+      "parentId": "group-function-zone",
+      "layer": "foreground",
+      "x": 912,
+      "y": 87,
+      "width": 264,
+      "height": 105,
+      "color": "teal",
+      "icon": "shield",
+      "status": "synthetic"
+    },
+    {
+      "id": "ops",
+      "kind": "component",
+      "label": "Logs and metrics",
+      "subtitle": "Azure Monitor",
+      "parentId": "group-function-zone",
+      "layer": "foreground",
+      "x": 912,
+      "y": 328,
+      "width": 264,
+      "height": 96,
+      "color": "teal",
+      "icon": "service",
+      "status": "synthetic"
+    },
+    {
+      "id": "private",
+      "kind": "component",
+      "label": "Private network path",
+      "subtitle": "Private Endpoint and VNet integration",
+      "parentId": "group-private-data",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 103,
+      "color": "amber",
+      "icon": "shield",
+      "status": "synthetic"
+    },
+    {
+      "id": "service",
+      "kind": "component",
+      "label": "Internal data service",
+      "subtitle": "Azure SQL",
+      "parentId": "group-private-data",
+      "layer": "foreground",
+      "x": 482,
+      "y": 90.5,
+      "width": 264,
+      "height": 96,
+      "color": "amber",
+      "icon": "database",
+      "status": "synthetic"
+    }
+  ],
+  "connections": [
+    {
+      "id": "gcp-secure-event-driven-functions-flow-1",
+      "from": "source",
+      "to": "event",
+      "label": "event notification",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 312,
+          "y": 192.3
+        },
+        {
+          "x": 706,
+          "y": 192.3
+        }
+      ],
+      "labelPosition": {
+        "x": 509,
+        "y": 192.3
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-secure-event-driven-functions-flow-2",
+      "from": "event",
+      "to": "function",
+      "label": "trigger",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 970,
+          "y": 192.3
+        },
+        {
+          "x": 1077,
+          "y": 192.3
+        }
+      ],
+      "labelPosition": {
+        "x": 1023.5,
+        "y": 192.3
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-secure-event-driven-functions-flow-3",
+      "from": "function",
+      "to": "identity",
+      "label": "obtain workload identity",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1341,
+          "y": 174.3
+        },
+        {
+          "x": 1578,
+          "y": 174.3
+        },
+        {
+          "x": 1578,
+          "y": 248
+        },
+        {
+          "x": 1594,
+          "y": 248
+        }
+      ],
+      "labelPosition": {
+        "x": 1459.5,
+        "y": 174.3
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-secure-event-driven-functions-flow-4",
+      "from": "function",
+      "to": "secret",
+      "label": "retrieve authorized secret",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1341,
+          "y": 174.3
+        },
+        {
+          "x": 1357,
+          "y": 174.3
+        },
+        {
+          "x": 1357,
+          "y": 190.3
+        },
+        {
+          "x": 1367.5,
+          "y": 190.3
+        },
+        {
+          "x": 1367.5,
+          "y": 204
+        },
+        {
+          "x": 1594,
+          "y": 204
+        }
+      ],
+      "labelPosition": {
+        "x": 1468,
+        "y": 202.63
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-secure-event-driven-functions-flow-5",
+      "from": "function",
+      "to": "private",
+      "label": "private outbound connection",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1341,
+          "y": 210.3
+        },
+        {
+          "x": 1367.5,
+          "y": 210.3
+        },
+        {
+          "x": 1367.5,
+          "y": 344
+        },
+        {
+          "x": 2292,
+          "y": 344
+        },
+        {
+          "x": 2292,
+          "y": 418.5
+        },
+        {
+          "x": 2316,
+          "y": 418.5
+        }
+      ],
+      "labelPosition": {
+        "x": 2060.875,
+        "y": 344
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-secure-event-driven-functions-flow-6",
+      "from": "private",
+      "to": "service",
+      "label": "authorized operation",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 2580,
+          "y": 458
+        },
+        {
+          "x": 2774,
+          "y": 458
+        }
+      ],
+      "labelPosition": {
+        "x": 2677,
+        "y": 458
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-secure-event-driven-functions-flow-7",
+      "from": "function",
+      "to": "ops",
+      "label": "execution telemetry",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1341,
+          "y": 228.3
+        },
+        {
+          "x": 1568.5,
+          "y": 228.3
+        },
+        {
+          "x": 1568.5,
+          "y": 364
+        },
+        {
+          "x": 1594,
+          "y": 364
+        }
+      ],
+      "labelPosition": {
+        "x": 1454.75,
+        "y": 244.3
+      },
+      "routeRevision": 1
+    }
+  ]
+}

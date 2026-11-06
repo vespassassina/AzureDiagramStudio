@@ -1,11 +1,10 @@
-﻿// @vitest-environment jsdom
+// @vitest-environment jsdom
 import { StrictMode } from 'react'
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { EditorProps } from '../contracts.ts'
 import { createDocument, sampleDiagram, type Diagram } from '../model.ts'
 import App from '../App.tsx'
-import { starterCatalog } from './starters.ts'
 import { starterDocument } from './session.ts'
 
 const host = vi.hoisted(() => ({ realEditor: false, props: undefined as EditorProps | undefined, leases: [] as ((owns: boolean) => void)[], release: vi.fn(), close: vi.fn(), save: vi.fn(async () => {}), load: vi.fn(async (): Promise<Diagram | null> => null), download: vi.fn(), confirmReplace: vi.fn(() => true), layout: vi.fn(), exportPng: vi.fn(async () => new Blob(['png'], { type: 'image/png' })), copyImage: vi.fn(async (_png: Promise<Blob>) => {}) }))
@@ -160,7 +159,7 @@ describe('DGM-040 root integration', () => {
       expect(host.props!.readOnly).toBe(false)
       if (rejects) expect(view.getByRole('status').textContent).toBe('Browser save failed: QuotaExceededError. Download JSON now; free storage and edit again to retry.')
       fireEvent.click(view.getByRole('menuitem', { name: 'File menu' }))
-      await act(async () => { fireEvent.click(view.getByRole('menuitem', { name: 'Save' })) })
+      await act(async () => { fireEvent.click(view.getByRole('menuitem', { name: 'Save Workbook' })) })
       expect(host.download).toHaveBeenCalledOnce()
       expect(host.props!.document).toBe(before)
       expect(host.props!.canUndo).toBe(true)
@@ -168,15 +167,16 @@ describe('DGM-040 root integration', () => {
     } finally { cleanup(); vi.useRealTimers() }
   })
   it.each([
-    ['Load', 'Open document file', 'cancel'],
-    ['Load', 'Open document file', 'empty'],
+    ['Load Workbook', 'Open document file', 'cancel'],
+    ['Load Workbook', 'Open document file', 'empty'],
     ['Import skill JSON', 'Import skill file', 'cancel'],
     ['Import skill JSON', 'Import skill file', 'empty'],
   ] as const)('should_leave_document_unchanged_when_%s_picker_is_%s_%s_DGM111', async (action, picker, outcome) => {
     host.realEditor = true
     const view = render(<App />)
     await act(async () => { host.leases.at(-1)!(true) })
-    fireEvent.click(view.getByRole('dialog', { name: 'New diagram' }).querySelector<HTMLButtonElement>('[aria-label="Blank"]')!)
+    fireEvent.click(view.getByRole('dialog', { name: 'Add diagram' }).querySelector<HTMLButtonElement>('[aria-label="Blank"]')!)
+    fireEvent.click(view.getByRole('button', { name: 'Add Diagram' }))
     const title = view.getByLabelText('Document title')
     fireEvent.change(title, { target: { value: 'Finalized before picker' } })
     const input = view.getByLabelText(picker) as HTMLInputElement
@@ -355,9 +355,9 @@ describe('DGM-127 fresh startup picker', () => {
   }
   it.each([false, true])('should_open_shared_picker_once_over_empty_canvas_with_Blank_focused_strict_%s_DGM127', async strict => {
     const view = await fresh(strict)
-    const dialogs = view.getAllByRole('dialog', { name: 'New diagram' })
+    const dialogs = view.getAllByRole('dialog', { name: 'Add diagram' })
     expect(dialogs).toHaveLength(1)
-    expect(dialogs[0].querySelectorAll('.starter-choice')).toHaveLength(12)
+    expect(dialogs[0].querySelectorAll('.architecture-catalog-preview')).toHaveLength(0)
     expect(document.activeElement).toBe(view.getByRole('button', { name: 'Blank' }))
     expect(host.props!.document.entities).toEqual([])
     expect(host.props!.document.connections).toEqual([])
@@ -367,11 +367,11 @@ describe('DGM-127 fresh startup picker', () => {
   it.each(['Blank', 'Escape', 'Close', 'backdrop'] as const)('should_close_onto_empty_writable_canvas_without_prompt_when_%s_DGM127', async action => {
     const view = await fresh()
     const before = host.props!.document
-    const dialog = view.getByRole('dialog', { name: 'New diagram' })
-    if (action === 'Blank') fireEvent.click(view.getByRole('button', { name: 'Blank' }))
+    const dialog = view.getByRole('dialog', { name: 'Add diagram' })
+    if (action === 'Blank') { fireEvent.click(view.getByRole('button', { name: 'Blank' })); fireEvent.click(view.getByRole('button', { name: 'Add Diagram' })) }
     if (action === 'Escape') fireEvent.keyDown(dialog, { key: 'Escape' })
-    if (action === 'Close') fireEvent.click(view.getByRole('button', { name: 'Close new diagram' }))
-    if (action === 'backdrop') fireEvent.click(view.getByRole('button', { name: 'Dismiss new diagram choices' }))
+    if (action === 'Close') fireEvent.click(view.getByRole('button', { name: 'Close Add diagram' }))
+    if (action === 'backdrop') fireEvent.click(view.getByRole('button', { name: 'Dismiss Add diagram choices' }))
     expect(view.queryByRole('dialog')).toBeNull()
     expect(host.props!.document.entities).toEqual([])
     expect(host.props!.document.connections).toEqual([])
@@ -384,8 +384,9 @@ describe('DGM-127 fresh startup picker', () => {
   })
   it('should_open_first_template_from_fresh_picker_without_discard_prompt_DGM127', async () => {
     const view = await fresh()
-    const choice = starterCatalog[0]
-    fireEvent.click(view.getByRole('button', { name: choice.label }))
+    const choice = { key: 'ms-rag-grounded-knowledge-assistant' as const, label: 'Grounded knowledge assistant with retrieval-augmented generation' }
+    fireEvent.click(view.getByRole('button', { name: `${choice.label}Microsoft` }))
+    fireEvent.click(view.getByRole('button', { name: 'Add Diagram' }))
     expect(host.confirmReplace).not.toHaveBeenCalled()
     expect(view.queryByRole('dialog')).toBeNull()
     expect(host.props!.document).toEqual({ ...starterDocument(choice.key), id: 'new-document' })

@@ -1,0 +1,435 @@
+{
+  "schemaVersion": 1,
+  "id": "gcp-hybrid-dr-recovery-site-v1",
+  "title": "Cloud recovery site for an on-premises application",
+  "subtitle": "An on-premises application backs up data and maintains a cloud recovery copy that can be activated after a disruption. Synthetic Azure reference; no deployment is implied.",
+  "description": "### Problem\nA business-critical on-premises application needs a recovery location without moving its primary operation immediately to a cloud-only model.\n\n### Flow and Azure mapping\nThe on-premises workload periodically backs up or replicates selected data over a secured connection to Azure. Azure Backup, Azure Site Recovery, or application-native replication may protect different components. A warm or cold Azure application environment is prepared according to recovery objectives; an operator activates the recovery workflow and updates traffic routing after validating dependencies and data state.\n\n### Trade-offs and assumptions\nThe Google source explicitly says recovery frequency and active/passive state depend on RTO and RPO, and notes that hybrid systems require reliable secure networking and added operational effort. Azure Site Recovery is not a universal substitute for database-native consistency or application-specific recovery. The catalog should show activation as an operator-controlled step and should not imply failover is automatic or that a tested RTO is known.\n\nSource: [Google Cloud Architecture Center](https://docs.cloud.google.com/architecture/deployment-archetypes/hybrid).\n\n## Source provenance\n\n- Origin provider: Google Cloud\n- Target: Azure conceptual adaptation\n- Primary source: [Google Cloud hybrid deployment archetype](https://docs.cloud.google.com/architecture/deployment-archetypes/hybrid)\n- Reviewed: 2026-11-06\n\n## Catalog status\n\nThis is an original, editable Azure conceptual adaptation. It is synthetic reference material, not a deployed system, certified vendor architecture, or automatic deployment plan.\n\n## Mapping caveats\n\n- Product and recovery workflow must be selected by workload; no RTO/RPO, replication mode, or automatic failover is asserted.",
+  "synthetic": true,
+  "legendVisible": true,
+  "legend": [
+    {
+      "label": "Illustrative Azure flow",
+      "color": "#0078d4",
+      "meaning": "Original conceptual flow, not verified deployment connectivity."
+    },
+    {
+      "label": "Synthetic reference",
+      "color": "#62696c",
+      "dashed": true,
+      "meaning": "Editable starting point requiring workload-specific design."
+    }
+  ],
+  "revision": 1,
+  "direction": "RIGHT",
+  "entities": [
+    {
+      "id": "group-dc",
+      "kind": "boundary",
+      "label": "On-premises production site",
+      "subtitle": "Primary workload boundary",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 608,
+      "y": 24,
+      "width": 1203,
+      "height": 216,
+      "color": "azure"
+    },
+    {
+      "id": "group-network",
+      "kind": "boundary",
+      "label": "Hybrid connectivity",
+      "subtitle": "Secure transport boundary",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 2207,
+      "y": 28.5,
+      "width": 312,
+      "height": 207,
+      "color": "teal"
+    },
+    {
+      "id": "group-azure",
+      "kind": "boundary",
+      "label": "Azure recovery site",
+      "subtitle": "Standby environment",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 2908,
+      "y": 57,
+      "width": 794,
+      "height": 237.75,
+      "color": "amber"
+    },
+    {
+      "id": "onprem-app",
+      "kind": "component",
+      "label": "Primary application",
+      "subtitle": "On-premises application",
+      "parentId": "group-dc",
+      "layer": "foreground",
+      "x": 24,
+      "y": 91.5,
+      "width": 264,
+      "height": 96,
+      "color": "azure",
+      "icon": "service",
+      "status": "synthetic"
+    },
+    {
+      "id": "onprem-data",
+      "kind": "component",
+      "label": "Primary data",
+      "subtitle": "On-premises database and files",
+      "parentId": "group-dc",
+      "layer": "foreground",
+      "x": 457,
+      "y": 88,
+      "width": 264,
+      "height": 103,
+      "color": "azure",
+      "icon": "database",
+      "status": "synthetic"
+    },
+    {
+      "id": "backup",
+      "kind": "component",
+      "label": "Backup or replication service",
+      "subtitle": "Azure Backup",
+      "parentId": "group-dc",
+      "layer": "foreground",
+      "x": 915,
+      "y": 87,
+      "width": 264,
+      "height": 105,
+      "color": "azure",
+      "icon": "service",
+      "status": "synthetic"
+    },
+    {
+      "id": "link",
+      "kind": "component",
+      "label": "Hybrid network link",
+      "subtitle": "ExpressRoute",
+      "parentId": "group-network",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 96,
+      "color": "teal",
+      "icon": "shield",
+      "status": "synthetic"
+    },
+    {
+      "id": "recovery-data",
+      "kind": "component",
+      "label": "Recovery data copy",
+      "subtitle": "Azure storage",
+      "parentId": "group-azure",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 96,
+      "color": "amber",
+      "icon": "storage",
+      "status": "synthetic"
+    },
+    {
+      "id": "recovery-app",
+      "kind": "component",
+      "label": "Recovery application environment",
+      "subtitle": "Azure VMs",
+      "parentId": "group-azure",
+      "layer": "foreground",
+      "x": 506,
+      "y": 108.75,
+      "width": 264,
+      "height": 105,
+      "color": "amber",
+      "icon": "server",
+      "status": "synthetic"
+    },
+    {
+      "id": "users",
+      "kind": "component",
+      "label": "Application users",
+      "subtitle": "Generic clients",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 24,
+      "y": 131.5,
+      "width": 264,
+      "height": 96,
+      "color": "source",
+      "icon": "user",
+      "status": "synthetic"
+    },
+    {
+      "id": "operator",
+      "kind": "component",
+      "label": "Recovery operator",
+      "subtitle": "Generic operations team",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 2255,
+      "y": 261,
+      "width": 264,
+      "height": 96,
+      "color": "source",
+      "icon": "user",
+      "status": "synthetic"
+    }
+  ],
+  "connections": [
+    {
+      "id": "gcp-hybrid-dr-recovery-site-flow-1",
+      "from": "users",
+      "to": "onprem-app",
+      "label": "normal traffic",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 288,
+          "y": 143.5
+        },
+        {
+          "x": 616,
+          "y": 143.5
+        },
+        {
+          "x": 616,
+          "y": 199.5
+        },
+        {
+          "x": 632,
+          "y": 199.5
+        }
+      ],
+      "labelPosition": {
+        "x": 452,
+        "y": 143.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-hybrid-dr-recovery-site-flow-2",
+      "from": "onprem-app",
+      "to": "onprem-data",
+      "label": "reads and writes",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 896,
+          "y": 163.5
+        },
+        {
+          "x": 1065,
+          "y": 163.5
+        }
+      ],
+      "labelPosition": {
+        "x": 980.5,
+        "y": 163.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-hybrid-dr-recovery-site-flow-3",
+      "from": "onprem-data",
+      "to": "backup",
+      "label": "backup or replication",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1329,
+          "y": 163.5
+        },
+        {
+          "x": 1523,
+          "y": 163.5
+        }
+      ],
+      "labelPosition": {
+        "x": 1426,
+        "y": 163.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-hybrid-dr-recovery-site-flow-4",
+      "from": "backup",
+      "to": "link",
+      "label": "protected data transfer",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1787,
+          "y": 163.5
+        },
+        {
+          "x": 2231,
+          "y": 163.5
+        }
+      ],
+      "labelPosition": {
+        "x": 2009,
+        "y": 163.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-hybrid-dr-recovery-site-flow-5",
+      "from": "link",
+      "to": "recovery-data",
+      "label": "secure copy",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 2495,
+          "y": 199.5
+        },
+        {
+          "x": 2916,
+          "y": 199.5
+        },
+        {
+          "x": 2916,
+          "y": 156
+        },
+        {
+          "x": 2932,
+          "y": 156
+        }
+      ],
+      "labelPosition": {
+        "x": 2705.5,
+        "y": 199.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-hybrid-dr-recovery-site-flow-6",
+      "from": "operator",
+      "to": "recovery-app",
+      "label": "activate after validation",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 2519,
+          "y": 273
+        },
+        {
+          "x": 3398,
+          "y": 273
+        },
+        {
+          "x": 3398,
+          "y": 218.75
+        },
+        {
+          "x": 3414,
+          "y": 218.75
+        }
+      ],
+      "labelPosition": {
+        "x": 2958.5,
+        "y": 273
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-hybrid-dr-recovery-site-flow-7",
+      "from": "recovery-data",
+      "to": "recovery-app",
+      "label": "restore or attach data",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 3196,
+          "y": 228
+        },
+        {
+          "x": 3212,
+          "y": 228
+        },
+        {
+          "x": 3212,
+          "y": 197.75
+        },
+        {
+          "x": 3414,
+          "y": 197.75
+        }
+      ],
+      "labelPosition": {
+        "x": 3313,
+        "y": 197.75
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-hybrid-dr-recovery-site-flow-8",
+      "from": "users",
+      "to": "recovery-app",
+      "label": "re-routed after recovery",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 288,
+          "y": 215.5
+        },
+        {
+          "x": 600,
+          "y": 215.5
+        },
+        {
+          "x": 600,
+          "y": 248
+        },
+        {
+          "x": 3225,
+          "y": 248
+        },
+        {
+          "x": 3225,
+          "y": 217.75
+        },
+        {
+          "x": 3414,
+          "y": 217.75
+        }
+      ],
+      "labelPosition": {
+        "x": 1912.5,
+        "y": 248
+      },
+      "routeRevision": 1
+    }
+  ]
+}

@@ -1,0 +1,430 @@
+{
+  "schemaVersion": 1,
+  "id": "ms-azure-local-hyperconverged-platform-v1",
+  "title": "Connected Azure Local hyperconverged platform",
+  "subtitle": "A connected 2–16 machine Azure Local cluster combines local compute and storage with Azure Arc-based cloud management. Synthetic Azure reference; no deployment is implied.",
+  "description": "### Problem\nOrganizations may need local workload execution and storage while using Azure for centralized governance, monitoring, security, and lifecycle management.\n\n### Flow and Azure mapping\nValidated physical machines connect through redundant top-of-rack switches and an upstream corporate network. The Azure Local instance provides Hyper-V and Storage Spaces Direct; workloads run as VMs or supported Kubernetes deployments. Azure Arc connects the instance to Azure management services, while Azure Monitor, Key Vault, Defender for Cloud, and backup/recovery services remain cloud-hosted. Management traffic and workload traffic should be distinguished from the local east-west storage path.\n\n### Trade-offs and assumptions\nThe source describes a connected, storage-switched baseline for 2–16 machines; it excludes single-machine, disconnected, switchless, rack-aware, and disaggregated designs. Hardware validation, networking, update cadence, and workload sizing are prerequisites. Do not depict Azure monitoring or policy agents as on-premises services unless the selected configuration explicitly supports that deployment.\n\nSource: [Microsoft Learn](https://learn.microsoft.com/en-us/azure/architecture/hybrid/azure-local-baseline).\n\n## Source provenance\n\n- Origin provider: Microsoft\n- Target: Azure conceptual adaptation\n- Primary source: [Azure Local Hyperconverged Baseline Reference Architecture](https://learn.microsoft.com/en-us/azure/architecture/hybrid/azure-local-baseline)\n- Reviewed: 2026-11-06\n\n## Catalog status\n\nThis is an original, editable Azure conceptual adaptation. It is synthetic reference material, not a deployed system, certified vendor architecture, or automatic deployment plan.\n\n## Mapping caveats\n\n- The reference excludes disconnected operations and a single-node design; do not imply Azure management services execute locally.",
+  "synthetic": true,
+  "legendVisible": true,
+  "legend": [
+    {
+      "label": "Illustrative Azure flow",
+      "color": "#0078d4",
+      "meaning": "Original conceptual flow, not verified deployment connectivity."
+    },
+    {
+      "label": "Synthetic reference",
+      "color": "#62696c",
+      "dashed": true,
+      "meaning": "Editable starting point requiring workload-specific design."
+    }
+  ],
+  "revision": 1,
+  "direction": "RIGHT",
+  "entities": [
+    {
+      "id": "group-datacenter",
+      "kind": "boundary",
+      "label": "Customer datacenter or edge site",
+      "subtitle": "On-premises physical and workload boundary",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 24,
+      "y": 24,
+      "width": 1818,
+      "height": 470,
+      "color": "azure"
+    },
+    {
+      "id": "group-azure",
+      "kind": "boundary",
+      "label": "Azure management plane",
+      "subtitle": "Cloud control plane",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 2271,
+      "y": 271.5,
+      "width": 871,
+      "height": 231,
+      "color": "teal"
+    },
+    {
+      "id": "machines",
+      "kind": "component",
+      "label": "Validated physical nodes",
+      "subtitle": "Azure Local hardware",
+      "parentId": "group-datacenter",
+      "layer": "foreground",
+      "x": 24,
+      "y": 123.75,
+      "width": 264,
+      "height": 105,
+      "color": "azure",
+      "icon": "service",
+      "status": "synthetic"
+    },
+    {
+      "id": "tor",
+      "kind": "component",
+      "label": "Redundant top-of-rack switches",
+      "subtitle": "Generic validated network",
+      "parentId": "group-datacenter",
+      "layer": "foreground",
+      "x": 446,
+      "y": 179.75,
+      "width": 264,
+      "height": 105,
+      "color": "azure",
+      "icon": "api",
+      "status": "synthetic"
+    },
+    {
+      "id": "cluster",
+      "kind": "component",
+      "label": "Hyper-V and Storage Spaces Direct",
+      "subtitle": "Azure Local",
+      "parentId": "group-datacenter",
+      "layer": "foreground",
+      "x": 1013,
+      "y": 123.75,
+      "width": 264,
+      "height": 105,
+      "color": "azure",
+      "icon": "storage",
+      "status": "synthetic"
+    },
+    {
+      "id": "vm",
+      "kind": "component",
+      "label": "Virtual machine workloads",
+      "subtitle": "Azure Local VMs",
+      "parentId": "group-datacenter",
+      "layer": "foreground",
+      "x": 1530,
+      "y": 218,
+      "width": 264,
+      "height": 105,
+      "color": "azure",
+      "icon": "server",
+      "status": "synthetic"
+    },
+    {
+      "id": "k8s",
+      "kind": "component",
+      "label": "Kubernetes workloads",
+      "subtitle": "AKS on Azure Local",
+      "parentId": "group-datacenter",
+      "layer": "foreground",
+      "x": 1530,
+      "y": 102,
+      "width": 264,
+      "height": 96,
+      "color": "azure",
+      "icon": "server",
+      "status": "synthetic"
+    },
+    {
+      "id": "firewall",
+      "kind": "component",
+      "label": "Corporate firewall",
+      "subtitle": "Generic enterprise firewall",
+      "parentId": "group-datacenter",
+      "layer": "foreground",
+      "x": 1530,
+      "y": 343,
+      "width": 264,
+      "height": 103,
+      "color": "azure",
+      "icon": "shield",
+      "status": "synthetic"
+    },
+    {
+      "id": "arc",
+      "kind": "component",
+      "label": "Cloud management connection",
+      "subtitle": "Azure Arc",
+      "parentId": "group-azure",
+      "layer": "foreground",
+      "x": 24,
+      "y": 94.5,
+      "width": 264,
+      "height": 105,
+      "color": "teal",
+      "icon": "service",
+      "status": "synthetic"
+    },
+    {
+      "id": "azureops",
+      "kind": "component",
+      "label": "Governance and operations",
+      "subtitle": "Azure Monitor, Key Vault, Defender for Cloud",
+      "parentId": "group-azure",
+      "layer": "foreground",
+      "x": 583,
+      "y": 87,
+      "width": 264,
+      "height": 120,
+      "color": "teal",
+      "icon": "shield",
+      "status": "synthetic"
+    }
+  ],
+  "connections": [
+    {
+      "id": "ms-azure-local-hyperconverged-platform-flow-1",
+      "from": "machines",
+      "to": "tor",
+      "label": "redundant links",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 312,
+          "y": 220.75
+        },
+        {
+          "x": 454,
+          "y": 220.75
+        },
+        {
+          "x": 454,
+          "y": 215.75
+        },
+        {
+          "x": 470,
+          "y": 215.75
+        }
+      ],
+      "labelPosition": {
+        "x": 383,
+        "y": 236.75
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-azure-local-hyperconverged-platform-flow-2",
+      "from": "tor",
+      "to": "cluster",
+      "label": "management and workload networking",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 734,
+          "y": 215.75
+        },
+        {
+          "x": 1021,
+          "y": 215.75
+        },
+        {
+          "x": 1021,
+          "y": 220.75
+        },
+        {
+          "x": 1037,
+          "y": 220.75
+        }
+      ],
+      "labelPosition": {
+        "x": 877.5,
+        "y": 215.75
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-azure-local-hyperconverged-platform-flow-3",
+      "from": "machines",
+      "to": "cluster",
+      "label": "local compute and storage",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 312,
+          "y": 210.25
+        },
+        {
+          "x": 462,
+          "y": 210.25
+        },
+        {
+          "x": 462,
+          "y": 195.75
+        },
+        {
+          "x": 1021,
+          "y": 195.75
+        },
+        {
+          "x": 1021,
+          "y": 210.25
+        },
+        {
+          "x": 1037,
+          "y": 210.25
+        }
+      ],
+      "labelPosition": {
+        "x": 741.5,
+        "y": 179.75
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-azure-local-hyperconverged-platform-flow-4",
+      "from": "cluster",
+      "to": "vm",
+      "label": "hosts",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1301,
+          "y": 200.75
+        },
+        {
+          "x": 1538,
+          "y": 200.75
+        },
+        {
+          "x": 1538,
+          "y": 254
+        },
+        {
+          "x": 1554,
+          "y": 254
+        }
+      ],
+      "labelPosition": {
+        "x": 1419.5,
+        "y": 200.75
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-azure-local-hyperconverged-platform-flow-5",
+      "from": "cluster",
+      "to": "k8s",
+      "label": "hosts",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1301,
+          "y": 179.75
+        },
+        {
+          "x": 1538,
+          "y": 179.75
+        },
+        {
+          "x": 1538,
+          "y": 210
+        },
+        {
+          "x": 1554,
+          "y": 210
+        }
+      ],
+      "labelPosition": {
+        "x": 1419.5,
+        "y": 163.75
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-azure-local-hyperconverged-platform-flow-6",
+      "from": "cluster",
+      "to": "firewall",
+      "label": "outbound Azure connectivity",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1301,
+          "y": 240.75
+        },
+        {
+          "x": 1451.5,
+          "y": 240.75
+        },
+        {
+          "x": 1451.5,
+          "y": 379
+        },
+        {
+          "x": 1554,
+          "y": 379
+        }
+      ],
+      "labelPosition": {
+        "x": 1413.875,
+        "y": 240.75
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-azure-local-hyperconverged-platform-flow-7",
+      "from": "firewall",
+      "to": "arc",
+      "label": "controlled management traffic",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1818,
+          "y": 418.5
+        },
+        {
+          "x": 2295,
+          "y": 418.5
+        }
+      ],
+      "labelPosition": {
+        "x": 2056.5,
+        "y": 418.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-azure-local-hyperconverged-platform-flow-8",
+      "from": "arc",
+      "to": "azureops",
+      "label": "resource registration and telemetry",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 2559,
+          "y": 418.5
+        },
+        {
+          "x": 2854,
+          "y": 418.5
+        }
+      ],
+      "labelPosition": {
+        "x": 2706.5,
+        "y": 418.5
+      },
+      "routeRevision": 1
+    }
+  ]
+}

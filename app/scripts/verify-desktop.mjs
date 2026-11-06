@@ -146,12 +146,19 @@ async function upload(page, file, name) {
   await saved(page)
 }
 
+async function addBlankDiagram(page) {
+  await page.getByRole('menuitem', { name: 'File menu', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: 'Add diagram', exact: true })
+  await page.getByRole('menuitem', { name: 'Add Diagram', exact: true }).click()
+  await dialog.getByRole('button', { name: 'Blank', exact: true }).click()
+  await dialog.getByRole('button', { name: 'Add Diagram', exact: true }).click()
+}
+
 async function featureChecks(application, page, architecture, target) {
   target.initialTheme = await page.evaluate(() => ({ systemDark: matchMedia('(prefers-color-scheme: dark)').matches, selected: document.documentElement.dataset.theme }))
   assert.equal(target.initialTheme.selected, target.initialTheme.systemDark ? 'dark' : 'light')
   if (await page.getByRole('button', { name: 'Switch to light theme', exact: true }).isVisible()) await page.getByRole('button', { name: 'Switch to light theme', exact: true }).click()
-  await page.getByRole('button', { name: 'New diagram', exact: true }).click()
-  await page.getByRole('dialog', { name: 'New diagram', exact: true }).getByRole('button', { name: 'Blank', exact: true }).click()
+  await addBlankDiagram(page)
   await page.waitForFunction(() => document.querySelectorAll('.react-flow__node').length === 0)
   await upload(page, { name: 'desktop-custom.svg', mimeType: 'image/svg+xml', buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="512"><path fill="#db2134" d="M0 0h512v512H0z"/><path fill="#117865" d="M512 0h512v512H512z"/></svg>') }, 'Import custom icon')
   const created = await durable(page)
@@ -191,8 +198,7 @@ async function featureChecks(application, page, architecture, target) {
   assert.match(await page.getByRole('status').textContent(), /Could not import image/)
   assert.deepEqual(await durable(page), created)
   await page.keyboard.press('Control+c')
-  await page.getByRole('button', { name: 'New diagram', exact: true }).click()
-  await page.getByRole('dialog', { name: 'New diagram', exact: true }).getByRole('button', { name: 'Blank', exact: true }).click()
+  await addBlankDiagram(page)
   await page.waitForFunction(() => document.querySelectorAll('.react-flow__node').length === 0)
   await page.keyboard.press('Control+v')
   await page.waitForFunction(() => document.querySelectorAll('.react-flow__node').length === 1)
@@ -362,8 +368,7 @@ try {
       }
       target.checks.push('JSON/SVG/PNG DownloadItems, save-dialog options, nonblank pixels and embedded font')
       await page.screenshot({ path: path.join(output, `${architecture}-packaged-offline.png`) })
-      await page.getByRole('button', { name: 'New diagram', exact: true }).click()
-      await page.getByRole('dialog', { name: 'New diagram', exact: true }).getByRole('button', { name: 'Blank', exact: true }).click()
+      await addBlankDiagram(page)
       await page.waitForFunction(() => document.querySelector('.object-count')?.textContent.includes('0 objects'))
       await saved(page)
       await openJson(page, backup.destination)

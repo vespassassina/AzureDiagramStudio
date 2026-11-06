@@ -1,0 +1,467 @@
+{
+  "schemaVersion": 1,
+  "id": "aws-multiregion-read-local-write-global-v1",
+  "title": "Multi-region read-local, write-primary application resilience",
+  "subtitle": "Regional application stacks serve local reads while a designated primary accepts writes and replicates data asynchronously to a recovery region. Synthetic Azure reference; no deployment is implied.",
+  "description": "### Problem\nA workload needs regional availability for read-heavy traffic while accepting that cross-region data replication is asynchronous and recovery may require reconciliation.\n\n### Flow and Azure mapping\nGlobal traffic routing sends users to a healthy regional application endpoint. Reads can use local replicas or caches; writes are directed to a selected primary data region. Azure SQL geo-replication or a selected Cosmos DB multi-region configuration may be considered only after confirming the workload's consistency and conflict requirements. A failover procedure changes routing and validates the data state; event replay or reconciliation handles in-flight work.\n\n### Trade-offs and assumptions\nThe source stresses that asynchronous replication can create stale reads and missing or in-flight writes after failure, and that applications often need changes for failover, idempotency, and reconciliation. Azure Cosmos DB and SQL geo-replication have different semantics; neither should be labeled a generic replacement for DynamoDB Global Tables or Aurora. No RTO/RPO or consistency guarantee is claimed.\n\nSource: [AWS Prescriptive Guidance](https://docs.aws.amazon.com/prescriptive-guidance/latest/aws-multi-region-fundamentals/fundamental-2.html).\n\n## Source provenance\n\n- Origin provider: AWS\n- Target: Azure conceptual adaptation\n- Primary source: [Multi-Region fundamental 2: Understanding the data](https://docs.aws.amazon.com/prescriptive-guidance/latest/aws-multi-region-fundamentals/fundamental-2.html)\n- Reviewed: 2026-11-06\n\n## Catalog status\n\nThis is an original, editable Azure conceptual adaptation. It is synthetic reference material, not a deployed system, certified vendor architecture, or automatic deployment plan.\n\n## Mapping caveats\n\n- Consistency and failover behavior are database-specific; asynchronous replication can lose or delay unreplicated writes.",
+  "synthetic": true,
+  "legendVisible": true,
+  "legend": [
+    {
+      "label": "Illustrative Azure flow",
+      "color": "#0078d4",
+      "meaning": "Original conceptual flow, not verified deployment connectivity."
+    },
+    {
+      "label": "Synthetic reference",
+      "color": "#62696c",
+      "dashed": true,
+      "meaning": "Editable starting point requiring workload-specific design."
+    }
+  ],
+  "revision": 1,
+  "direction": "RIGHT",
+  "entities": [
+    {
+      "id": "group-region-a",
+      "kind": "boundary",
+      "label": "Azure region A — primary writes",
+      "subtitle": "Regional failure domain",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 61,
+      "y": 206,
+      "width": 745,
+      "height": 207,
+      "color": "azure"
+    },
+    {
+      "id": "group-region-b",
+      "kind": "boundary",
+      "label": "Azure region B — secondary reads/recovery",
+      "subtitle": "Regional failure domain",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 1195,
+      "y": 61,
+      "width": 705,
+      "height": 256,
+      "color": "teal"
+    },
+    {
+      "id": "group-global",
+      "kind": "boundary",
+      "label": "Global entry and recovery control",
+      "subtitle": "Cross-region control",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 2319,
+      "y": 94,
+      "width": 312,
+      "height": 463,
+      "color": "amber"
+    },
+    {
+      "id": "app1",
+      "kind": "component",
+      "label": "Application region A",
+      "subtitle": "Azure App Service",
+      "parentId": "group-region-a",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 96,
+      "color": "azure",
+      "icon": "server",
+      "status": "synthetic"
+    },
+    {
+      "id": "primary",
+      "kind": "component",
+      "label": "Write-primary data",
+      "subtitle": "Azure SQL",
+      "parentId": "group-region-a",
+      "layer": "foreground",
+      "x": 457,
+      "y": 87,
+      "width": 264,
+      "height": 96,
+      "color": "azure",
+      "icon": "database",
+      "status": "synthetic"
+    },
+    {
+      "id": "app2",
+      "kind": "component",
+      "label": "Application region B",
+      "subtitle": "Azure App Service",
+      "parentId": "group-region-b",
+      "layer": "foreground",
+      "x": 24,
+      "y": 104,
+      "width": 264,
+      "height": 96,
+      "color": "teal",
+      "icon": "server",
+      "status": "synthetic"
+    },
+    {
+      "id": "replica",
+      "kind": "component",
+      "label": "Asynchronous secondary copy",
+      "subtitle": "Selected Azure database replication option",
+      "parentId": "group-region-b",
+      "layer": "foreground",
+      "x": 417,
+      "y": 112,
+      "width": 264,
+      "height": 120,
+      "color": "teal",
+      "icon": "database",
+      "status": "synthetic"
+    },
+    {
+      "id": "route",
+      "kind": "component",
+      "label": "Global traffic routing",
+      "subtitle": "Azure Front Door",
+      "parentId": "group-global",
+      "layer": "foreground",
+      "x": 24,
+      "y": 343,
+      "width": 264,
+      "height": 96,
+      "color": "amber",
+      "icon": "api",
+      "status": "synthetic"
+    },
+    {
+      "id": "reconcile",
+      "kind": "component",
+      "label": "Failover and reconciliation",
+      "subtitle": "Application workflow and runbook",
+      "parentId": "group-global",
+      "layer": "foreground",
+      "x": 24,
+      "y": 203,
+      "width": 264,
+      "height": 120,
+      "color": "amber",
+      "icon": "service",
+      "status": "synthetic"
+    },
+    {
+      "id": "monitor",
+      "kind": "component",
+      "label": "Replication health",
+      "subtitle": "Azure Monitor",
+      "parentId": "group-global",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 96,
+      "color": "amber",
+      "icon": "service",
+      "status": "synthetic"
+    },
+    {
+      "id": "users",
+      "kind": "component",
+      "label": "Regional users",
+      "subtitle": "Generic clients",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 1636,
+      "y": 431,
+      "width": 264,
+      "height": 96,
+      "color": "source",
+      "icon": "user",
+      "status": "synthetic"
+    }
+  ],
+  "connections": [
+    {
+      "id": "aws-multiregion-read-local-write-global-flow-1",
+      "from": "users",
+      "to": "route",
+      "label": "requests",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1900,
+          "y": 515
+        },
+        {
+          "x": 2327,
+          "y": 515
+        },
+        {
+          "x": 2327,
+          "y": 449
+        },
+        {
+          "x": 2343,
+          "y": 449
+        }
+      ],
+      "labelPosition": {
+        "x": 2113.5,
+        "y": 515
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-multiregion-read-local-write-global-flow-2",
+      "from": "route",
+      "to": "app1",
+      "label": "route by health and proximity",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 2343,
+          "y": 469
+        },
+        {
+          "x": 1908,
+          "y": 469
+        },
+        {
+          "x": 1908,
+          "y": 397
+        },
+        {
+          "x": 365,
+          "y": 397
+        },
+        {
+          "x": 365,
+          "y": 357
+        },
+        {
+          "x": 349,
+          "y": 357
+        }
+      ],
+      "labelPosition": {
+        "x": 1136.5,
+        "y": 397
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-multiregion-read-local-write-global-flow-3",
+      "from": "route",
+      "to": "app2",
+      "label": "route by health and proximity",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 2343,
+          "y": 489
+        },
+        {
+          "x": 2070.5,
+          "y": 489
+        },
+        {
+          "x": 2070.5,
+          "y": 301
+        },
+        {
+          "x": 1499,
+          "y": 301
+        },
+        {
+          "x": 1499,
+          "y": 229
+        },
+        {
+          "x": 1483,
+          "y": 229
+        }
+      ],
+      "labelPosition": {
+        "x": 1784.75,
+        "y": 317
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-multiregion-read-local-write-global-flow-4",
+      "from": "app1",
+      "to": "primary",
+      "label": "writes and reads",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 349,
+          "y": 351
+        },
+        {
+          "x": 502,
+          "y": 351
+        },
+        {
+          "x": 502,
+          "y": 341
+        },
+        {
+          "x": 518,
+          "y": 341
+        }
+      ],
+      "labelPosition": {
+        "x": 425.5,
+        "y": 335
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-multiregion-read-local-write-global-flow-5",
+      "from": "app2",
+      "to": "replica",
+      "label": "local reads",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1483,
+          "y": 249
+        },
+        {
+          "x": 1596,
+          "y": 249
+        },
+        {
+          "x": 1596,
+          "y": 185
+        },
+        {
+          "x": 1612,
+          "y": 185
+        }
+      ],
+      "labelPosition": {
+        "x": 1547.5,
+        "y": 201
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-multiregion-read-local-write-global-flow-6",
+      "from": "primary",
+      "to": "replica",
+      "label": "asynchronous replication",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 782,
+          "y": 305
+        },
+        {
+          "x": 1596,
+          "y": 305
+        },
+        {
+          "x": 1596,
+          "y": 281
+        },
+        {
+          "x": 1612,
+          "y": 281
+        }
+      ],
+      "labelPosition": {
+        "x": 1189,
+        "y": 305
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-multiregion-read-local-write-global-flow-7",
+      "from": "primary",
+      "to": "reconcile",
+      "label": "in-flight changes after outage",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 782,
+          "y": 377
+        },
+        {
+          "x": 2327,
+          "y": 377
+        },
+        {
+          "x": 2327,
+          "y": 309
+        },
+        {
+          "x": 2343,
+          "y": 309
+        }
+      ],
+      "labelPosition": {
+        "x": 1554.5,
+        "y": 377
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-multiregion-read-local-write-global-flow-8",
+      "from": "replica",
+      "to": "monitor",
+      "label": "replication state",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1876,
+          "y": 185
+        },
+        {
+          "x": 2327,
+          "y": 185
+        },
+        {
+          "x": 2327,
+          "y": 265
+        },
+        {
+          "x": 2343,
+          "y": 265
+        }
+      ],
+      "labelPosition": {
+        "x": 2101.5,
+        "y": 185
+      },
+      "routeRevision": 1
+    }
+  ]
+}

@@ -758,3 +758,46 @@ not substitute for native application acceptance. Other final source,
 runtime, package and distribution checks remain required.
 
 Who: PO via explicit publication decision in this conversation.
+
+## 2026-11-06: Add Diagrams To The Current Workbook And Guard Page Removal
+
+Context: the PO requested additive diagram creation, browser-like tabs,
+direct title editing, a white Select cursor and organized style tabs.
+
+Decision: rename New diagram to Add diagram and append its chosen page
+without replacing existing work. Add the trailing + and per-tab X; remove
+the page ellipsis menu. The PO selected confirmation for non-empty page
+removal, Undo support and retention of at least one page.
+
+Consequences: editor-local add-starter/remove-page commands use root history;
+the bounded MCP/CLI command schemas and persisted workbook format do not
+expand. Initial starter selection and explicit New workbook remain distinct.
+Click-away commits inline rename like Enter, while Escape, IME, validation
+and explicit style Apply/Cancel retain their separate semantics.
+
+Who: PO via the UI request and explicit page-removal choice; source scope
+recorded in [DGM-163](specs/DGM-163.md). No new release was requested.
+
+## 2026-11-06: Workbook File Groups And Researched Azure Architecture Catalog
+
+Context: the PO specified exact workbook/page File menu groups and requested
+architectures researched from Microsoft, AWS, Google Cloud and architecture
+blogs, with a hierarchical navigator and a larger selected preview/Markdown.
+
+Decision: retain Recent/Import as a third File group; Add New Page and the
+page-strip plus create a blank page directly. Replace the Add Diagram picker
+with the catalog, rather than add a competing page. The PO selected 24 new
+Azure conceptual adaptations, eight from each source origin, retaining all
+11 existing starters. Original editable diagrams and guides link to reviewed
+sources and explain material mapping limitations.
+
+Consequences: categories are workload-first; origin records provenance, not
+the deployed cloud. Browsing is non-mutating and insertion is explicit.
+Native-scale preview inspection, scrolling and zoom complement an optional
+Fit overview. Markdown provenance accompanies the added page. The Spanner
+adaptation explicitly does not preserve global relational write semantics.
+No schema, dependency, security, cloud-deployment or release change is implied.
+
+Who: PO via the menu request, retained-group choice, Azure-only/24-entry
+choices and replacement-picker choice. Contract: [DGM-164](specs/DGM-164.md);
+evidence: [source verification](verification/DGM-164.md).

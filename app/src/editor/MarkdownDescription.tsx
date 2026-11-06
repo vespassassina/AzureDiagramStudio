@@ -73,7 +73,7 @@ export function MarkdownDescription({ value, mode, writable, presenting = false,
       onCompositionStart={() => { composing.current = true }}
       onCompositionEnd={() => { composing.current = false; if (blurred.current) { blurred.current = false; queueMicrotask(onFinish) } }}
       onBlur={event => {
-        if (!writable || deferFinish() || (event.relatedTarget instanceof HTMLElement && (event.relatedTarget.closest('[data-markdown-ui]') || event.relatedTarget.getAttribute('aria-label') === 'New diagram'))) return
+        if (!writable || deferFinish() || (event.relatedTarget instanceof HTMLElement && (event.relatedTarget.closest('[data-markdown-ui]') || event.relatedTarget.getAttribute('aria-label') === 'Add diagram'))) return
         if (composing.current) blurred.current = true; else onFinish()
       }}
       onKeyDown={event => {

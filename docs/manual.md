@@ -910,7 +910,73 @@ downloads. MCP exports return bytes in memory and never save automatically
 under this root. Native dialogs remain human-unqualified in owner automation:
 the source acceptance runner mocks only native selection/confirmation while
 using real preload, main, filesystem and profile restart.
-# Current 0.5.2 Workbook And File Workflow
+# Current Source: Adding, Removing And Renaming Diagrams
+
+These controls are the DGM-163 source follow-up, not the published 0.5.2
+executables.
+
+Use **File > Add Diagram** to browse a blank diagram or architecture starter,
+then choose **Add Diagram** in the catalog to append it. It selects the page,
+preserving the current workbook. Explicitly adding to a standalone diagram
+creates a workbook with the original diagram retained. The initial starter
+chooser still sets up the first diagram; **New Workbook** remains the separate
+replacement action.
+
+**Add New Page** and the **+ immediately after the final page tab** create a
+blank page directly, without opening the architecture catalog.
+
+The current File menu groups are **New Workbook**, **Load Workbook**,
+**Save Workbook**, **Save Workbook As**; then **Add New Page** and
+**Add Diagram**; then the retained **Recent diagrams** and **Import skill JSON**.
+
+**Load Workbook** opens a saved workspace and replaces the current workspace, including
+the complete workbook and its pages. It never appends a page; **Add Diagram**
+is the additive action. Existing unsaved-work replacement guards still apply.
+
+Use the **X to the right of a tab name** to remove that page. Non-empty pages
+require confirmation; Cancel preserves them, Undo restores a removed page,
+and the final page cannot be removed. Removing the active page selects its
+next neighbor, or the previous one at the end. Drag tabs to reorder them;
+keyboard users can focus a tab and use Alt+Shift+Left/Right.
+
+Double-click a tab or focus it and press F2 to rename. Double-click the
+canvas page title to edit it there. To rename the workbook, click its name
+in the top breadcrumb to select it, then click again; Enter/F2 also opens
+editing. Single-line rename fields commit on click-away or Enter and cancel
+with Escape. Multiline text keeps normal newlines and existing Ctrl+Enter
+commit behavior.
+
+In **Page styles**, choose a style tab and edit its identity/meaning and
+separate Box/Connector columns. Drafts survive style-tab switches.
+Leave appearance fields blank to inherit; stroke widths must be 0.5 to 12.
+**Apply** still commits the complete style change atomically; switching tabs
+or leaving a field does not bypass Apply/Cancel or used-state reassignment.
+
+## Architecture Catalog
+
+The current source replaces the old thumbnail picker with workload categories
+and subcategories on the left and a large selected preview/guide on the right.
+There are 35 starters: 11 retained examples and 24 researched, original Azure
+adaptations, split equally between Microsoft-, AWS- and Google Cloud-origin
+patterns. **Existing starters** remains available as a collapsible group.
+
+Select a category and architecture, or search by title, category or origin.
+Browsing changes only the preview, not the current workbook. The diagram opens
+at 100% native scale; scroll to inspect it, use the zoom controls, or choose
+**Fit** for an overview. Selecting another architecture resets zoom and both
+scroll directions. Source links, reviewed dates, Markdown explanations and
+mapping caveats are shown beside the preview and retained in the added page's
+Markdown. Add the page explicitly; Cancel, Escape or dismissing the catalog
+adds nothing.
+
+AWS/Google labels describe the source of the pattern, not a native other-cloud
+deployment. These are synthetic conceptual starting points, not deployed or
+vendor-certified systems. In particular, the Spanner-origin adaptation uses
+a single-region Azure SQL writer and asynchronous replication; it does not
+reproduce Spanner's global relational write semantics. Validate workload
+security, availability, consistency, cost and service limits before deployment.
+
+# Published 0.5.2 Workbook And File Workflow
 
 Use **File > New workbook** or add a page to explicitly create a workbook.
 Bottom tabs navigate pages in Edit and Present; Add page, rename and reorder

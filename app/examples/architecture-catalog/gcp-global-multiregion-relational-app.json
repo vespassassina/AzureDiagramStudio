@@ -1,0 +1,618 @@
+{
+  "schemaVersion": 1,
+  "id": "gcp-global-multiregion-relational-app-v1",
+  "title": "Global application with regional front ends and a single-region Azure SQL writer",
+  "subtitle": "Global ingress routes to regional application tiers, while writes go to a single Azure SQL primary and a secondary receives asynchronous geo-replication. Synthetic Azure reference; no deployment is im",
+  "description": "### Problem\nA global audience needs regional application entry points and a recovery design, but the Azure target must not imply the source database's globally synchronous relational semantics.\n\n### Flow and Azure mapping\nAzure Front Door routes users to regional web and application tiers. Route all writes to one Azure SQL primary region. If local reads in a secondary region are needed, use a configured geo-secondary only for workloads that tolerate replication lag; otherwise route reads to the primary. Azure SQL geo-replication is asynchronous, so the secondary is not a globally consistent writable peer. On a regional failure, an operator or tested recovery workflow promotes the secondary and redirects writes according to the chosen recovery process.\n\n### Trade-offs and assumptions\nThe Google source uses regional application tiers with multi-region Spanner, which provides a capability this Azure SQL topology does not preserve. This adaptation **loses synchronous cross-region strong relational consistency and active-active multi-region writes**: secondary reads can be stale, and recent writes may not have replicated at failover. Azure SQL is not a Spanner equivalent. If the workload requires globally consistent relational transactions, this candidate is not a fit; evaluate a different data model or managed database design and document its actual guarantees. No RTO, RPO, latency, or zero-data-loss claim is made.\n\nSource: [Google Cloud Architecture Center](https://docs.cloud.google.com/architecture/global-deployment-compute-engine-spanner).\n\n## Source provenance\n\n- Origin provider: Google Cloud\n- Target: Azure conceptual adaptation\n- Primary source: [Global deployment with Compute Engine and Spanner](https://docs.cloud.google.com/architecture/global-deployment-compute-engine-spanner)\n- Reviewed: 2026-11-06\n\n## Supplementary context\n\n- [Google Cloud global deployment archetype](https://docs.cloud.google.com/architecture/deployment-archetypes/global) — Reviewed: 2026-11-06; Supplementary provider context; not a copied diagram or implementation.\n- [Uncomplicating the complex: How Spanner simplifies microservices-based architectures](https://cloud.google.com/blog/products/databases/why-spanner-is-a-good-fit-for-microservices-based-applications) — Reviewed: 2026-11-06; Provides Google-side context on Spanner's relational and replication properties and trade-offs, making the non-equivalence of the Azure SQL adaptation explicit.\n\n## Catalog status\n\nThis is an original, editable Azure conceptual adaptation. It is synthetic reference material, not a deployed system, certified vendor architecture, or automatic deployment plan.\n\n## Mapping caveats\n\n- This Azure target does not preserve Spanner's globally synchronous relational consistency or multi-region write behavior. Secondary reads can be stale, and failover can have nonzero data loss; verify current Azure SQL geo-replication behavior and workload requirements.",
+  "synthetic": true,
+  "legendVisible": true,
+  "legend": [
+    {
+      "label": "Illustrative Azure flow",
+      "color": "#0078d4",
+      "meaning": "Original conceptual flow, not verified deployment connectivity."
+    },
+    {
+      "label": "Synthetic reference",
+      "color": "#62696c",
+      "dashed": true,
+      "meaning": "Editable starting point requiring workload-specific design."
+    }
+  ],
+  "revision": 1,
+  "direction": "RIGHT",
+  "entities": [
+    {
+      "id": "group-edge",
+      "kind": "boundary",
+      "label": "Global edge entry",
+      "subtitle": "Public ingress",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 611,
+      "y": 384,
+      "width": 312,
+      "height": 216,
+      "color": "azure"
+    },
+    {
+      "id": "group-region-a",
+      "kind": "boundary",
+      "label": "Azure region A",
+      "subtitle": "Regional application failure domain",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 1334,
+      "y": 34,
+      "width": 312,
+      "height": 332,
+      "color": "teal"
+    },
+    {
+      "id": "group-region-b",
+      "kind": "boundary",
+      "label": "Azure region B",
+      "subtitle": "Regional application failure domain",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 1334,
+      "y": 406,
+      "width": 312,
+      "height": 332,
+      "color": "amber"
+    },
+    {
+      "id": "group-data-boundary",
+      "kind": "boundary",
+      "label": "Data replication boundary",
+      "subtitle": "Consistency and residency design",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 2083,
+      "y": 276,
+      "width": 895,
+      "height": 462,
+      "color": "rose"
+    },
+    {
+      "id": "edge",
+      "kind": "component",
+      "label": "Global application ingress",
+      "subtitle": "Azure Front Door",
+      "parentId": "group-edge",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 105,
+      "color": "azure",
+      "icon": "api",
+      "status": "synthetic"
+    },
+    {
+      "id": "web-a",
+      "kind": "component",
+      "label": "Regional web tier A",
+      "subtitle": "Azure App Service",
+      "parentId": "group-region-a",
+      "layer": "foreground",
+      "x": 24,
+      "y": 212,
+      "width": 264,
+      "height": 96,
+      "color": "teal",
+      "icon": "server",
+      "status": "synthetic"
+    },
+    {
+      "id": "app-a",
+      "kind": "component",
+      "label": "Regional application tier A",
+      "subtitle": "Azure App Service",
+      "parentId": "group-region-a",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 105,
+      "color": "teal",
+      "icon": "server",
+      "status": "synthetic"
+    },
+    {
+      "id": "web-b",
+      "kind": "component",
+      "label": "Regional web tier B",
+      "subtitle": "Azure App Service",
+      "parentId": "group-region-b",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 96,
+      "color": "amber",
+      "icon": "server",
+      "status": "synthetic"
+    },
+    {
+      "id": "app-b",
+      "kind": "component",
+      "label": "Regional application tier B",
+      "subtitle": "Azure App Service",
+      "parentId": "group-region-b",
+      "layer": "foreground",
+      "x": 24,
+      "y": 203,
+      "width": 264,
+      "height": 105,
+      "color": "amber",
+      "icon": "server",
+      "status": "synthetic"
+    },
+    {
+      "id": "internal-route",
+      "kind": "component",
+      "label": "Cross-region service routing",
+      "subtitle": "Azure networking and application routing",
+      "parentId": "group-data-boundary",
+      "layer": "foreground",
+      "x": 44,
+      "y": 87,
+      "width": 264,
+      "height": 120,
+      "color": "rose",
+      "icon": "api",
+      "status": "synthetic"
+    },
+    {
+      "id": "data-primary",
+      "kind": "component",
+      "label": "Azure SQL primary writer",
+      "subtitle": "Azure SQL Database: regional writer + async secondary",
+      "parentId": "group-data-boundary",
+      "layer": "foreground",
+      "x": 44,
+      "y": 248,
+      "width": 264,
+      "height": 135,
+      "color": "rose",
+      "icon": "database",
+      "status": "synthetic"
+    },
+    {
+      "id": "data-secondary",
+      "kind": "component",
+      "label": "Asynchronous geo-secondary",
+      "subtitle": "Azure SQL Database: regional writer + async secondary",
+      "parentId": "group-data-boundary",
+      "layer": "foreground",
+      "x": 607,
+      "y": 303,
+      "width": 264,
+      "height": 135,
+      "color": "rose",
+      "icon": "database",
+      "status": "synthetic"
+    },
+    {
+      "id": "ops",
+      "kind": "component",
+      "label": "Global and regional operations",
+      "subtitle": "Azure Monitor",
+      "parentId": "group-data-boundary",
+      "layer": "foreground",
+      "x": 607,
+      "y": 178,
+      "width": 264,
+      "height": 105,
+      "color": "rose",
+      "icon": "service",
+      "status": "synthetic"
+    },
+    {
+      "id": "users",
+      "kind": "component",
+      "label": "Global users",
+      "subtitle": "Generic clients",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 24,
+      "y": 475.5,
+      "width": 264,
+      "height": 96,
+      "color": "source",
+      "icon": "user",
+      "status": "synthetic"
+    }
+  ],
+  "connections": [
+    {
+      "id": "gcp-global-multiregion-relational-app-flow-1",
+      "from": "users",
+      "to": "edge",
+      "label": "global requests",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 288,
+          "y": 523.5
+        },
+        {
+          "x": 635,
+          "y": 523.5
+        }
+      ],
+      "labelPosition": {
+        "x": 461.5,
+        "y": 523.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-global-multiregion-relational-app-flow-2",
+      "from": "edge",
+      "to": "web-a",
+      "label": "health and proximity routing",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 899,
+          "y": 483
+        },
+        {
+          "x": 1326,
+          "y": 483
+        },
+        {
+          "x": 1326,
+          "y": 330
+        },
+        {
+          "x": 1358,
+          "y": 330
+        }
+      ],
+      "labelPosition": {
+        "x": 1112.5,
+        "y": 483
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-global-multiregion-relational-app-flow-3",
+      "from": "edge",
+      "to": "web-b",
+      "label": "health and proximity routing",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 899,
+          "y": 564
+        },
+        {
+          "x": 1342,
+          "y": 564
+        },
+        {
+          "x": 1342,
+          "y": 505
+        },
+        {
+          "x": 1358,
+          "y": 505
+        }
+      ],
+      "labelPosition": {
+        "x": 1120.5,
+        "y": 564
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-global-multiregion-relational-app-flow-4",
+      "from": "web-a",
+      "to": "internal-route",
+      "label": "application request",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1622,
+          "y": 330
+        },
+        {
+          "x": 2083,
+          "y": 330
+        },
+        {
+          "x": 2083,
+          "y": 375
+        },
+        {
+          "x": 2127,
+          "y": 375
+        }
+      ],
+      "labelPosition": {
+        "x": 1852.5,
+        "y": 330
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-global-multiregion-relational-app-flow-5",
+      "from": "web-b",
+      "to": "internal-route",
+      "label": "application request",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1622,
+          "y": 505
+        },
+        {
+          "x": 2111,
+          "y": 505
+        },
+        {
+          "x": 2111,
+          "y": 431
+        },
+        {
+          "x": 2127,
+          "y": 431
+        }
+      ],
+      "labelPosition": {
+        "x": 1866.5,
+        "y": 505
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-global-multiregion-relational-app-flow-6",
+      "from": "internal-route",
+      "to": "app-a",
+      "label": "regional backend",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 2127,
+          "y": 415
+        },
+        {
+          "x": 1654,
+          "y": 415
+        },
+        {
+          "x": 1654,
+          "y": 194
+        },
+        {
+          "x": 1622,
+          "y": 194
+        }
+      ],
+      "labelPosition": {
+        "x": 1890.5,
+        "y": 415
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-global-multiregion-relational-app-flow-7",
+      "from": "internal-route",
+      "to": "app-b",
+      "label": "regional backend",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 2127,
+          "y": 471
+        },
+        {
+          "x": 1646,
+          "y": 471
+        },
+        {
+          "x": 1646,
+          "y": 621
+        },
+        {
+          "x": 1622,
+          "y": 621
+        }
+      ],
+      "labelPosition": {
+        "x": 1886.5,
+        "y": 471
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-global-multiregion-relational-app-flow-8",
+      "from": "app-a",
+      "to": "data-primary",
+      "label": "read and write in primary region",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1622,
+          "y": 214
+        },
+        {
+          "x": 1957,
+          "y": 214
+        },
+        {
+          "x": 1957,
+          "y": 536
+        },
+        {
+          "x": 2127,
+          "y": 536
+        }
+      ],
+      "labelPosition": {
+        "x": 1789.5,
+        "y": 214
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-global-multiregion-relational-app-flow-9",
+      "from": "app-b",
+      "to": "data-primary",
+      "label": "writes routed to primary",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1622,
+          "y": 641
+        },
+        {
+          "x": 2111,
+          "y": 641
+        },
+        {
+          "x": 2111,
+          "y": 647
+        },
+        {
+          "x": 2127,
+          "y": 647
+        }
+      ],
+      "labelPosition": {
+        "x": 1866.5,
+        "y": 641
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-global-multiregion-relational-app-flow-10",
+      "from": "app-b",
+      "to": "data-secondary",
+      "label": "optional regional reads; may lag",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1622,
+          "y": 661
+        },
+        {
+          "x": 2119,
+          "y": 661
+        },
+        {
+          "x": 2119,
+          "y": 682
+        },
+        {
+          "x": 2690,
+          "y": 682
+        }
+      ],
+      "labelPosition": {
+        "x": 2404.5,
+        "y": 682
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-global-multiregion-relational-app-flow-11",
+      "from": "data-primary",
+      "to": "data-secondary",
+      "label": "asynchronous geo-replication",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 2391,
+          "y": 627
+        },
+        {
+          "x": 2674,
+          "y": 627
+        },
+        {
+          "x": 2674,
+          "y": 611
+        },
+        {
+          "x": 2690,
+          "y": 611
+        }
+      ],
+      "labelPosition": {
+        "x": 2532.5,
+        "y": 627
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-global-multiregion-relational-app-flow-12",
+      "from": "data-primary",
+      "to": "ops",
+      "label": "primary health and replication status",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 2391,
+          "y": 556
+        },
+        {
+          "x": 2674,
+          "y": 556
+        },
+        {
+          "x": 2674,
+          "y": 547
+        },
+        {
+          "x": 2690,
+          "y": 547
+        }
+      ],
+      "labelPosition": {
+        "x": 2532.5,
+        "y": 556
+      },
+      "routeRevision": 1
+    }
+  ]
+}

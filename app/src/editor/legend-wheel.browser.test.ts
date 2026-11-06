@@ -34,7 +34,7 @@ test('should_scroll_the_narrow_workspace_when_wheeling_an_actual_legend_DGM157',
   }
 }, 30_000)
 
-test('should_keep_edited_document_when_new_starter_confirmation_is_canceled_DGM158', async () => {
+test('should_append_a_starter_page_without_replacing_the_edited_page_DGM163', async () => {
   const server = await createServer({ root: resolve('.'), server: { host: '127.0.0.1', port: 0, strictPort: true, open: false } })
   await server.listen()
   const address = server.httpServer!.address() as { port: number }
@@ -47,10 +47,10 @@ test('should_keep_edited_document_when_new_starter_confirmation_is_canceled_DGM1
     await title.fill('Protected draft')
     await title.press('Enter')
     await page.getByRole('menuitem', { name: 'File menu' }).click()
-    await page.getByRole('menuitem', { name: 'New diagram' }).click()
-    page.once('dialog', dialog => dialog.dismiss())
+    await page.getByRole('menuitem', { name: 'Add diagram' }).click()
     await page.getByRole('button', { name: 'Fabric', exact: true }).click()
-    await expect.poll(() => title.inputValue()).toBe('Protected draft')
+    expect(await page.getByRole('tab', { name: 'Protected draft' }).isVisible()).toBe(true)
+    expect(await page.getByRole('tab', { name: /Fabric/ }).isVisible()).toBe(true)
   } finally {
     await browser.close()
     await server.close()

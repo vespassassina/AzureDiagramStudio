@@ -89,6 +89,61 @@ supersedes earlier participant-trial stops, not technical safety requirements.
 
 ## Execution Queue
 
+**Latest delivery authorization, 2026-11-06:** the PO requested "compile and
+publish latest". [DGM-165](specs/DGM-165.md) is preparing a distinct 0.5.3
+Windows ARM64/x64 release from the accepted DGM-163/164 source. Version,
+desktop/build/staging and both portable packages are owned by one release
+implementer. Exact-package qualification precedes source commit/fast-forward
+push, new tag and stable publication with fresh-download checksum checks.
+Preserve 0.5.2 and the user's current previews. Publication is not yet complete.
+
+**Current source cursor, 2026-11-06: DGM-163 and DGM-164 accepted source;
+compiled catalog preview open.**
+The PO-requested Add diagram/workbook-preservation flow, trailing page-strip
+plus, undoable guarded page removal, direct rename paths, white Select cursor
+and tabbed/column-aligned Page styles are implemented.
+[Acceptance evidence](verification/DGM-163.md): 659 focused tests and 27
+MCP/workbook regressions passed, TypeScript/Vite build passed, independent
+browser checks and the bounded repair recheck passed. Documentation is
+reconciled. A separate compiled source preview is open on port 37435 with
+its own profile/workspace; the published app on 37434 remains preserved.
+No new package, tag, publication or external Git delivery is claimed for
+this source-only follow-up.
+
+The PO subsequently requested the exact File menu groups: New Workbook,
+Load Workbook, Save Workbook, Save Workbook As; then Add New Page and
+Add Diagram; then the retained Recent/Import group. The trailing page-strip
+plus now shares direct blank-page creation with Add New Page. Final integrated
+source tests and independent actual menu/action checks passed. Initial stale
+label, callback typing and timeout receipts remain preserved under
+`app/test-results/dgm-163/`; they are not relabeled green.
+
+The PO also approved [DGM-164](specs/DGM-164.md): 24 new original Azure
+architecture starters, split eight Microsoft-origin, eight AWS-origin and
+eight Google-origin conceptual Azure adaptations, retaining the existing
+11 starters. The PO selected replacing the Add Diagram picker with a
+hierarchical category navigator and large preview/Markdown pane. The verified
+24-entry source inventory and three supplementary provider architecture blogs
+are complete. The Spanner-origin adaptation explicitly uses a single-region
+Azure SQL writer with asynchronous replication, not Spanner-equivalent global
+relational write consistency.
+
+All 24 native diagrams/guides and the replacement catalog are implemented.
+The integrated affected selector passed 516/516; the provenance/readability
+repair selector passed 506/506, with counts overlapping. Full TypeScript/Vite
+builds passed. One independent verifier accepted 24 actual renders, 202 routes,
+35-template discovery/new-key acceptance, actual workbook/menu actions,
+responsive/keyboard behavior and the bounded provenance/readability repairs.
+The residual template-reset fix passed its focused regression and direct
+compiled-browser final review. See [DGM-164 evidence](verification/DGM-164.md).
+
+The compiled browser preview is open at `http://127.0.0.1:4178/`; existing
+source/release windows on 37435/37434 and their drafts remain untouched.
+Documentation is consolidated. **Exact next action:** no further approved
+feature work remains in this source follow-up; retain this accepted candidate
+for PO use/review. No new package, tag, external Git delivery or publication
+has been performed or inferred for DGM-163/164.
+
 **Current release cursor, 2026-11-06:** the complete 0.5.2 implementation and
 consolidated repair batch are finished. Source tests passed 6,064/6,064,
 desktop tests 115/115, and typecheck/build/staging passed. Independent

@@ -1,0 +1,322 @@
+{
+  "schemaVersion": 1,
+  "id": "aws-dynamodb-change-stream-to-lake-v1",
+  "title": "Operational record changes streamed into an analytics lake",
+  "subtitle": "Database item changes flow through a durable stream and transformation stage to object storage for downstream analytics. Synthetic Azure reference; no deployment is implied.",
+  "description": "### Problem\nAnalytics consumers need a near-real-time history of changes from an operational database without repeatedly scanning the primary tables.\n\n### Flow and Azure mapping\nAn application writes records to an operational store. A database change feed or CDC connector publishes change events to Azure Event Hubs. A transformation consumer validates the event envelope, normalizes fields, and writes partitioned files to Azure Data Lake Storage. Fabric, Azure Databricks, or another approved query engine can consume the lake data for dashboards, audit, and modeling. Keep the primary transactional write path separate from its analytics copy.\n\n### Trade-offs and assumptions\nThe AWS example uses DynamoDB change capture, Kinesis Data Streams, Firehose, and Lambda conversion. Azure Cosmos DB change feed is not a drop-in equivalent for DynamoDB Streams, and Event Hubs plus an ingestion consumer must be designed for ordering, retries, schema evolution, duplicates, and checkpointing. The diagram is an Azure adaptation of the data movement idea, not a promise of identical consistency or delivery semantics.\n\nSource: [AWS Prescriptive Guidance](https://docs.aws.amazon.com/prescriptive-guidance/latest/patterns/deliver-dynamodb-records-to-amazon-s3-using-kinesis-data-streams-and-amazon-data-firehose-with-aws-cdk.html).\n\n## Source provenance\n\n- Origin provider: AWS\n- Target: Azure conceptual adaptation\n- Primary source: [Deliver DynamoDB records to Amazon S3 using Kinesis Data Streams and Firehose with AWS CDK](https://docs.aws.amazon.com/prescriptive-guidance/latest/patterns/deliver-dynamodb-records-to-amazon-s3-using-kinesis-data-streams-and-amazon-data-firehose-with-aws-cdk.html)\n- Reviewed: 2026-11-06\n\n## Catalog status\n\nThis is an original, editable Azure conceptual adaptation. It is synthetic reference material, not a deployed system, certified vendor architecture, or automatic deployment plan.\n\n## Mapping caveats\n\n- Change capture capabilities vary by selected Azure database and source engine; do not claim identical change ordering or delivery guarantees.",
+  "synthetic": true,
+  "legendVisible": true,
+  "legend": [
+    {
+      "label": "Illustrative Azure flow",
+      "color": "#0078d4",
+      "meaning": "Original conceptual flow, not verified deployment connectivity."
+    },
+    {
+      "label": "Synthetic reference",
+      "color": "#62696c",
+      "dashed": true,
+      "meaning": "Editable starting point requiring workload-specific design."
+    }
+  ],
+  "revision": 1,
+  "direction": "RIGHT",
+  "entities": [
+    {
+      "id": "group-source",
+      "kind": "boundary",
+      "label": "Operational application boundary",
+      "subtitle": "Transactional data plane",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 24,
+      "y": 24,
+      "width": 1191,
+      "height": 231,
+      "color": "azure"
+    },
+    {
+      "id": "group-streaming",
+      "kind": "boundary",
+      "label": "Azure streaming ingestion",
+      "subtitle": "Durable event path",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 1543,
+      "y": 36,
+      "width": 737,
+      "height": 207,
+      "color": "teal"
+    },
+    {
+      "id": "group-analytics",
+      "kind": "boundary",
+      "label": "Azure analytics zone",
+      "subtitle": "Lake and consumers",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 2633,
+      "y": 36,
+      "width": 839,
+      "height": 207,
+      "color": "amber"
+    },
+    {
+      "id": "app",
+      "kind": "component",
+      "label": "Operational application",
+      "subtitle": "Generic application",
+      "parentId": "group-source",
+      "layer": "foreground",
+      "x": 24,
+      "y": 94.5,
+      "width": 264,
+      "height": 105,
+      "color": "azure",
+      "icon": "service",
+      "status": "synthetic"
+    },
+    {
+      "id": "db",
+      "kind": "component",
+      "label": "Operational database",
+      "subtitle": "Azure Cosmos DB",
+      "parentId": "group-source",
+      "layer": "foreground",
+      "x": 482,
+      "y": 99,
+      "width": 264,
+      "height": 96,
+      "color": "azure",
+      "icon": "database",
+      "status": "synthetic"
+    },
+    {
+      "id": "cdc",
+      "kind": "component",
+      "label": "Change feed or CDC adapter",
+      "subtitle": "Database-specific connector",
+      "parentId": "group-source",
+      "layer": "foreground",
+      "x": 903,
+      "y": 87,
+      "width": 264,
+      "height": 120,
+      "color": "azure",
+      "icon": "database",
+      "status": "synthetic"
+    },
+    {
+      "id": "stream",
+      "kind": "component",
+      "label": "Durable event stream",
+      "subtitle": "Azure Event Hubs",
+      "parentId": "group-streaming",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 96,
+      "color": "teal",
+      "icon": "queue",
+      "status": "synthetic"
+    },
+    {
+      "id": "transform",
+      "kind": "component",
+      "label": "Record normalization",
+      "subtitle": "Azure Functions",
+      "parentId": "group-streaming",
+      "layer": "foreground",
+      "x": 449,
+      "y": 87,
+      "width": 264,
+      "height": 96,
+      "color": "teal",
+      "icon": "queue",
+      "status": "synthetic"
+    },
+    {
+      "id": "lake",
+      "kind": "component",
+      "label": "Analytics landing zone",
+      "subtitle": "Azure Data Lake Storage",
+      "parentId": "group-analytics",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 96,
+      "color": "amber",
+      "icon": "storage",
+      "status": "synthetic"
+    },
+    {
+      "id": "consumer",
+      "kind": "component",
+      "label": "Analytics consumers",
+      "subtitle": "Fabric",
+      "parentId": "group-analytics",
+      "layer": "foreground",
+      "x": 551,
+      "y": 87,
+      "width": 264,
+      "height": 96,
+      "color": "amber",
+      "icon": "user",
+      "status": "synthetic"
+    }
+  ],
+  "connections": [
+    {
+      "id": "aws-dynamodb-change-stream-to-lake-flow-1",
+      "from": "app",
+      "to": "db",
+      "label": "transactional writes",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 312,
+          "y": 171
+        },
+        {
+          "x": 506,
+          "y": 171
+        }
+      ],
+      "labelPosition": {
+        "x": 409,
+        "y": 171
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-dynamodb-change-stream-to-lake-flow-2",
+      "from": "db",
+      "to": "cdc",
+      "label": "record changes",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 770,
+          "y": 171
+        },
+        {
+          "x": 927,
+          "y": 171
+        }
+      ],
+      "labelPosition": {
+        "x": 848.5,
+        "y": 171
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-dynamodb-change-stream-to-lake-flow-3",
+      "from": "cdc",
+      "to": "stream",
+      "label": "publish changes",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1191,
+          "y": 171
+        },
+        {
+          "x": 1567,
+          "y": 171
+        }
+      ],
+      "labelPosition": {
+        "x": 1379,
+        "y": 171
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-dynamodb-change-stream-to-lake-flow-4",
+      "from": "stream",
+      "to": "transform",
+      "label": "consume events",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1831,
+          "y": 171
+        },
+        {
+          "x": 1992,
+          "y": 171
+        }
+      ],
+      "labelPosition": {
+        "x": 1911.5,
+        "y": 171
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-dynamodb-change-stream-to-lake-flow-5",
+      "from": "transform",
+      "to": "lake",
+      "label": "normalized records",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 2256,
+          "y": 171
+        },
+        {
+          "x": 2657,
+          "y": 171
+        }
+      ],
+      "labelPosition": {
+        "x": 2456.5,
+        "y": 171
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-dynamodb-change-stream-to-lake-flow-6",
+      "from": "lake",
+      "to": "consumer",
+      "label": "batch and incremental analytics",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 2921,
+          "y": 171
+        },
+        {
+          "x": 3184,
+          "y": 171
+        }
+      ],
+      "labelPosition": {
+        "x": 3052.5,
+        "y": 171
+      },
+      "routeRevision": 1
+    }
+  ]
+}

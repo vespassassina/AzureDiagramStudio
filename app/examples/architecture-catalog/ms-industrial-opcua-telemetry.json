@@ -1,0 +1,410 @@
+{
+  "schemaVersion": 1,
+  "id": "ms-industrial-opcua-telemetry-v1",
+  "title": "Industrial telemetry from OPC UA equipment to analytics",
+  "subtitle": "An edge-connected industrial pattern collects OPC UA telemetry, processes it near equipment, and routes selected data to cloud analytics. Synthetic Azure reference; no deployment is implied.",
+  "description": "### Problem\nFactories need interoperable collection and analysis of equipment telemetry across sites, including local edge processing and cloud insight workflows.\n\n### Flow and Azure mapping\nIndustrial controllers and sensors expose OPC UA data to an edge environment running Azure IoT Operations on Azure Arc-enabled Kubernetes. Edge data flows normalize or filter telemetry, then deliver selected records through an Azure Event Hubs-compatible ingestion path to Azure Data Explorer or a Fabric eventhouse for query and dashboards. A distinct optional branch can send events to alerting or maintenance workflows.\n\n### Trade-offs and assumptions\nThe source solution uses a specific demonstration and includes Azure IoT Operations, PostgreSQL, and analytics options; this catalog diagram is a smaller conceptual abstraction, not a deployment reproduction. Site connectivity, OPC UA certificate trust, buffering, schema governance, and industrial safety remain design requirements. Do not depict cloud analytics as a replacement for deterministic control loops.\n\nSource: [Microsoft Learn](https://learn.microsoft.com/en-us/azure/architecture/guide/iot/iot-industrial-solution-architecture).\n\n## Source provenance\n\n- Origin provider: Microsoft\n- Target: Azure conceptual adaptation\n- Primary source: [OPC UA reference solution](https://learn.microsoft.com/en-us/azure/architecture/guide/iot/iot-industrial-solution-architecture)\n- Reviewed: 2026-11-06\n\n## Supplementary context\n\n- [Get started with IoT architecture design](https://learn.microsoft.com/en-us/azure/architecture/guide/iot/iot-get-started) — Reviewed: 2026-11-06; Supplementary provider context; not a copied diagram or implementation.\n\n## Catalog status\n\nThis is an original, editable Azure conceptual adaptation. It is synthetic reference material, not a deployed system, certified vendor architecture, or automatic deployment plan.\n\n## Mapping caveats\n\n- The source cautions that the sample is not a supported product offering and should be validated before production use.",
+  "synthetic": true,
+  "legendVisible": true,
+  "legend": [
+    {
+      "label": "Illustrative Azure flow",
+      "color": "#0078d4",
+      "meaning": "Original conceptual flow, not verified deployment connectivity."
+    },
+    {
+      "label": "Synthetic reference",
+      "color": "#62696c",
+      "dashed": true,
+      "meaning": "Editable starting point requiring workload-specific design."
+    }
+  ],
+  "revision": 1,
+  "direction": "RIGHT",
+  "entities": [
+    {
+      "id": "group-plant",
+      "kind": "boundary",
+      "label": "Plant OT zone",
+      "subtitle": "Operational technology trust boundary",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 61,
+      "y": 24,
+      "width": 312,
+      "height": 323,
+      "color": "azure"
+    },
+    {
+      "id": "group-edge-zone",
+      "kind": "boundary",
+      "label": "Managed edge zone",
+      "subtitle": "Edge compute and local data plane",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 723,
+      "y": 75,
+      "width": 1094,
+      "height": 230,
+      "color": "teal"
+    },
+    {
+      "id": "group-azure-cloud",
+      "kind": "boundary",
+      "label": "Azure analytics",
+      "subtitle": "Cloud data and visualization",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 2170,
+      "y": 94.5,
+      "width": 1178,
+      "height": 207,
+      "color": "amber"
+    },
+    {
+      "id": "plc",
+      "kind": "component",
+      "label": "Equipment and PLCs",
+      "subtitle": "OPC UA",
+      "parentId": "group-plant",
+      "layer": "foreground",
+      "x": 24,
+      "y": 203,
+      "width": 264,
+      "height": 96,
+      "color": "azure",
+      "icon": "service",
+      "status": "synthetic"
+    },
+    {
+      "id": "operator",
+      "kind": "component",
+      "label": "Plant operator",
+      "subtitle": "Generic user",
+      "parentId": "group-plant",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 96,
+      "color": "azure",
+      "icon": "user",
+      "status": "synthetic"
+    },
+    {
+      "id": "edge",
+      "kind": "component",
+      "label": "Edge Kubernetes",
+      "subtitle": "Azure Arc-enabled Kubernetes",
+      "parentId": "group-edge-zone",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 103,
+      "color": "teal",
+      "icon": "server",
+      "status": "synthetic"
+    },
+    {
+      "id": "ops",
+      "kind": "component",
+      "label": "Edge data operations",
+      "subtitle": "Azure IoT Operations",
+      "parentId": "group-edge-zone",
+      "layer": "foreground",
+      "x": 384,
+      "y": 106.5,
+      "width": 264,
+      "height": 96,
+      "color": "teal",
+      "icon": "server",
+      "status": "synthetic"
+    },
+    {
+      "id": "flow",
+      "kind": "component",
+      "label": "Telemetry flow",
+      "subtitle": "Azure IoT Operations data flows",
+      "parentId": "group-edge-zone",
+      "layer": "foreground",
+      "x": 806,
+      "y": 103,
+      "width": 264,
+      "height": 103,
+      "color": "teal",
+      "icon": "queue",
+      "status": "synthetic"
+    },
+    {
+      "id": "ingest",
+      "kind": "component",
+      "label": "Cloud event ingress",
+      "subtitle": "Azure Event Hubs",
+      "parentId": "group-azure-cloud",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 96,
+      "color": "amber",
+      "icon": "queue",
+      "status": "synthetic"
+    },
+    {
+      "id": "store",
+      "kind": "component",
+      "label": "Time-series analytics",
+      "subtitle": "Azure Data Explorer",
+      "parentId": "group-azure-cloud",
+      "layer": "foreground",
+      "x": 439,
+      "y": 87,
+      "width": 264,
+      "height": 96,
+      "color": "amber",
+      "icon": "database",
+      "status": "synthetic"
+    },
+    {
+      "id": "dash",
+      "kind": "component",
+      "label": "Operations dashboards",
+      "subtitle": "Power BI",
+      "parentId": "group-azure-cloud",
+      "layer": "foreground",
+      "x": 890,
+      "y": 87,
+      "width": 264,
+      "height": 96,
+      "color": "amber",
+      "icon": "service",
+      "status": "synthetic"
+    }
+  ],
+  "connections": [
+    {
+      "id": "ms-industrial-opcua-telemetry-flow-1",
+      "from": "plc",
+      "to": "ops",
+      "label": "OPC UA telemetry",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 349,
+          "y": 239
+        },
+        {
+          "x": 739,
+          "y": 239
+        },
+        {
+          "x": 739,
+          "y": 273
+        },
+        {
+          "x": 1091,
+          "y": 273
+        },
+        {
+          "x": 1091,
+          "y": 245.5
+        },
+        {
+          "x": 1107,
+          "y": 245.5
+        }
+      ],
+      "labelPosition": {
+        "x": 544,
+        "y": 239
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-industrial-opcua-telemetry-flow-2",
+      "from": "edge",
+      "to": "ops",
+      "label": "hosts",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1011,
+          "y": 253
+        },
+        {
+          "x": 1091,
+          "y": 253
+        },
+        {
+          "x": 1091,
+          "y": 213.5
+        },
+        {
+          "x": 1107,
+          "y": 213.5
+        }
+      ],
+      "labelPosition": {
+        "x": 1051,
+        "y": 253
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-industrial-opcua-telemetry-flow-3",
+      "from": "ops",
+      "to": "flow",
+      "label": "device streams",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1371,
+          "y": 229.5
+        },
+        {
+          "x": 1529,
+          "y": 229.5
+        }
+      ],
+      "labelPosition": {
+        "x": 1450,
+        "y": 229.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-industrial-opcua-telemetry-flow-4",
+      "from": "flow",
+      "to": "ingest",
+      "label": "selected telemetry",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1793,
+          "y": 229.5
+        },
+        {
+          "x": 2194,
+          "y": 229.5
+        }
+      ],
+      "labelPosition": {
+        "x": 1993.5,
+        "y": 229.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-industrial-opcua-telemetry-flow-5",
+      "from": "ingest",
+      "to": "store",
+      "label": "stream ingest",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 2458,
+          "y": 229.5
+        },
+        {
+          "x": 2609,
+          "y": 229.5
+        }
+      ],
+      "labelPosition": {
+        "x": 2533.5,
+        "y": 229.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-industrial-opcua-telemetry-flow-6",
+      "from": "store",
+      "to": "dash",
+      "label": "queries and metrics",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 2873,
+          "y": 229.5
+        },
+        {
+          "x": 3044,
+          "y": 229.5
+        },
+        {
+          "x": 3044,
+          "y": 219.5
+        },
+        {
+          "x": 3060,
+          "y": 219.5
+        }
+      ],
+      "labelPosition": {
+        "x": 2958.5,
+        "y": 229.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-industrial-opcua-telemetry-flow-7",
+      "from": "dash",
+      "to": "operator",
+      "label": "operational view",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 3060,
+          "y": 213.5
+        },
+        {
+          "x": 2881,
+          "y": 213.5
+        },
+        {
+          "x": 2881,
+          "y": 313
+        },
+        {
+          "x": 365,
+          "y": 313
+        },
+        {
+          "x": 365,
+          "y": 195
+        },
+        {
+          "x": 349,
+          "y": 195
+        }
+      ],
+      "labelPosition": {
+        "x": 1623,
+        "y": 329
+      },
+      "routeRevision": 1
+    }
+  ]
+}

@@ -34,6 +34,9 @@ import { Presentation, Expand, Crosshair, ArrowLeft } from 'lucide-react'
 import { starterDocument } from '../app/session.ts'
 import { starterCatalog } from '../app/starters.ts'
 import type { StarterChoice } from '../app/starters.ts'
+import { researchedArchitectureCatalog } from '../app/architecture-catalog.generated.ts'
+import { ArchitectureCatalogChooser } from './ArchitectureCatalogChooser.tsx'
+import type { CatalogStarterChoice } from './ArchitectureCatalogChooser.tsx'
 import { HelpGuide } from './HelpGuide.tsx'
 import { AboutDialog, trapKeyboard } from './AboutDialog.tsx'
 import { SettingsDialog } from './SettingsDialog.tsx'
@@ -49,7 +52,7 @@ import type { MarkdownMode } from './MarkdownDescription.tsx'
 import { MarkdownSidebarResize } from './MarkdownSidebarResize.tsx'
 import { ArrangeMenu } from './ArrangeMenu.tsx'
 import { TopMenus } from './TopMenus.tsx'
-import type { TopMenu } from './TopMenus.tsx'
+import type { TopMenu, TopMenuItem } from './TopMenus.tsx'
 
 type ResizePointerEvent = { clientX?: number; clientY?: number; sourceEvent?: { clientX?: number; clientY?: number } }
 type EndpointControl = { endpoint: 'source' | 'target'; x: number; y: number }
@@ -90,7 +93,7 @@ type PageView = { viewport: Viewport; selectedIds: string[]; selectedEdges: stri
 type CanvasContext = { document: Diagram; revision: number; writable: boolean; kind: 'pane' | 'entity' | 'connection'; id?: string; point: Point; screen: Point; origin: HTMLElement | null }
 type PresentationSnapshot = { document: Diagram; viewport: { x: number; y: number; zoom: number }; libraryRequested: boolean; inspectorRequested: boolean; inspectorIntent: boolean | null; sidebarView: 'properties' | 'markdown'; markdownMode: MarkdownMode; sidebarWidth: number; tool: Tool; selectedIds: string[]; selectedEdges: string[]; focus: HTMLElement | null; focusLabel: string | null }
 const SAVE_LABELS = { loading: 'Loading local work', saving: 'Saving locally', saved: 'Saved on this device', error: 'Local save failed', 'read-only': 'Read-only' }
-const entersStarterChooser = (target: EventTarget | null) => target instanceof HTMLElement && target.getAttribute('aria-label') === 'New diagram'
+const entersStarterChooser = (target: EventTarget | null) => target instanceof HTMLElement && target.getAttribute('aria-label') === 'Add diagram'
 const tools: { tool: Tool; icon: LucideIcon; label: string }[] = [{ tool: 'select', icon: MousePointer2, label: 'Select tool' }, { tool: 'pan', icon: Hand, label: 'Pan tool' }, { tool: 'component', icon: Boxes, label: 'Add component' }, { tool: 'connector', icon: Cable, label: 'Connect components' }, { tool: 'boundary', icon: Frame, label: 'Add boundary' }, { tool: 'text', icon: Type, label: 'Add text' }, { tool: 'rectangle', icon: Square, label: 'Add rectangle' }]
 const positions = { top: Position.Top, right: Position.Right, bottom: Position.Bottom, left: Position.Left }
 const addDirections: { side: AddSide; icon: LucideIcon }[] = [{ side: 'left', icon: ArrowLeft }, { side: 'right', icon: ArrowRight }, { side: 'top', icon: ArrowUp }, { side: 'bottom', icon: ArrowDown }]
@@ -133,9 +136,13 @@ function legendWheel(element: HTMLDivElement | null) {
 
 function PageStylesDialog({ document, onApply, onClose }: { document: Diagram; onApply(styles: StateStyle[], remap: Record<string, string | null>): void; onClose(): void }) {
   const [styles, setStyles] = useState<StateStyle[]>(() => resolvedStateStyles(document).map(style => ({ ...style, box: { ...style.box }, connector: { ...style.connector } })))
+  // UI identity is separate from the editable style ID: typing an ID must never remount its field.
+  const [styleKeys, setStyleKeys] = useState(() => resolvedStateStyles(document).map(() => crypto.randomUUID()))
+  const [activeStyle, setActiveStyle] = useState(0)
   const [widthDrafts, setWidthDrafts] = useState<Record<string, string>>({})
   const [remap, setRemap] = useState<Record<string, string | null | undefined>>({})
   const close = useRef<HTMLButtonElement>(null), dialog = useRef<HTMLElement>(null)
+  const styleTabs = useRef<HTMLButtonElement[]>([])
   useLayoutEffect(() => trapKeyboard(dialog, close, onClose), [onClose])
   const update = (index: number, patch: Partial<StateStyle>) => setStyles(current => current.map((style, currentIndex) => {
     if (currentIndex !== index) return style
@@ -166,9 +173,11 @@ function PageStylesDialog({ document, onApply, onClose }: { document: Diagram; o
     return <label>{label}<input aria-label={`Style ${index + 1} ${group} ${key}`} placeholder="Inherit base" value={value ?? ''} onKeyDown={event => event.stopPropagation()} onChange={event => update(index, { [group]: { ...paint, [key]: event.target.value || undefined } })}/></label>
   }
   const widthField = (index: number, style: StateStyle, group: 'box' | 'connector') => {
-    const key = `${index}:${group}`
+    const key = `${styleKeys[index]}:${group}`
     const value = widthDrafts[key] ?? (style[group]?.strokeWidth?.toString() ?? '')
-    return <label>Stroke width<input type="text" inputMode="decimal" aria-label={`Style ${index + 1} ${group} stroke width`} placeholder="Inherit base" value={value} onKeyDown={event => event.stopPropagation()} onChange={event => {
+    const invalid = !validWidthDraft(value)
+    const errorId = `style-width-error-${styleKeys[index]}-${group}`
+    return <label>Stroke width<input type="text" inputMode="decimal" aria-invalid={invalid} aria-describedby={invalid ? errorId : undefined} aria-label={`Style ${index + 1} ${group} stroke width`} placeholder="Inherit base" value={value} onKeyDown={event => event.stopPropagation()} onChange={event => {
       const raw = event.target.value
       setWidthDrafts(current => ({ ...current, [key]: raw }))
       if (raw === '') update(index, { [group]: { ...style[group], strokeWidth: undefined } })
@@ -176,21 +185,22 @@ function PageStylesDialog({ document, onApply, onClose }: { document: Diagram; o
         const numeric = Number(raw)
         if (Number.isFinite(numeric)) update(index, { [group]: { ...style[group], strokeWidth: numeric } })
       }
-    }}/></label>
+    }}/>{invalid && <small id={errorId} className="field-error" role="alert">Use a stroke width from 0.5 to 12, or leave this field blank to inherit.</small>}</label>
   }
   const lineField = (index: number, style: StateStyle, group: 'box' | 'connector') => <label>Line style<select aria-label={`Style ${index + 1} ${group} line style`} value={style[group]?.lineStyle ?? ''} onChange={event => update(index, { [group]: { ...style[group], lineStyle: event.target.value || undefined } })}><option value="">Inherit base</option><option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option></select></label>
+  const activeInvalid = styles[activeStyle] && (!/^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(styles[activeStyle].id) || !styles[activeStyle].name.trim() || styles[activeStyle].name.trim() !== styles[activeStyle].name || styles[activeStyle].name.length > 80 || styles[activeStyle].meaning.length > 1000 || !validPaint(styles[activeStyle].box) || !validPaint(styles[activeStyle].connector))
   return createPortal(<div className="recent-overlay"><section ref={dialog} role="dialog" aria-modal="true" aria-label="Page styles" className="recent-dialog" onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); onClose() } }}>
     <header><h2>Page styles</h2><button ref={close} type="button" aria-label="Cancel page styles" onClick={onClose}><X size={18}/></button></header>
     <p>Advanced page-local states control box, connector and legend appearance. Leave paint fields blank to inherit base appearance. Empty removes all available styles.</p>
-    <div className="recent-content">{styles.map((style, index) => <fieldset key={`${style.id}-${index}`}><legend>Style {index + 1}</legend>
-      <label>ID<input aria-label={`Style ${index + 1} ID`} value={style.id} onChange={event => update(index, { id: event.target.value })}/></label>
-      <label>Name<input aria-label={`Style ${index + 1} name`} value={style.name} onChange={event => update(index, { name: event.target.value })}/></label>
+    <div className="recent-content"><div className="page-style-tabs" role="tablist" aria-label="Page styles">{styles.map((style, index) => <button ref={element => { if (element) styleTabs.current[index] = element }} key={styleKeys[index]} id={`page-style-tab-${styleKeys[index]}`} type="button" role="tab" aria-selected={activeStyle === index} aria-controls={`page-style-panel-${styleKeys[index]}`} tabIndex={activeStyle === index ? 0 : -1} onClick={() => setActiveStyle(index)} onKeyDown={event => { const destination = event.key === 'Home' ? 0 : event.key === 'End' ? styles.length - 1 : event.key === 'ArrowRight' ? (index + 1) % styles.length : event.key === 'ArrowLeft' ? (index + styles.length - 1) % styles.length : null; if (destination !== null) { event.preventDefault(); setActiveStyle(destination); requestAnimationFrame(() => styleTabs.current[destination]?.focus()) } }}>{style.name || `Style ${index + 1}`}</button>)}</div>{activeInvalid && <p className="field-error" role="alert">Complete the highlighted style fields before applying.</p>}{styles.map((style, index) => activeStyle === index && <fieldset key={styleKeys[index]} id={`page-style-panel-${styleKeys[index]}`} role="tabpanel" aria-labelledby={`page-style-tab-${styleKeys[index]}`}><legend>Style {index + 1}</legend>
+      <div className="page-style-metadata"><label>ID<input aria-invalid={!/^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(style.id)} aria-label={`Style ${index + 1} ID`} value={style.id} onChange={event => update(index, { id: event.target.value })}/></label>
+      <label>Name<input aria-invalid={!style.name.trim() || style.name.trim() !== style.name || style.name.length > 80} aria-label={`Style ${index + 1} name`} value={style.name} onChange={event => update(index, { name: event.target.value })}/></label></div>
       <label>Meaning<textarea aria-label={`Style ${index + 1} meaning`} value={style.meaning} onChange={event => update(index, { meaning: event.target.value })}/></label>
-      <div role="group" aria-label={`Style ${index + 1} box paint`}><strong>Box appearance</strong>{colorField(index, style, 'box', 'fill', 'Fill')}{colorField(index, style, 'box', 'stroke', 'Stroke')}{colorField(index, style, 'box', 'textColor', 'Text color')}{widthField(index, style, 'box')}{lineField(index, style, 'box')}<output aria-label={`Style ${index + 1} box sample`} style={{ backgroundColor: style.box?.fill, border: `${style.box?.strokeWidth ?? 1}px ${style.box?.lineStyle ?? 'solid'} ${style.box?.stroke ?? '#d6dfe1'}`, color: style.box?.textColor }}>Box sample</output></div>
-      <div role="group" aria-label={`Style ${index + 1} connector paint`}><strong>Connector appearance</strong>{colorField(index, style, 'connector', 'stroke', 'Stroke')}{colorField(index, style, 'connector', 'textColor', 'Text color')}{widthField(index, style, 'connector')}{lineField(index, style, 'connector')}<output aria-label={`Style ${index + 1} connector sample`} style={{ color: style.connector?.textColor }}><i style={{ display: 'inline-block', width: 32, borderTop: `${style.connector?.strokeWidth ?? 2}px ${style.connector?.lineStyle ?? 'solid'} ${style.connector?.stroke ?? '#6c8587'}` }}/> Connector sample</output></div>
-      <button type="button" onClick={() => setStyles(current => current.filter((_, currentIndex) => currentIndex !== index))}>Remove</button>
+      <div className="page-style-paints"><div role="group" aria-label={`Style ${index + 1} box paint`}><strong>Box appearance</strong>{colorField(index, style, 'box', 'fill', 'Fill')}{colorField(index, style, 'box', 'stroke', 'Stroke')}{colorField(index, style, 'box', 'textColor', 'Text color')}{widthField(index, style, 'box')}{lineField(index, style, 'box')}<output aria-label={`Style ${index + 1} box sample`} style={{ backgroundColor: style.box?.fill, border: `${style.box?.strokeWidth ?? 1}px ${style.box?.lineStyle ?? 'solid'} ${style.box?.stroke ?? '#d6dfe1'}`, color: style.box?.textColor }}>Box sample</output></div>
+      <div role="group" aria-label={`Style ${index + 1} connector paint`}><strong>Connector appearance</strong>{colorField(index, style, 'connector', 'stroke', 'Stroke')}{colorField(index, style, 'connector', 'textColor', 'Text color')}{widthField(index, style, 'connector')}{lineField(index, style, 'connector')}<output aria-label={`Style ${index + 1} connector sample`} style={{ color: style.connector?.textColor }}><i style={{ display: 'inline-block', width: 32, borderTop: `${style.connector?.strokeWidth ?? 2}px ${style.connector?.lineStyle ?? 'solid'} ${style.connector?.stroke ?? '#6c8587'}` }}/> Connector sample</output></div></div>
+      <button type="button" onClick={() => { const removedKey = styleKeys[index]; setStyles(current => current.filter((_, currentIndex) => currentIndex !== index)); setStyleKeys(current => current.filter((_, currentIndex) => currentIndex !== index)); setWidthDrafts(current => Object.fromEntries(Object.entries(current).filter(([key]) => !key.startsWith(`${removedKey}:`)))); setActiveStyle(current => Math.max(0, Math.min(current, styles.length - 2))) }}>Remove</button>
     </fieldset>)}{removals.length > 0 && <fieldset aria-label="Required state reassignment"><legend>Required reassignment</legend><p>Choose an explicit replacement or Unset for every used state before applying.</p>{removals.map(({ style, entities, connections }) => <div key={style.id}><p><strong>{style.name}</strong> ({style.id}) affects {entities.length} {entities.length === 1 ? 'entity' : 'entities'}{entities.length ? `: ${entities.map(entity => entity.label || entity.id).join(', ')}` : ''}{connections.length ? `; ${connections.length} ${connections.length === 1 ? 'connection' : 'connections'}: ${connections.map(connection => connection.label || connection.id).join(', ')}` : ''}.</p><label>Replacement for {style.id}<select aria-label={`Replacement for ${style.id}`} value={remap[style.id] === null ? '__unset' : remap[style.id] ?? ''} onChange={event => setRemap(current => ({ ...current, [style.id]: event.target.value === '' ? undefined : event.target.value === '__unset' ? null : event.target.value }))}><option value="">Choose explicit action</option><option value="__unset">Unset status</option>{styles.map(candidate => <option key={candidate.id} value={candidate.id}>{candidate.name} ({candidate.id})</option>)}</select></label></div>)}</fieldset>}</div>
-    <footer><button type="button" disabled={styles.length >= 64} onClick={() => setStyles(current => [...current, { id: `state${current.length + 1}`, name: 'New state', meaning: '' }])}>Add style</button><button type="button" onClick={onClose}>Cancel</button><button type="button" disabled={!valid} onClick={() => onApply(styles, Object.fromEntries(removals.map(({ style }) => [style.id, remap[style.id]!])))}>Apply</button></footer>
+    <footer><button type="button" disabled={styles.length >= 64} onClick={() => { const ids = new Set(styles.map(style => style.id)); let suffix = 1; while (ids.has(`state${suffix}`)) suffix++; setStyles(current => [...current, { id: `state${suffix}`, name: 'New state', meaning: '' }]); setStyleKeys(current => [...current, crypto.randomUUID()]); setActiveStyle(styles.length) }}>Add style</button><button type="button" onClick={onClose}>Cancel</button><button type="button" disabled={!valid} onClick={() => onApply(styles, Object.fromEntries(removals.map(({ style }) => [style.id, remap[style.id]!])))}>Apply</button></footer>
   </section></div>, globalThis.document.body)
 }
 function RecentDialog({ onOpen, onClose }: { onOpen(id?: string): void; onClose(): void }) {
@@ -266,6 +276,31 @@ const ArchitectureLink = memo(function ArchitectureLink({ data, selected }: Edge
 const nodeTypes = { architecture: ArchitectureTile }
 const edgeTypes = { architecture: ArchitectureLink }
 function Property({ label, children }: { label: string; children: ReactNode }) { return <label className="property"><span>{label}</span>{children}</label> }
+function WorkbookBreadcrumb({ title, disabled, onCommit }: { title: string; disabled: boolean; onCommit(title: string): boolean }) {
+  const [selected, setSelected] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(title)
+  const composing = useRef(false)
+  const escaped = useRef(false)
+  const committing = useRef(false)
+  const input = useRef<HTMLInputElement>(null)
+  useEffect(() => { if (!editing) setDraft(title) }, [title, editing])
+  useLayoutEffect(() => { if (editing) { input.current?.focus(); input.current?.select() } }, [editing])
+  useEffect(() => {
+    if (!selected || editing) return
+    const outside = (event: PointerEvent) => { if (!(event.target instanceof HTMLElement) || !event.target.closest('.breadcrumb')) setSelected(false) }
+    document.addEventListener('pointerdown', outside, true)
+    return () => document.removeEventListener('pointerdown', outside, true)
+  }, [selected, editing])
+  function finish() {
+    if (committing.current) return
+    if (escaped.current) { escaped.current = false; return }
+    if (composing.current) return
+    if (onCommit(draft.slice(0, MAX_WORKBOOK_TITLE))) { committing.current = true; setEditing(false); setSelected(false) }
+  }
+  if (editing) return <input ref={input} className="workbook-breadcrumb-edit" aria-label="Workbook title" value={draft} maxLength={MAX_WORKBOOK_TITLE} onChange={event => setDraft(event.target.value)} onCompositionStart={() => { composing.current = true }} onCompositionEnd={() => { composing.current = false }} onBlur={finish} onKeyDown={event => { if (event.nativeEvent.isComposing || composing.current) return; if (event.key === 'Enter') { event.preventDefault(); finish() } if (event.key === 'Escape') { escaped.current = true; setEditing(false); setSelected(false) } }} />
+  return <button type="button" className={`breadcrumb${selected ? ' selected' : ''}`} title={title} aria-label="Workbook title" disabled={disabled} onClick={() => { if (selected) { committing.current = false; setEditing(true) } else setSelected(true) }} onKeyDown={event => { if ((event.key === 'Enter' || event.key === 'F2') && !disabled) { event.preventDefault(); committing.current = false; setEditing(true) } }}>{title || 'Untitled workbook'} /</button>
+}
 function DraftField({ label, value, maxLength, disabled, multiline, onDraft, onFinish, onCancel, deferFinish }: { label: string; value: string; maxLength: number; disabled: boolean; multiline?: boolean; onDraft(value: string): void; onFinish(): void; onCancel(): void; deferFinish(): boolean }) {
   const composing = useRef(false)
   const blurred = useRef(false)
@@ -350,7 +385,7 @@ function StarterPreview({ choice }: { choice: StarterChoice }) {
     {scene.entities.filter(entity => entity.kind !== 'boundary').map(entity => <g key={entity.id} transform={`translate(${entity.absolute.x} ${entity.absolute.y})`} dangerouslySetInnerHTML={{ __html: entityMarkup(entity, visualAssets, scene.entityBackgrounds[entity.id]) }} />)}
   </svg>
 }
-function StarterChooser({ onChoose, onCancel }: { onChoose(choice: StarterChoice | null): void; onCancel(): void }) {
+function StarterChooser({ onChoose, onCancel, adding = false }: { onChoose(choice: StarterChoice | null): void; onCancel(): void; adding?: boolean }) {
   const titleId = useId()
   return <div className="starter-overlay" onKeyDown={event => {
     event.stopPropagation()
@@ -368,13 +403,14 @@ function StarterChooser({ onChoose, onCancel }: { onChoose(choice: StarterChoice
       next?.scrollIntoView?.({ block: 'nearest' })
     }
   }}>
-    <button type="button" className="starter-backdrop" tabIndex={-1} aria-label="Dismiss new diagram choices" onClick={onCancel} />
+    <button type="button" className="starter-backdrop" tabIndex={-1} aria-label="Dismiss Add diagram choices" onClick={onCancel} />
     <section className="starter-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId}>
-      <header><h2 id={titleId}>New diagram</h2><button type="button" aria-label="Close new diagram" title="Close new diagram" onClick={onCancel}><X size={18} /></button></header>
-      <div className="starter-choices"><button type="button" autoFocus aria-label="Blank" className="starter-choice blank default" onClick={() => onChoose(null)}><span>Blank</span><small>Empty diagram</small></button>{starterCatalog.map(choice => <button type="button" key={choice.key} aria-label={choice.label} className="starter-choice" onClick={() => onChoose(choice)}><StarterPreview choice={choice} /><span>{choice.label}</span><small>{choice.sourceCue}</small></button>)}</div>
+      <header><h2 id={titleId}>Add diagram</h2><button type="button" aria-label="Close Add diagram" title="Close Add diagram" onClick={onCancel}><X size={18} /></button></header>
+      <div className="starter-choices"><button type="button" autoFocus aria-label="Blank" className="starter-choice blank default" onClick={() => onChoose(null)}><span>Blank</span><small>{adding ? 'Add an empty page' : 'Empty diagram'}</small></button>{starterCatalog.map(choice => <button type="button" key={choice.key} aria-label={choice.label} className="starter-choice" onClick={() => onChoose(choice)}><StarterPreview choice={choice} /><span>{choice.label}</span><small>{choice.sourceCue}</small></button>)}</div>
     </section>
   </div>
 }
+void StarterChooser
 function changed(document: Diagram, command: DocumentCommand): boolean {
   if (command.type === 'metadata') return Object.entries(command.patch).some(([key, value]) => key === 'grid' ? JSON.stringify(document.grid) !== JSON.stringify(value) : document[key as keyof MetadataPatch] !== value)
   if (command.type === 'move') return command.positions.some(point => document.entities.some(entity => entity.id === point.id && (point.x !== entity.x || point.y !== entity.y)))
@@ -433,6 +469,8 @@ export default function EditorSurface(props: EditorProps) {
   const commandOrigin = useRef<HTMLElement | null>(null)
   const commandReturn = useRef(false)
   const [starterOpen, setStarterOpen] = useState(false)
+  const [starterAdding, setStarterAdding] = useState(false)
+  const [canvasTitleEditing, setCanvasTitleEditing] = useState(false)
   const starterOrigin = useRef<HTMLElement | null>(null)
   const starterReturn = useRef(false)
   const starterDocumentId = useRef<string | null>(null)
@@ -710,6 +748,22 @@ export default function EditorSurface(props: EditorProps) {
     if (!finish()) return false
     return props.onWorkbookCommand(command)
   }
+  function pageHasMeaningfulAuthoring(page: Diagram) {
+    return page.entities.length > 0 || page.connections.length > 0 || page.title !== 'Untitled architecture' || !!page.subtitle || !!page.description ||
+      page.backgroundColor !== undefined || page.grid !== undefined || page.synthetic || !page.legendVisible || page.legend.length > 0 ||
+      page.direction !== 'RIGHT' || !!page.stateStyles?.length
+  }
+  function removePage(pageId: string) {
+    if (presentationActive.current || !writable || !props.onWorkbookCommand) return
+    // Finish the exact page-local draft before asking; Cancel then leaves the committed root untouched.
+    if (inlineRef.current && !finishInline()) return
+    if (!finish()) return
+    const page = rootPages.find(candidate => candidate.id === pageId)
+    if (!page) return
+    if (pageHasMeaningfulAuthoring(page) && !window.confirm(`Remove "${page.title || 'Untitled page'}"? This can be undone.`)) return
+    workbookCommand({ type: 'removePage', pageId })
+  }
+  function addBlankPage() { return workbookCommand({ type: 'addPage' }) }
   const updateCamera = useCallback((_event: unknown, next: Viewport) => {
     setZoom(next.zoom)
     setCamera(current => current.x === next.x && current.y === next.y && current.zoom === next.zoom ? current : { ...next })
@@ -842,6 +896,7 @@ export default function EditorSurface(props: EditorProps) {
   function openStarterChooser(origin?: HTMLElement, fresh = false) {
     if (guideActive.current || !writable || presentationActive.current || starterOpen || connectedPicker || exportOpen) return false
     starterFresh.current = fresh
+    setStarterAdding(!fresh)
     starterOpening.current = true
     starterOrigin.current = origin ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null)
     starterDocumentId.current = props.document.id
@@ -855,15 +910,25 @@ export default function EditorSurface(props: EditorProps) {
     starterStarting.current = false
     starterOpening.current = false
     setStarterOpen(false)
+    setStarterAdding(false)
     starterReturn.current = restore
   }
-  function chooseStarter(choice: StarterChoice | null) {
+  function chooseStarter(choice: CatalogStarterChoice | null) {
     if (!starterOpen || starterStarting.current || !writable || presentationActive.current || starterDocumentId.current !== props.document.id) return
     starterOpening.current = false
     // Fresh offer: the empty canvas is already the Blank document, so Blank just dismisses.
     if (!choice && starterFresh.current) { closeStarterChooser(); return }
     if (!finishInline() || !finish()) return
     starterStarting.current = true
+    // Plain-diagram harnesses have no workbook session command; retain their
+    // established replacement behavior while live workspaces always append.
+    if (starterAdding && props.onWorkbookCommand) {
+      const accepted = choice ? workbookCommand({ type: 'addStarterPage', key: choice.key }) : workbookCommand({ type: 'addPage' })
+      if (!accepted) { starterStarting.current = false; return }
+      setSelectedIds([]); setSelectedEdges([]); setConnectionStart(null); setTool('select')
+      closeStarterChooser(false)
+      return
+    }
     if (!choice) {
       const attempt = ++starterAttempt.current
       props.onNew()
@@ -1968,6 +2033,11 @@ export default function EditorSurface(props: EditorProps) {
   const transparentWorkspace = !presenting && isTransparentBackground(scene.backgroundColor)
   const panelTitle = multiSelection ? 'Selection' : selected ? ({ component: 'Component', boundary: 'Boundary', text: 'Text', rectangle: 'Rectangle' })[selected.kind] : connection ? 'Connection' : 'Document'
   const field = (label: string, value: string, maxLength: number, onDraft: (value: string) => void, multiline = false) => <DraftField label={label} value={value} maxLength={maxLength} disabled={!writable} multiline={multiline} onDraft={onDraft} onFinish={() => finish()} onCancel={clearPreview} deferFinish={() => starterOpening.current} />
+  useLayoutEffect(() => {
+    if (!canvasTitleEditing) return
+    const input = canvasElement.current?.querySelector<HTMLInputElement>('.canvas-title-editor input')
+    input?.focus(); input?.select()
+  }, [canvasTitleEditing])
   const descriptionEditor = <MarkdownDescription value={diagram.description ?? ''} mode={markdownMode} writable={writable} presenting={presenting} onModeChange={setMarkdownMode} onDraft={value => editMetadata({ description: value === '' ? undefined : value }, true)} onFinish={() => finish()} onCancel={clearPreview} deferFinish={() => starterOpening.current} />
   const mcpInteraction = useRef<() => string | null>(() => 'Editor loading')
   mcpInteraction.current = () => {
@@ -1997,7 +2067,7 @@ export default function EditorSurface(props: EditorProps) {
   let copyUnavailable = false
   if (commandsOpen) { try { pngDimensions(buildExportScene(diagram, copyOptions), 1) } catch { copyUnavailable = true } }
   const actions: EditorAction[] = [
-    { label: 'New diagram', icon: FilePlus2, disabled: !writable, run: openStarterChooser },
+    { label: 'Add diagram', icon: FilePlus2, disabled: !writable, run: openStarterChooser },
     ...tools.map(item => ({ label: item.label, icon: item.icon, disabled: !writable && item.tool !== 'select' && item.tool !== 'pan', run: () => chooseTool(item.tool) })),
     { label: 'Edit label (F2)', icon: Type, disabled: !writable || (!selected && !connection) || selectedIds.length + selectedEdges.length !== 1, run: () => openInline() },
     { label: 'Present', icon: Presentation, disabled: props.saveState === 'loading' || props.isArranging, run: enterPresentation },
@@ -2093,16 +2163,17 @@ export default function EditorSurface(props: EditorProps) {
   const viewAction = (run: () => void) => () => {
     if (!presentationActive.current && !guideActive.current && !commandsOpen && !starterOpen && !connectedPicker && !exportOpen && !entryCommit.current && !composing.current && !inlineComposing.current) run()
   }
-  const topMenus: TopMenu[] = [
-    { label: 'File', items: [
-      { label: 'New diagram', disabled: !writable, run: origin => openStarterChooser(origin) },
-      ...(props.onWorkbookCommand ? [{ label: 'New workbook', disabled: !writable, run: () => fileAction(() => { workbookCommand({ type: 'newWorkbook' }) }, true) }] : []),
-      { label: 'Load', disabled: !writable, run: () => fileAction(props.onOpen, true) },
-      { label: 'Recent diagrams', run: origin => { recentReturn.current = origin; setRecentOpen(true) } },
+  const fileMenuItems: TopMenuItem[] = [
+      ...(props.onWorkbookCommand ? [{ label: 'New Workbook', disabled: !writable, run: () => fileAction(() => { workbookCommand({ type: 'newWorkbook' }) }, true) }] : []),
+      { label: 'Load Workbook', disabled: !writable, run: () => fileAction(props.onOpen, true) },
+      { label: 'Save Workbook', disabled: !writable, run: () => fileAction(props.onSaveJson) },
+      { label: 'Save Workbook As', disabled: !writable, run: () => fileAction(props.onSaveAs ?? props.onSaveJson) },
+      ...(props.onWorkbookCommand ? [{ label: 'Add New Page', disabled: !writable, separatorBefore: true, run: () => { addBlankPage() } }, { label: 'Add Diagram', disabled: !writable, run: (origin: HTMLButtonElement) => openStarterChooser(origin) }] : [{ label: 'Add Diagram', disabled: !writable, run: (origin: HTMLButtonElement) => openStarterChooser(origin) }]),
+      { label: 'Recent diagrams', separatorBefore: true, run: origin => { recentReturn.current = origin; setRecentOpen(true) } },
       { label: 'Import skill JSON', disabled: !writable, run: () => fileAction(props.onImport, true) },
-      { label: 'Save', disabled: !writable, run: () => fileAction(props.onSaveJson) },
-      { label: 'Save As', disabled: !writable, run: () => fileAction(props.onSaveAs ?? props.onSaveJson) },
-    ] },
+    ]
+  const topMenus: TopMenu[] = [
+    { label: 'File', items: fileMenuItems },
     { label: 'View', items: [
       { label: 'Component library', checked: libraryOpen, run: viewAction(() => setLibraryRequested(!libraryRequested)) },
       { label: 'Sidebar', checked: inspectorOpen, run: viewAction(() => { setInspectorRequested(!inspectorRequested); inspectorIntent.current = !inspectorRequested }) },
@@ -2135,18 +2206,18 @@ export default function EditorSurface(props: EditorProps) {
     {aboutOpen && (informationKind === 'Settings' ? <SettingsDialog onClose={closeAbout} /> : <AboutDialog onClose={closeAbout} />)}
     {contextMenu && validContext(contextMenu) && <ContextMenu key={`${contextMenu.screen.x}:${contextMenu.screen.y}:${contextMenu.kind}:${contextMenu.id ?? ''}`} point={contextMenu.screen} origin={contextMenu.origin} actions={contextActions} onClose={() => setContextMenu(null)} />}
     {commandsOpen && !presenting && <CommandMenu actions={actions} onCancel={() => closeCommands()} onExecute={action => { if (presentationActive.current || action.disabled) return; pendingAction.current = action.label; closeCommands() }} />}
-    {starterOpen && !presenting && <StarterChooser onCancel={() => closeStarterChooser()} onChoose={chooseStarter} />}
+    {starterOpen && !presenting && <ArchitectureCatalogChooser choices={[...starterCatalog.filter(choice => choice.sourceCue !== 'Architecture catalog'), ...researchedArchitectureCatalog]} adding={starterAdding} onCancel={() => closeStarterChooser()} onChoose={chooseStarter} />}
     {connectedPicker && writable && <ComponentPicker title={`Add connected ${connectedPicker.side}: ${props.document.entities.find(entity => entity.id === connectedPicker.sourceId)?.label ?? connectedPicker.sourceId}`} writable={writable} onChoose={chooseConnectedComponent} onCancel={() => setConnectedPicker(null)} />}
     <input ref={iconInput} type="file" aria-label="Import icon file" accept=".svg,.png,.jpg,.jpeg,.gif,.webp" hidden disabled={!writable} onChange={event => void importIconFile(event)} />
     {!presenting && <header className="topbar" inert={commandsOpen || starterOpen}>
       <div className="wordmark" aria-label="Azure Diagram Studio"><img className="brand-icon" src="./branding/logo.svg" alt="" width={36} height={36} /><span className="brand-name">Azure Diagram Studio</span></div>
-      <div className="document-bar"><span className="breadcrumb" title={workbook ? workbook.title : undefined}>{workbook ? `${workbook.title || 'Untitled workbook'} /` : 'Workspace /'}</span>{field(workbook ? 'Page title' : 'Document title', diagram.title, 120, value => editMetadata({ title: value }, true))}</div>
+      <div className="document-bar">{workbook ? <WorkbookBreadcrumb title={workbook.title} disabled={!writable} onCommit={title => workbookCommand({ type: 'workbookMetadata', patch: { title } })} /> : <span className="breadcrumb">Workspace /</span>}{field(workbook ? 'Page title' : 'Document title', diagram.title, 120, value => editMetadata({ title: value }, true))}</div>
       <TopMenus menus={topMenus} open={topMenuOpen} onOpen={changeTopMenu} disabled={presenting || commandsOpen || starterOpen || !!connectedPicker || exportOpen || !!entryCommit.current || guideOpen || aboutOpen} />
       <div className="top-actions"><IconButton icon={Undo2} label="Undo" disabled={!writable || !props.canUndo} onClick={undo} /><IconButton icon={Redo2} label="Redo" disabled={!writable || !props.canRedo} onClick={redo} /><button type="button" className="export-button" title="Export" aria-label="Export" aria-expanded={exportOpen} aria-disabled={props.isExporting || props.saveState === 'loading'} onClick={() => { if (!props.isExporting && props.saveState !== 'loading') { setTopMenuOpen(null); setExportOpen(!exportOpen) } }}>{props.isExporting ? <LoaderCircle size={16} className="spin" /> : <Download size={16} />}<span>Export</span><ChevronDown size={14} /></button>
       <button type="button" className="present-button" aria-label="Present" title="Present" disabled={props.saveState === 'loading' || props.isArranging} onPointerDown={() => { entryFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null }} onMouseDown={event => event.preventDefault()} onClick={enterPresentation}><Presentation size={18} /><span>Present</span></button></div>
     </header>}
     <div className="workspace" inert={commandsOpen}>
-      {!presenting && <nav className="tool-rail" aria-label="Drawing tools">{tools.map(item => <IconButton key={item.tool} icon={item.icon} label={item.label} active={tool === item.tool} disabled={!writable && item.tool !== 'select' && item.tool !== 'pan' && item.tool !== 'component'} onClick={() => chooseTool(item.tool)} />)}<IconButton icon={isImportingIcon ? LoaderCircle : ImagePlus} label="Import custom icon" disabled={!writable || isImportingIcon} onClick={openIconPicker} /><IconButton icon={CommandIcon} label="Commands" className="commands-trigger" onMouseDown={event => event.preventDefault()} onClick={openCommands} /><span className="rail-spacer" /></nav>}
+      {!presenting && <nav className="tool-rail" aria-label="Drawing tools">{tools.map(item => <IconButton key={item.tool} icon={item.icon} label={item.label} className={item.tool === 'select' ? 'select-tool' : ''} active={tool === item.tool} disabled={!writable && item.tool !== 'select' && item.tool !== 'pan' && item.tool !== 'component'} onClick={() => chooseTool(item.tool)} />)}<IconButton icon={isImportingIcon ? LoaderCircle : ImagePlus} label="Import custom icon" disabled={!writable || isImportingIcon} onClick={openIconPicker} /><IconButton icon={CommandIcon} label="Commands" className="commands-trigger" onMouseDown={event => event.preventDefault()} onClick={openCommands} /><span className="rail-spacer" /></nav>}
       <aside className={`library ${!presenting && libraryOpen ? 'open' : ''}`} aria-label="Component library" inert={presenting || !libraryOpen}>
         <div className="panel-heading"><h2>Components</h2><div className="panel-actions"><IconButton icon={PanelLeftClose} label="Close component library" onClick={() => setLibraryOpen(false)} /></div></div>
         <CatalogAccordion writable={writable} selectedIcon={tool === 'component' ? template.icon : null} recentIcons={recentIcons} onClearRecents={clearRecents} onChoose={chooseComponent} />
@@ -2158,7 +2229,7 @@ export default function EditorSurface(props: EditorProps) {
         if (!item) { setNotice('Drop a component from the library.'); return }
         insertComponent(item, screenToFlowPosition({ x: event.clientX, y: event.clientY }, { snapToGrid: false }))
       }}>
-        <div className="canvas-heading" data-fit-chrome="top">{diagram.synthetic && <div className="canvas-kicker" style={customBackground ? { color: contrastInk('#849293', scene.contrastBackground, 7) } : undefined}><span className="synthetic-dot" />SYNTHETIC EXAMPLE</div>}<h1 style={customBackground ? { color: contrastInk('#203637', scene.contrastBackground, 7) } : undefined}>{diagram.title || 'Untitled architecture'}</h1>{diagram.subtitle && <div className="diagram-meta" style={customBackground ? { color: contrastInk('#849293', scene.contrastBackground, 7) } : undefined}>{diagram.subtitle}</div>}</div>
+        <div className="canvas-heading" data-fit-chrome="top">{diagram.synthetic && <div className="canvas-kicker" style={customBackground ? { color: contrastInk('#849293', scene.contrastBackground, 7) } : undefined}><span className="synthetic-dot" />SYNTHETIC EXAMPLE</div>}{canvasTitleEditing ? <div className="canvas-title-editor">{<DraftField label="Canvas page title" value={diagram.title} maxLength={120} disabled={!writable} onDraft={value => editMetadata({ title: value }, true)} onFinish={() => { if (finish()) setCanvasTitleEditing(false) }} onCancel={() => { clearPreview(); setCanvasTitleEditing(false) }} deferFinish={() => starterOpening.current} />}</div> : <h1 tabIndex={writable ? 0 : undefined} aria-label="Page title" onDoubleClick={() => writable && setCanvasTitleEditing(true)} onKeyDown={event => { if ((event.key === 'F2' || event.key === 'Enter') && writable) { event.preventDefault(); setCanvasTitleEditing(true) } }} style={customBackground ? { color: contrastInk('#203637', scene.contrastBackground, 7) } : undefined}>{diagram.title || 'Untitled architecture'}</h1>}{diagram.subtitle && <div className="diagram-meta" style={customBackground ? { color: contrastInk('#849293', scene.contrastBackground, 7) } : undefined}>{diagram.subtitle}</div>}</div>
         {!presenting && <div className="canvas-toolbar" data-fit-chrome="top">
           <ArrangeMenu open={arrangeMenuOpen} onOpen={open => { if (!open || (!composing.current && !inlineComposing.current && !guideActive.current && !guideOpening.current && !presentationActive.current && !guideOpen && !aboutOpen && !commandsOpen && !starterOpen && !connectedPicker && !exportOpen)) setArrangeMenuOpen(open) }} disabled={!writable || props.isArranging || !diagram.entities.some(entity => entity.kind === 'component' || entity.kind === 'boundary')} busy={props.isArranging} onArrange={(direction, options) => {
             if (!presentationActive.current && !guideActive.current && !guideOpening.current && !composing.current && !inlineComposing.current && !guideOpen && !aboutOpen && !commandsOpen && !starterOpen && !connectedPicker && !exportOpen && writable && !props.isArranging && finish()) props.onArrange(direction, options)
@@ -2249,7 +2320,8 @@ export default function EditorSurface(props: EditorProps) {
       </aside>
     </div>
     {props.onSelectPage && <PageTabs pages={rootPages.map(page => ({ id: page.id, title: page.title }))} activeId={props.document.id} presenting={presenting} editable={writable && Boolean(props.onWorkbookCommand)}
-      onSelect={switchPage} onAdd={() => { workbookCommand({ type: 'addPage' }) }}
+      onSelect={switchPage} onAdd={addBlankPage}
+      onRemove={removePage}
       onRename={(pageId, title) => workbookCommand({ type: 'renamePage', pageId, title })}
       onReorder={pageIds => { workbookCommand({ type: 'reorderPages', pageIds }) }} />}
     {!presenting && <footer className="statusbar"><span><span className={`status-dot state-${props.saveState}`} /><span className="save-label">{SAVE_LABELS[props.saveState]}</span><span className="footer-divider" /><span className="backup-state">{props.backupDirty ? 'Editable JSON copy needed' : 'No newer JSON changes'}</span><span className="object-count"><span className="footer-divider" />{diagram.entities.length} objects</span></span><span role="status" title={notice || props.message}>{notice || props.message || (connectionStart ? 'Connection source selected' : tool === 'component' ? template.label : '')}</span><span className="status-right">{Math.round(zoom * 100)}%{diagram.synthetic && <><span className="footer-divider" />Synthetic</>}</span></footer>}

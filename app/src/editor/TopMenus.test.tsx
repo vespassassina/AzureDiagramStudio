@@ -11,7 +11,7 @@ function setup(disabled = false) {
   function Harness() {
     const [open, setOpen] = useState<string | null>(null)
     return <><TopMenus open={open} onOpen={setOpen} disabled={disabled} menus={[
-      { label: 'File', items: [{ label: 'New diagram', run }, { label: 'Load', disabled: true, run }, { label: 'Save', run }] },
+      { label: 'File', items: [{ label: 'New Workbook', run }, { label: 'Load Workbook', disabled: true, run }, { label: 'Save Workbook', run, separatorBefore: true }] },
       { label: 'View', items: [{ label: 'Component library', checked: true, run }] },
       { label: 'Settings', items: [{ label: 'Help', run }] },
     ]} /><button>Outside</button></>
@@ -24,23 +24,24 @@ it('should_navigate_menubar_and_menu_restore_focus_and_run_only_enabled_actions'
   const run = setup()
   const file = screen.getByRole('menuitem', { name: 'File menu' })
   fireEvent.keyDown(file, { key: 'ArrowDown' })
-  expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'New diagram' }))
+  expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'New Workbook' }))
   fireEvent.keyDown(document.activeElement!, { key: 'ArrowDown' })
-  const unavailable = screen.getByRole('menuitem', { name: 'Load' })
+  expect(screen.getAllByRole('separator')).toHaveLength(1)
+  const unavailable = screen.getByRole('menuitem', { name: 'Load Workbook' })
   expect(document.activeElement).toBe(unavailable)
   fireEvent.click(unavailable)
   expect(run).not.toHaveBeenCalled()
   fireEvent.keyDown(unavailable, { key: 'End' })
-  expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'Save' }))
+  expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'Save Workbook' }))
   fireEvent.keyDown(document.activeElement!, { key: 'Home' })
-  expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'New diagram' }))
+  expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'New Workbook' }))
   fireEvent.keyDown(document.activeElement!, { key: 'ArrowRight' })
   expect(screen.queryByRole('menu', { name: 'File' })).toBeNull()
   expect(document.activeElement).toBe(screen.getByRole('menuitemcheckbox', { name: 'Component library', checked: true }))
   fireEvent.keyDown(document.activeElement!, { key: 'Escape' })
   expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'View menu' }))
   fireEvent.click(file)
-  fireEvent.click(screen.getByRole('menuitem', { name: 'Save' }))
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Save Workbook' }))
   expect(run).toHaveBeenCalledOnce()
   expect(document.activeElement).toBe(file)
 })

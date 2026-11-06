@@ -409,3 +409,37 @@ Root-cause repair is pending; this is not a completion claim.
   blocker. The first independent pass replayed the isolated harness; the
   subsequent real-App attempt found the defect. Demand an actual recorded
   fixture/tool failure before classifying a qualification cell as blocked.
+
+## 2026-11-06: DGM-163 Workbook UI Batch
+
+Evidence: [DGM-163 verification](verification/DGM-163.md).
+
+- A heading with a double-click handler can still be covered by the canvas.
+  Verify physical hit testing, not only a direct event dispatch or F2 path.
+- Key editable style panels and raw drafts by stable UI identity, not editable
+  IDs or list positions. Remove the deleted style's validation drafts without
+  clearing the remaining styles' drafts.
+- An invalid flag and disabled Apply are not an accessible explanation. Link
+  the affected field to a visible, specific validation message.
+- Finish the complete implementation before consolidated validation. Return
+  the complete defect batch to its owner and recheck affected behavior only;
+  retain unchanged passing evidence and first failures.
+
+## 2026-11-06: DGM-164 Catalog Delivery And Bounded Repairs
+
+Evidence: [DGM-164 verification](verification/DGM-164.md).
+
+- A larger preview container does not establish readability. Measure actual
+  SVG-to-CSS text scale: the original whole-fit previews were only 0.201-0.361.
+  Offer readable native-scale inspection with scrolling/zoom and an explicit
+  overview, rather than claiming success from viewport dimensions.
+- Assert provenance on the inserted page, not just the picker. Reviewed dates
+  visible in catalog metadata were initially absent from every page's Markdown.
+- Reset inspection state on template identity changes. Zoom and both scroll
+  axes belong to the selected diagram; retaining them can hide the next one.
+- Conditional array spreads can lose callback contextual typing. An outer
+  menu-array annotation did not repair implicit-any parameters; type the
+  affected callback parameters explicitly and inspect the completed build.
+- Finish the full slice, batch confirmed defects to its owner and retain
+  failures. Reuse unchanged passing checks; a final single-behavior repair
+  needs its focused regression and direct recheck, not another broad matrix.

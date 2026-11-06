@@ -1,0 +1,516 @@
+{
+  "schemaVersion": 1,
+  "id": "ms-fabric-cross-cloud-analytics-v1",
+  "title": "Cross-cloud and streaming analytics estate on Microsoft Fabric",
+  "subtitle": "Multiple cloud and on-premises sources feed Fabric lakehouse, warehouse, and event analytics with governance and BI consumers. Synthetic Azure reference; no deployment is implied.",
+  "description": "### Problem\nAn organization has structured, unstructured, and streaming data spread across on-premises systems, Azure databases, and external cloud stores, and needs consistent analytics and reporting.\n\n### Flow and Azure mapping\nUse Fabric Data Factory copy/orchestration and database mirroring where supported, and eventstreams for real-time ingestion. OneLake provides the shared data layer; a lakehouse retains raw and semi-structured data, a warehouse serves structured SQL analytics, and an eventhouse handles high-volume event queries. Notebooks, Dataflow Gen2, or SQL transformations prepare curated datasets; Power BI and approved data/AI applications consume them. Microsoft Purview, Entra ID, and Key Vault are cross-cutting governance and identity services.\n\n### Trade-offs and assumptions\nThis candidate is purposefully a cross-cloud ingestion and multi-modal analytics pattern, not the existing generic Fabric starter or Azure data warehouse. Connector availability, replication support, licensing, data residency, and source egress are workload-specific. Fabric and OneLake are a platform choice, not a claim that external stores are copied or federated automatically.\n\nSource: [Microsoft Learn](https://learn.microsoft.com/en-us/azure/architecture/example-scenario/dataplate2e/data-platform-end-to-end).\n\n## Source provenance\n\n- Origin provider: Microsoft\n- Target: Azure conceptual adaptation\n- Primary source: [Analytics End-to-End with Microsoft Fabric](https://learn.microsoft.com/en-us/azure/architecture/example-scenario/dataplate2e/data-platform-end-to-end)\n- Reviewed: 2026-11-06\n\n## Catalog status\n\nThis is an original, editable Azure conceptual adaptation. It is synthetic reference material, not a deployed system, certified vendor architecture, or automatic deployment plan.\n\n## Mapping caveats\n\n- Database mirroring has supported-source constraints; don't imply universal real-time replication for all clouds or systems.",
+  "synthetic": true,
+  "legendVisible": true,
+  "legend": [
+    {
+      "label": "Illustrative Azure flow",
+      "color": "#0078d4",
+      "meaning": "Original conceptual flow, not verified deployment connectivity."
+    },
+    {
+      "label": "Synthetic reference",
+      "color": "#62696c",
+      "dashed": true,
+      "meaning": "Editable starting point requiring workload-specific design."
+    }
+  ],
+  "revision": 1,
+  "direction": "RIGHT",
+  "entities": [
+    {
+      "id": "group-sources",
+      "kind": "boundary",
+      "label": "On-premises and external cloud sources",
+      "subtitle": "External source environments",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 24,
+      "y": 36.5,
+      "width": 352,
+      "height": 231,
+      "color": "azure"
+    },
+    {
+      "id": "group-fabric",
+      "kind": "boundary",
+      "label": "Microsoft Fabric data platform",
+      "subtitle": "Unified analytics workspace",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 815,
+      "y": 24,
+      "width": 1725,
+      "height": 479,
+      "color": "teal"
+    },
+    {
+      "id": "group-users",
+      "kind": "boundary",
+      "label": "Governed consumers",
+      "subtitle": "Business access",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 2954,
+      "y": 140.5,
+      "width": 312,
+      "height": 231,
+      "color": "amber"
+    },
+    {
+      "id": "sources",
+      "kind": "component",
+      "label": "On-premises and cloud sources",
+      "subtitle": "Generic databases, object stores, files",
+      "parentId": "group-sources",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 120,
+      "color": "azure",
+      "icon": "database",
+      "status": "synthetic"
+    },
+    {
+      "id": "ingest",
+      "kind": "component",
+      "label": "Batch and mirrored ingestion",
+      "subtitle": "Fabric Data Factory and mirroring",
+      "parentId": "group-fabric",
+      "layer": "foreground",
+      "x": 24,
+      "y": 335,
+      "width": 264,
+      "height": 120,
+      "color": "teal",
+      "icon": "service",
+      "status": "synthetic"
+    },
+    {
+      "id": "events",
+      "kind": "component",
+      "label": "Streaming event ingress",
+      "subtitle": "Fabric eventstreams",
+      "parentId": "group-fabric",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 105,
+      "color": "teal",
+      "icon": "queue",
+      "status": "synthetic"
+    },
+    {
+      "id": "lake",
+      "kind": "component",
+      "label": "Unified lake storage",
+      "subtitle": "OneLake lakehouse",
+      "parentId": "group-fabric",
+      "layer": "foreground",
+      "x": 500,
+      "y": 231.5,
+      "width": 264,
+      "height": 96,
+      "color": "teal",
+      "icon": "storage",
+      "status": "synthetic"
+    },
+    {
+      "id": "warehouse",
+      "kind": "component",
+      "label": "Structured analytics",
+      "subtitle": "Fabric Data Warehouse",
+      "parentId": "group-fabric",
+      "layer": "foreground",
+      "x": 1437,
+      "y": 215.5,
+      "width": 264,
+      "height": 96,
+      "color": "teal",
+      "icon": "database",
+      "status": "synthetic"
+    },
+    {
+      "id": "eventhouse",
+      "kind": "component",
+      "label": "Real-time analytics",
+      "subtitle": "Fabric eventhouse",
+      "parentId": "group-fabric",
+      "layer": "foreground",
+      "x": 500,
+      "y": 91.5,
+      "width": 264,
+      "height": 96,
+      "color": "teal",
+      "icon": "database",
+      "status": "synthetic"
+    },
+    {
+      "id": "process",
+      "kind": "component",
+      "label": "Transform and enrich",
+      "subtitle": "Fabric notebooks and Dataflow Gen2",
+      "parentId": "group-fabric",
+      "layer": "foreground",
+      "x": 1019,
+      "y": 212,
+      "width": 264,
+      "height": 103,
+      "color": "teal",
+      "icon": "function",
+      "status": "synthetic"
+    },
+    {
+      "id": "govern",
+      "kind": "component",
+      "label": "Governance and access",
+      "subtitle": "Microsoft Purview and Entra ID",
+      "parentId": "group-fabric",
+      "layer": "foreground",
+      "x": 24,
+      "y": 212,
+      "width": 264,
+      "height": 103,
+      "color": "teal",
+      "icon": "service",
+      "status": "synthetic"
+    },
+    {
+      "id": "bi",
+      "kind": "component",
+      "label": "Reports and data applications",
+      "subtitle": "Power BI and Fabric data agents",
+      "parentId": "group-users",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 120,
+      "color": "amber",
+      "icon": "service",
+      "status": "synthetic"
+    }
+  ],
+  "connections": [
+    {
+      "id": "ms-fabric-cross-cloud-analytics-flow-1",
+      "from": "sources",
+      "to": "ingest",
+      "label": "batch data and database changes",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 312,
+          "y": 211.5
+        },
+        {
+          "x": 823,
+          "y": 211.5
+        },
+        {
+          "x": 823,
+          "y": 371
+        },
+        {
+          "x": 839,
+          "y": 371
+        }
+      ],
+      "labelPosition": {
+        "x": 567.5,
+        "y": 211.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-fabric-cross-cloud-analytics-flow-2",
+      "from": "sources",
+      "to": "events",
+      "label": "streaming events",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 312,
+          "y": 155.5
+        },
+        {
+          "x": 823,
+          "y": 155.5
+        },
+        {
+          "x": 823,
+          "y": 204
+        },
+        {
+          "x": 839,
+          "y": 204
+        }
+      ],
+      "labelPosition": {
+        "x": 567.5,
+        "y": 155.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-fabric-cross-cloud-analytics-flow-3",
+      "from": "ingest",
+      "to": "lake",
+      "label": "replicate or copy",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1103,
+          "y": 371
+        },
+        {
+          "x": 1299,
+          "y": 371
+        },
+        {
+          "x": 1299,
+          "y": 319.5
+        },
+        {
+          "x": 1315,
+          "y": 319.5
+        }
+      ],
+      "labelPosition": {
+        "x": 1201,
+        "y": 371
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-fabric-cross-cloud-analytics-flow-4",
+      "from": "events",
+      "to": "eventhouse",
+      "label": "real-time event stream",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1103,
+          "y": 163.5
+        },
+        {
+          "x": 1315,
+          "y": 163.5
+        }
+      ],
+      "labelPosition": {
+        "x": 1209,
+        "y": 163.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-fabric-cross-cloud-analytics-flow-5",
+      "from": "lake",
+      "to": "process",
+      "label": "raw and semi-structured data",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1579,
+          "y": 267.5
+        },
+        {
+          "x": 1818,
+          "y": 267.5
+        },
+        {
+          "x": 1818,
+          "y": 327
+        },
+        {
+          "x": 1834,
+          "y": 327
+        }
+      ],
+      "labelPosition": {
+        "x": 1698.5,
+        "y": 267.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-fabric-cross-cloud-analytics-flow-6",
+      "from": "process",
+      "to": "warehouse",
+      "label": "curated tables",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 2098,
+          "y": 287.5
+        },
+        {
+          "x": 2252,
+          "y": 287.5
+        }
+      ],
+      "labelPosition": {
+        "x": 2175,
+        "y": 287.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-fabric-cross-cloud-analytics-flow-7",
+      "from": "lake",
+      "to": "bi",
+      "label": "lakehouse and SQL endpoints",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1579,
+          "y": 287.5
+        },
+        {
+          "x": 1826,
+          "y": 287.5
+        },
+        {
+          "x": 1826,
+          "y": 347
+        },
+        {
+          "x": 2962,
+          "y": 347
+        },
+        {
+          "x": 2962,
+          "y": 295.5
+        },
+        {
+          "x": 2978,
+          "y": 295.5
+        }
+      ],
+      "labelPosition": {
+        "x": 2394,
+        "y": 363
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-fabric-cross-cloud-analytics-flow-8",
+      "from": "warehouse",
+      "to": "bi",
+      "label": "analytics data",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 2516,
+          "y": 287.5
+        },
+        {
+          "x": 2978,
+          "y": 287.5
+        }
+      ],
+      "labelPosition": {
+        "x": 2747,
+        "y": 287.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-fabric-cross-cloud-analytics-flow-9",
+      "from": "govern",
+      "to": "lake",
+      "label": "policy and identity",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1103,
+          "y": 327
+        },
+        {
+          "x": 1299,
+          "y": 327
+        },
+        {
+          "x": 1299,
+          "y": 287.5
+        },
+        {
+          "x": 1315,
+          "y": 287.5
+        }
+      ],
+      "labelPosition": {
+        "x": 1201,
+        "y": 327
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-fabric-cross-cloud-analytics-flow-10",
+      "from": "eventhouse",
+      "to": "bi",
+      "label": "real-time queries",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1579,
+          "y": 199.5
+        },
+        {
+          "x": 2954,
+          "y": 199.5
+        },
+        {
+          "x": 2954,
+          "y": 279.5
+        },
+        {
+          "x": 2978,
+          "y": 279.5
+        }
+      ],
+      "labelPosition": {
+        "x": 2266.5,
+        "y": 199.5
+      },
+      "routeRevision": 1
+    }
+  ]
+}

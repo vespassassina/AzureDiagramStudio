@@ -1,0 +1,459 @@
+{
+  "schemaVersion": 1,
+  "id": "aws-private-file-access-v1",
+  "title": "Private file access through an API and private object-storage path",
+  "subtitle": "Corporate users request controlled file access through an API while data traffic remains on private paths to object storage. Synthetic Azure reference; no deployment is implied.",
+  "description": "### Problem\nAn enterprise needs an internal file exchange path that avoids exposing object downloads through a generally reachable public storage endpoint.\n\n### Flow and Azure mapping\nCorporate users resolve an internal application endpoint and authenticate to an API. The API authorizes the requested object operation and returns a short-lived access mechanism or streams the content itself. The backend reaches Azure Blob Storage through private networking and private endpoints; private DNS and storage access policies constrain the path. Separate upload and download operations can use different controls.\n\n### Trade-offs and assumptions\nThe AWS pattern relies on an internal load balancer, API Gateway, Lambda, a VPC endpoint, and a special presigned-URL/domain arrangement. Azure SAS URL behavior and private endpoint DNS are not identical; whether a client can reach the private storage route must be verified for the actual network. Avoid placing bearer links in logs, and choose between proxying bytes and delegated access based on governance and throughput requirements.\n\nSource: [AWS Prescriptive Guidance](https://docs.aws.amazon.com/prescriptive-guidance/latest/patterns/set-up-private-access-to-an-amazon-s3-bucket-through-a-vpc-endpoint.html).\n\n## Source provenance\n\n- Origin provider: AWS\n- Target: Azure conceptual adaptation\n- Primary source: [Set up private access to an Amazon S3 bucket through a VPC endpoint](https://docs.aws.amazon.com/prescriptive-guidance/latest/patterns/set-up-private-access-to-an-amazon-s3-bucket-through-a-vpc-endpoint.html)\n- Reviewed: 2026-11-06\n\n## Catalog status\n\nThis is an original, editable Azure conceptual adaptation. It is synthetic reference material, not a deployed system, certified vendor architecture, or automatic deployment plan.\n\n## Mapping caveats\n\n- The source's internal presigned URL/domain pattern has AWS-specific details; Azure private endpoint DNS and SAS behavior require validation.",
+  "synthetic": true,
+  "legendVisible": true,
+  "legend": [
+    {
+      "label": "Illustrative Azure flow",
+      "color": "#0078d4",
+      "meaning": "Original conceptual flow, not verified deployment connectivity."
+    },
+    {
+      "label": "Synthetic reference",
+      "color": "#62696c",
+      "dashed": true,
+      "meaning": "Editable starting point requiring workload-specific design."
+    }
+  ],
+  "revision": 1,
+  "direction": "RIGHT",
+  "entities": [
+    {
+      "id": "group-corp",
+      "kind": "boundary",
+      "label": "Corporate network",
+      "subtitle": "Private client network",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 24,
+      "y": 79.5,
+      "width": 774,
+      "height": 227.5,
+      "color": "azure"
+    },
+    {
+      "id": "group-azure-ingress",
+      "kind": "boundary",
+      "label": "Azure private API tier",
+      "subtitle": "Application access boundary",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 1198,
+      "y": 24,
+      "width": 1248,
+      "height": 358,
+      "color": "teal"
+    },
+    {
+      "id": "group-storage",
+      "kind": "boundary",
+      "label": "Azure private storage",
+      "subtitle": "Data boundary",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 2842,
+      "y": 222,
+      "width": 770,
+      "height": 207,
+      "color": "amber"
+    },
+    {
+      "id": "user",
+      "kind": "component",
+      "label": "Corporate user",
+      "subtitle": "Generic enterprise client",
+      "parentId": "group-corp",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 96,
+      "color": "azure",
+      "icon": "user",
+      "status": "synthetic"
+    },
+    {
+      "id": "dns",
+      "kind": "component",
+      "label": "Private name resolution",
+      "subtitle": "Private DNS",
+      "parentId": "group-corp",
+      "layer": "foreground",
+      "x": 486,
+      "y": 98.5,
+      "width": 264,
+      "height": 105,
+      "color": "azure",
+      "icon": "shield",
+      "status": "synthetic"
+    },
+    {
+      "id": "gateway",
+      "kind": "component",
+      "label": "Internal API ingress",
+      "subtitle": "Application Gateway",
+      "parentId": "group-azure-ingress",
+      "layer": "foreground",
+      "x": 24,
+      "y": 111,
+      "width": 264,
+      "height": 96,
+      "color": "teal",
+      "icon": "shield",
+      "status": "synthetic"
+    },
+    {
+      "id": "api",
+      "kind": "component",
+      "label": "File authorization API",
+      "subtitle": "Azure Functions",
+      "parentId": "group-azure-ingress",
+      "layer": "foreground",
+      "x": 438,
+      "y": 111,
+      "width": 264,
+      "height": 96,
+      "color": "teal",
+      "icon": "storage",
+      "status": "synthetic"
+    },
+    {
+      "id": "identity",
+      "kind": "component",
+      "label": "Identity and access policy",
+      "subtitle": "Microsoft Entra ID and storage RBAC",
+      "parentId": "group-azure-ingress",
+      "layer": "foreground",
+      "x": 960,
+      "y": 203,
+      "width": 264,
+      "height": 120,
+      "color": "teal",
+      "icon": "storage",
+      "status": "synthetic"
+    },
+    {
+      "id": "audit",
+      "kind": "component",
+      "label": "Access audit",
+      "subtitle": "Azure Monitor",
+      "parentId": "group-azure-ingress",
+      "layer": "foreground",
+      "x": 960,
+      "y": 87,
+      "width": 264,
+      "height": 96,
+      "color": "teal",
+      "icon": "service",
+      "status": "synthetic"
+    },
+    {
+      "id": "private",
+      "kind": "component",
+      "label": "Private storage route",
+      "subtitle": "Private Endpoint",
+      "parentId": "group-storage",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 96,
+      "color": "amber",
+      "icon": "storage",
+      "status": "synthetic"
+    },
+    {
+      "id": "blob",
+      "kind": "component",
+      "label": "Private object store",
+      "subtitle": "Azure Blob Storage",
+      "parentId": "group-storage",
+      "layer": "foreground",
+      "x": 482,
+      "y": 87,
+      "width": 264,
+      "height": 96,
+      "color": "amber",
+      "icon": "storage",
+      "status": "synthetic"
+    }
+  ],
+  "connections": [
+    {
+      "id": "aws-private-file-access-flow-1",
+      "from": "user",
+      "to": "dns",
+      "label": "resolve internal name",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 312,
+          "y": 230.5
+        },
+        {
+          "x": 494,
+          "y": 230.5
+        },
+        {
+          "x": 494,
+          "y": 190
+        },
+        {
+          "x": 510,
+          "y": 190
+        }
+      ],
+      "labelPosition": {
+        "x": 403,
+        "y": 230.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-private-file-access-flow-2",
+      "from": "dns",
+      "to": "gateway",
+      "label": "private endpoint",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 774,
+          "y": 190
+        },
+        {
+          "x": 1206,
+          "y": 190
+        },
+        {
+          "x": 1206,
+          "y": 199
+        },
+        {
+          "x": 1222,
+          "y": 199
+        }
+      ],
+      "labelPosition": {
+        "x": 990,
+        "y": 190
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-private-file-access-flow-3",
+      "from": "user",
+      "to": "gateway",
+      "label": "authenticated file request",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 312,
+          "y": 198.5
+        },
+        {
+          "x": 502,
+          "y": 198.5
+        },
+        {
+          "x": 502,
+          "y": 170
+        },
+        {
+          "x": 1198,
+          "y": 170
+        },
+        {
+          "x": 1198,
+          "y": 219
+        },
+        {
+          "x": 1222,
+          "y": 219
+        }
+      ],
+      "labelPosition": {
+        "x": 1024,
+        "y": 154
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-private-file-access-flow-4",
+      "from": "gateway",
+      "to": "api",
+      "label": "route request",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1486,
+          "y": 183
+        },
+        {
+          "x": 1636,
+          "y": 183
+        }
+      ],
+      "labelPosition": {
+        "x": 1561,
+        "y": 183
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-private-file-access-flow-5",
+      "from": "api",
+      "to": "identity",
+      "label": "authorize user and object",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1900,
+          "y": 179
+        },
+        {
+          "x": 2142,
+          "y": 179
+        },
+        {
+          "x": 2142,
+          "y": 239
+        },
+        {
+          "x": 2158,
+          "y": 239
+        }
+      ],
+      "labelPosition": {
+        "x": 2021,
+        "y": 179
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-private-file-access-flow-6",
+      "from": "api",
+      "to": "private",
+      "label": "private data-plane access",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1900,
+          "y": 199
+        },
+        {
+          "x": 2150,
+          "y": 199
+        },
+        {
+          "x": 2150,
+          "y": 219
+        },
+        {
+          "x": 2842,
+          "y": 219
+        },
+        {
+          "x": 2842,
+          "y": 321
+        },
+        {
+          "x": 2866,
+          "y": 321
+        }
+      ],
+      "labelPosition": {
+        "x": 2669,
+        "y": 219
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-private-file-access-flow-7",
+      "from": "private",
+      "to": "blob",
+      "label": "read or write object",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 3130,
+          "y": 357
+        },
+        {
+          "x": 3324,
+          "y": 357
+        }
+      ],
+      "labelPosition": {
+        "x": 3227,
+        "y": 357
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-private-file-access-flow-8",
+      "from": "api",
+      "to": "audit",
+      "label": "access decision and operation",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1900,
+          "y": 187
+        },
+        {
+          "x": 1924,
+          "y": 187
+        },
+        {
+          "x": 1924,
+          "y": 203
+        },
+        {
+          "x": 2118,
+          "y": 203
+        },
+        {
+          "x": 2118,
+          "y": 195
+        },
+        {
+          "x": 2158,
+          "y": 195
+        }
+      ],
+      "labelPosition": {
+        "x": 2021,
+        "y": 219
+      },
+      "routeRevision": 1
+    }
+  ]
+}

@@ -1,0 +1,451 @@
+{
+  "schemaVersion": 1,
+  "id": "gcp-log-export-replay-pipeline-v1",
+  "title": "Resilient log export pipeline with replay and dead-letter handling",
+  "subtitle": "Centralized logs enter a buffered stream, are transformed and exported to an external analytics service, and can be replayed after delivery failures. Synthetic Azure reference; no deployment is implie",
+  "description": "### Problem\nCentralized log export can fail transiently when a downstream analytics platform is unavailable or throttles requests; operators need buffering and a controlled recovery path.\n\n### Flow and Azure mapping\nAzure Monitor diagnostic settings and Log Analytics export routes send selected records to Event Hubs. A stream-processing or worker layer enriches and forwards events to an external HTTP collector. A secondary queue or storage-backed dead-letter path retains failed messages for investigation and replay. Managed identity or a protected Key Vault secret authenticates outbound delivery; private networking and egress allowlists constrain access.\n\n### Trade-offs and assumptions\nThe Google reference uses an organization-level aggregated logging sink, Pub/Sub, a primary Dataflow-to-Splunk pipeline, and a secondary replay pipeline. Azure Monitor, Event Hubs, and Functions/Stream Analytics are not exact behavioral equivalents. Delivery guarantees, retention, ordering, duplicate handling, payload limits, and downstream acknowledgments need explicit decisions. Avoid collecting sensitive fields unless classification and redaction are in place.\n\nSource: [Google Cloud Architecture Center](https://docs.cloud.google.com/architecture/stream-logs-from-google-cloud-to-splunk).\n\n## Source provenance\n\n- Origin provider: Google Cloud\n- Target: Azure conceptual adaptation\n- Primary source: [Stream logs from Google Cloud to Splunk](https://docs.cloud.google.com/architecture/stream-logs-from-google-cloud-to-splunk)\n- Reviewed: 2026-11-06\n\n## Catalog status\n\nThis is an original, editable Azure conceptual adaptation. It is synthetic reference material, not a deployed system, certified vendor architecture, or automatic deployment plan.\n\n## Mapping caveats\n\n- The source's managed Dataflow retry and autoscaling behavior is not guaranteed by this Azure adaptation; configure and test retries, retention, and replay.",
+  "synthetic": true,
+  "legendVisible": true,
+  "legend": [
+    {
+      "label": "Illustrative Azure flow",
+      "color": "#0078d4",
+      "meaning": "Original conceptual flow, not verified deployment connectivity."
+    },
+    {
+      "label": "Synthetic reference",
+      "color": "#62696c",
+      "dashed": true,
+      "meaning": "Editable starting point requiring workload-specific design."
+    }
+  ],
+  "revision": 1,
+  "direction": "RIGHT",
+  "entities": [
+    {
+      "id": "group-azure-logs",
+      "kind": "boundary",
+      "label": "Azure log collection",
+      "subtitle": "Organization logging plane",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 24,
+      "y": 159.5,
+      "width": 773,
+      "height": 216,
+      "color": "azure"
+    },
+    {
+      "id": "group-export",
+      "kind": "boundary",
+      "label": "Azure export processing",
+      "subtitle": "Integration boundary",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 1139,
+      "y": 24,
+      "width": 1270,
+      "height": 347,
+      "color": "teal"
+    },
+    {
+      "id": "group-external",
+      "kind": "boundary",
+      "label": "External analytics provider",
+      "subtitle": "Third-party service boundary",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 2771,
+      "y": 203.75,
+      "width": 312,
+      "height": 207,
+      "color": "amber"
+    },
+    {
+      "id": "workloads",
+      "kind": "component",
+      "label": "Azure resources and applications",
+      "subtitle": "Generic Azure workloads",
+      "parentId": "group-azure-logs",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 105,
+      "color": "azure",
+      "icon": "service",
+      "status": "synthetic"
+    },
+    {
+      "id": "monitor",
+      "kind": "component",
+      "label": "Central log collection",
+      "subtitle": "Azure Monitor",
+      "parentId": "group-azure-logs",
+      "layer": "foreground",
+      "x": 485,
+      "y": 91.5,
+      "width": 264,
+      "height": 96,
+      "color": "azure",
+      "icon": "service",
+      "status": "synthetic"
+    },
+    {
+      "id": "stream",
+      "kind": "component",
+      "label": "Buffered export stream",
+      "subtitle": "Azure Event Hubs",
+      "parentId": "group-export",
+      "layer": "foreground",
+      "x": 24,
+      "y": 227,
+      "width": 264,
+      "height": 96,
+      "color": "teal",
+      "icon": "queue",
+      "status": "synthetic"
+    },
+    {
+      "id": "primary",
+      "kind": "component",
+      "label": "Primary export processor",
+      "subtitle": "Azure Functions",
+      "parentId": "group-export",
+      "layer": "foreground",
+      "x": 457,
+      "y": 114.5,
+      "width": 264,
+      "height": 105,
+      "color": "teal",
+      "icon": "queue",
+      "status": "synthetic"
+    },
+    {
+      "id": "deadletter",
+      "kind": "component",
+      "label": "Undelivered event store",
+      "subtitle": "Service Bus dead-letter queue",
+      "parentId": "group-export",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 120,
+      "color": "teal",
+      "icon": "storage",
+      "status": "synthetic"
+    },
+    {
+      "id": "secret",
+      "kind": "component",
+      "label": "Export credential",
+      "subtitle": "Azure Key Vault",
+      "parentId": "group-export",
+      "layer": "foreground",
+      "x": 982,
+      "y": 92.75,
+      "width": 264,
+      "height": 96,
+      "color": "teal",
+      "icon": "shield",
+      "status": "synthetic"
+    },
+    {
+      "id": "ops",
+      "kind": "component",
+      "label": "Delivery monitoring",
+      "subtitle": "Azure Monitor",
+      "parentId": "group-export",
+      "layer": "foreground",
+      "x": 982,
+      "y": 208.75,
+      "width": 264,
+      "height": 96,
+      "color": "teal",
+      "icon": "service",
+      "status": "synthetic"
+    },
+    {
+      "id": "external",
+      "kind": "component",
+      "label": "External log analytics",
+      "subtitle": "Generic HTTP collector",
+      "parentId": "group-external",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 96,
+      "color": "amber",
+      "icon": "service",
+      "status": "synthetic"
+    }
+  ],
+  "connections": [
+    {
+      "id": "gcp-log-export-replay-pipeline-flow-1",
+      "from": "workloads",
+      "to": "monitor",
+      "label": "resource and app logs",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 312,
+          "y": 299
+        },
+        {
+          "x": 509,
+          "y": 299
+        }
+      ],
+      "labelPosition": {
+        "x": 410.5,
+        "y": 299
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-log-export-replay-pipeline-flow-2",
+      "from": "monitor",
+      "to": "stream",
+      "label": "diagnostic export",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 773,
+          "y": 299
+        },
+        {
+          "x": 1163,
+          "y": 299
+        }
+      ],
+      "labelPosition": {
+        "x": 968,
+        "y": 299
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-log-export-replay-pipeline-flow-3",
+      "from": "stream",
+      "to": "primary",
+      "label": "stream records",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1427,
+          "y": 263
+        },
+        {
+          "x": 1580,
+          "y": 263
+        },
+        {
+          "x": 1580,
+          "y": 191.5
+        },
+        {
+          "x": 1596,
+          "y": 191.5
+        }
+      ],
+      "labelPosition": {
+        "x": 1503.5,
+        "y": 263
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-log-export-replay-pipeline-flow-4",
+      "from": "primary",
+      "to": "secret",
+      "label": "retrieve protected credential",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1860,
+          "y": 150.5
+        },
+        {
+          "x": 2105,
+          "y": 150.5
+        },
+        {
+          "x": 2105,
+          "y": 200.75
+        },
+        {
+          "x": 2121,
+          "y": 200.75
+        }
+      ],
+      "labelPosition": {
+        "x": 1982.5,
+        "y": 150.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-log-export-replay-pipeline-flow-5",
+      "from": "primary",
+      "to": "external",
+      "label": "HTTP event delivery",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1860,
+          "y": 211.5
+        },
+        {
+          "x": 2113,
+          "y": 211.5
+        },
+        {
+          "x": 2113,
+          "y": 224.75
+        },
+        {
+          "x": 2771,
+          "y": 224.75
+        },
+        {
+          "x": 2771,
+          "y": 302.75
+        },
+        {
+          "x": 2795,
+          "y": 302.75
+        }
+      ],
+      "labelPosition": {
+        "x": 2606.5,
+        "y": 224.75
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-log-export-replay-pipeline-flow-6",
+      "from": "primary",
+      "to": "deadletter",
+      "label": "failed delivery",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1596,
+          "y": 170.5
+        },
+        {
+          "x": 1443,
+          "y": 170.5
+        },
+        {
+          "x": 1443,
+          "y": 199
+        },
+        {
+          "x": 1427,
+          "y": 199
+        }
+      ],
+      "labelPosition": {
+        "x": 1519.5,
+        "y": 170.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-log-export-replay-pipeline-flow-7",
+      "from": "deadletter",
+      "to": "primary",
+      "label": "controlled replay",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1427,
+          "y": 219
+        },
+        {
+          "x": 1576,
+          "y": 219
+        },
+        {
+          "x": 1576,
+          "y": 220.75
+        },
+        {
+          "x": 1579,
+          "y": 220.75
+        },
+        {
+          "x": 1579,
+          "y": 190.5
+        },
+        {
+          "x": 1596,
+          "y": 190.5
+        }
+      ],
+      "labelPosition": {
+        "x": 1501.5,
+        "y": 219
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-log-export-replay-pipeline-flow-8",
+      "from": "primary",
+      "to": "ops",
+      "label": "delivery metrics",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1860,
+          "y": 231.5
+        },
+        {
+          "x": 2105,
+          "y": 231.5
+        },
+        {
+          "x": 2105,
+          "y": 244.75
+        },
+        {
+          "x": 2121,
+          "y": 244.75
+        }
+      ],
+      "labelPosition": {
+        "x": 1982.5,
+        "y": 231.5
+      },
+      "routeRevision": 1
+    }
+  ]
+}

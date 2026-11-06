@@ -65,6 +65,15 @@ export type SaveState = 'loading' | 'saving' | 'saved' | 'error' | 'read-only'
 export type StarterKey = 'web-api' | 'event-driven' | 'fabric' | 'enterprise'
   | 'aks-baseline' | 'container-apps-microservices' | 'web-queue-worker' | 'hub-spoke-network'
   | 'saas-deployment-stamps' | 'file-claim-check' | 'azure-data-warehouse'
+  | 'ms-rag-grounded-knowledge-assistant' | 'ms-industrial-opcua-telemetry' | 'ms-ml-private-inference-promotion'
+  | 'ms-appservice-multiregion-recovery' | 'ms-azure-local-hyperconverged-platform' | 'ms-mainframe-change-data-capture'
+  | 'ms-digital-twin-operations-graph' | 'ms-fabric-cross-cloud-analytics'
+  | 'aws-mobile-graphql-backend' | 'aws-private-file-access' | 'aws-dynamodb-change-stream-to-lake'
+  | 'aws-lambda-telemetry-analytics' | 'aws-cell-router-tenant-placement' | 'aws-iiot-edge-data-backbone'
+  | 'aws-multiregion-read-local-write-global' | 'aws-modern-governed-data-platform'
+  | 'gcp-global-multiregion-relational-app' | 'gcp-hybrid-dr-recovery-site' | 'gcp-rag-app-alloydb-origin'
+  | 'gcp-secure-event-driven-functions' | 'gcp-mlops-training-promotion' | 'gcp-image-vision-analytics'
+  | 'gcp-multitenant-developer-platform' | 'gcp-log-export-replay-pipeline'
 export type ExportOptions = { format: 'svg' | 'png' | 'markdown'; scale: 1 | 2; transparent: boolean; includeMarkdown?: boolean; selectionIds?: string[]; background?: 'diagram' | 'white'; aspect?: 'content' | '16:9'; includeGrid?: boolean }
 export type ExportSceneOptions = Pick<ExportOptions, 'selectionIds' | 'background' | 'aspect' | 'includeGrid'>
 /** DGM-151C/152 whole-page document exports. Never carries a selection: pages and workbooks export whole. */
@@ -75,6 +84,9 @@ export type DocumentExportOptions =
 export type WorkbookUiCommand =
   | { type: 'newWorkbook' }
   | { type: 'addPage'; title?: string }
+  /** Editor-local starter insertion; intentionally not exposed by workbook/MCP APIs. */
+  | { type: 'addStarterPage'; key: StarterKey }
+  | { type: 'removePage'; pageId: string }
   | { type: 'renamePage'; pageId: string; title: string }
   | { type: 'reorderPages'; pageIds: string[] }
   | { type: 'workbookMetadata'; patch: { title?: string; description?: string } }

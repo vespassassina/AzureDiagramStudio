@@ -11,7 +11,6 @@ import { iconFixture } from '../custom-icons/test-fixtures.ts'
 import { importCustomIcon } from '../custom-icons/import.ts'
 import { applyCommand } from '../document/index.ts'
 import { starterDocument } from '../app/session.ts'
-import { starterCatalog } from '../app/starters.ts'
 
 vi.mock('../custom-icons/import.ts', () => ({ importCustomIcon: vi.fn() }))
 const engine = vi.hoisted(() => ({ cancelConnection: vi.fn() }))
@@ -53,13 +52,14 @@ function beginInlineDGM154(target: HTMLElement) {
   fireEvent.keyDown(window, { key: 'F2' })
 }
 function menuItemDGM140(label: string) {
-  const menu = ['New diagram', 'Load', 'Recent diagrams', 'Import skill JSON', 'Save', 'Save As'].includes(label) ? 'File' : label.startsWith('Switch to ') ? 'View' : 'Settings'
+  const menu = ['Add diagram', 'Load', 'Recent diagrams', 'Import skill JSON', 'Save', 'Save As'].includes(label) ? 'File' : label.startsWith('Switch to ') ? 'View' : 'Settings'
   const trigger = screen.getByRole('menuitem', { name: `${menu} menu` })
   if (trigger.getAttribute('aria-expanded') !== 'true') fireEvent.click(trigger)
-  return screen.getByRole(label.startsWith('Switch to ') ? 'menuitemcheckbox' : 'menuitem', { name: label })
+  const actual = ({ 'Add diagram': 'Add Diagram', 'Load': 'Load Workbook', 'Save': 'Save Workbook', 'Save As': 'Save Workbook As' } as Record<string, string>)[label] ?? label
+  return screen.getByRole(label.startsWith('Switch to ') ? 'menuitemcheckbox' : 'menuitem', { name: actual })
 }
 function menuOriginDGM140(label: string) {
-  return screen.getByRole('menuitem', { name: `${['New diagram', 'Save', 'Save As', 'Load', 'Recent diagrams', 'Import skill JSON'].includes(label) ? 'File' : 'Settings'} menu` })
+  return screen.getByRole('menuitem', { name: `${['Add diagram', 'Save', 'Save As', 'Load', 'Recent diagrams', 'Import skill JSON'].includes(label) ? 'File' : 'Settings'} menu` })
 }
 function showSidebarDGM137(view: 'properties' | 'markdown' = 'properties') {
   const trigger = screen.getByRole('button', { name: 'Sidebar' })
@@ -349,7 +349,7 @@ describe('controlled editor', () => {
     expect(container.querySelector('.topbar .session-state')).toBeNull()
     expect(container.querySelector('.statusbar')!.textContent).toContain('Local save failed: disk full')
     fireEvent.click(screen.getByRole('menuitem', { name: 'File menu' }))
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Save' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Save Workbook' }))
     expect(props.onSaveJson).toHaveBeenCalledOnce()
   })
   it('should_keep_View_theme_operational_during_existing_background_arrangement_DGM140', () => {
@@ -850,7 +850,7 @@ describe('controlled editor', () => {
     expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'metadata', patch: { description: undefined } })
     expect(Object.hasOwn(applyCommand(props.document, vi.mocked(props.onCommand).mock.calls[0][0]), 'description')).toBe(false)
   })
-  it.each(['Help', 'New diagram'])('should_preserve_pending_description_when_%s_opens_and_cancels_DGM122', action => {
+  it.each(['Help', 'Add diagram'])('should_preserve_pending_description_when_%s_opens_and_cancels_DGM122', action => {
     const { props } = setup({ document: sampleDiagram() })
     const field = descriptionFieldDGM122()
     act(() => field.focus())
@@ -859,7 +859,7 @@ describe('controlled editor', () => {
     fireEvent.pointerDown(trigger); fireEvent.mouseDown(trigger)
     fireEvent.blur(field, { relatedTarget: trigger }); fireEvent.click(trigger)
     expect(props.onCommand).not.toHaveBeenCalled()
-    const dialog = screen.getByRole('dialog', { name: action === 'Help' ? 'UI guide' : 'New diagram' })
+    const dialog = screen.getByRole('dialog', { name: action === 'Help' ? 'UI guide' : 'Add diagram' })
     fireEvent.keyDown(dialog, { key: 'Escape' })
     expect(field.value).toBe('# Pending\n\nDo not commit')
     expect(props.onCommand).not.toHaveBeenCalled()
@@ -1261,10 +1261,10 @@ describe('controlled editor', () => {
     expect(props.onCommand).not.toHaveBeenCalled(); expect(props.onUndo).not.toHaveBeenCalled(); expect(props.onRedo).not.toHaveBeenCalled()
     expect(within(menu).getByRole('menuitem', { name: 'Properties' })).toHaveProperty('disabled', false)
   })
-  it.each(['Help', 'Commands', 'New diagram', 'Export', 'Present'])('should_not_open_context_menu_over_%s_DGM119', modal => {
+  it.each(['Help', 'Commands', 'Add diagram', 'Export', 'Present'])('should_not_open_context_menu_over_%s_DGM119', modal => {
     const { props } = setup({ document: sampleDiagram() })
     const callback = flow.props.onNodeContextMenu
-    fireEvent.click(['Help', 'New diagram'].includes(modal) ? menuItemDGM140(modal) : screen.getByRole('button', { name: modal }))
+    fireEvent.click(['Help', 'Add diagram'].includes(modal) ? menuItemDGM140(modal) : screen.getByRole('button', { name: modal }))
     act(() => callback?.({ target: document.body, currentTarget: document.body, clientX: 10, clientY: 10, preventDefault() {}, stopPropagation() {} }, { id: 'app' }))
     expect(screen.queryByRole('menu')).toBeNull(); expect(props.onCommand).not.toHaveBeenCalled()
   })
@@ -1639,11 +1639,11 @@ describe('controlled editor', () => {
       expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'remove', entityIds: ['app'], connectionIds: [] })
     }
   })
-  it.each(['Help', 'Commands', 'New diagram', 'Export', 'connected picker'])('should_reject_quick_delete_behind_%s_DGM118', modal => {
+  it.each(['Help', 'Commands', 'Add diagram', 'Export', 'connected picker'])('should_reject_quick_delete_behind_%s_DGM118', modal => {
     const { props } = setup({ document: sampleDiagram() })
     fireEvent.click(screen.getByText('app'))
     const remove = flow.props.nodes.find((node: any) => node.id === 'app').data.onDeleteComponent
-    fireEvent.click(['Help', 'New diagram'].includes(modal) ? menuItemDGM140(modal) : screen.getByRole('button', { name: modal === 'connected picker' ? 'Add connected component right' : modal }))
+    fireEvent.click(['Help', 'Add diagram'].includes(modal) ? menuItemDGM140(modal) : screen.getByRole('button', { name: modal === 'connected picker' ? 'Add connected component right' : modal }))
     const dialog = screen.getByRole('dialog')
     act(() => remove())
     expect(screen.getByRole('dialog')).toBe(dialog)
@@ -1761,7 +1761,7 @@ describe('controlled editor', () => {
     const { props, container } = setup({ document: sampleDiagram() })
     fireEvent.click(screen.getByText('app'))
     const help = menuItemDGM140('Help')
-    const newDiagram = menuOriginDGM140('New diagram')
+    const newDiagram = menuOriginDGM140('Add diagram')
     fireEvent.click(help)
     const guide = screen.getByRole('dialog', { name: 'UI guide' })
     const close = within(guide).getByRole('button', { name: 'Close guide' })
@@ -1784,10 +1784,10 @@ describe('controlled editor', () => {
     expect(document.activeElement).toBe(menuOriginDGM140('Help'))
     expect(container.querySelector('.app-shell')!.hasAttribute('inert')).toBe(false)
   })
-  it.each(['New diagram', 'Commands', 'Export'])('should_not_stack_Help_over_%s_DGM117', label => {
+  it.each(['Add diagram', 'Commands', 'Export'])('should_not_stack_Help_over_%s_DGM117', label => {
     setup()
     const help = menuOriginDGM140('Help')
-    fireEvent.click(label === 'New diagram' ? menuItemDGM140(label) : screen.getByRole('button', { name: label }))
+    fireEvent.click(label === 'Add diagram' ? menuItemDGM140(label) : screen.getByRole('button', { name: label }))
     expect(help).toHaveProperty('disabled', true)
     fireEvent.click(help)
     expect(screen.queryByRole('dialog', { name: 'UI guide' })).toBeNull()
@@ -1911,7 +1911,7 @@ describe('controlled editor', () => {
       fireEvent.keyDown(done, { key: 'Tab' }); expect(document.activeElement).toBe(close)
       fireEvent.keyDown(close, { key: 'Tab', shiftKey: true }); expect(document.activeElement).toBe(done)
       for (const event of [{ key: 'Delete' }, { key: 'Backspace' }, { key: 'ArrowRight' }, { key: 'z', ctrlKey: true }, { key: 'y', ctrlKey: true }, { key: 'v', ctrlKey: true }, { key: 'k', ctrlKey: true }, { key: 'F2' }, { key: 'c' }, { key: '+' }]) fireEvent.keyDown(window, event)
-      fireEvent.click(menuOriginDGM140('New diagram'))
+      fireEvent.click(menuOriginDGM140('Add diagram'))
       fireEvent.click(container.querySelector('.canvas-surface')!)
       expect(screen.getAllByRole('dialog')).toHaveLength(1)
       fireEvent.keyDown(dialog, { key: 'Escape', isComposing: true, keyCode: 229 })
@@ -1960,10 +1960,10 @@ describe('controlled editor', () => {
     expect(document.activeElement).toBe(about)
     expect(props.onCommand).not.toHaveBeenCalled()
   })
-  it.each(['New diagram', 'Commands', 'Export', 'Help'])('should_not_stack_About_over_%s_DGM126', label => {
+  it.each(['Add diagram', 'Commands', 'Export', 'Help'])('should_not_stack_About_over_%s_DGM126', label => {
     setup()
     const about = aboutButtonDGM126()
-    fireEvent.click(['New diagram', 'Help'].includes(label) ? menuItemDGM140(label) : screen.getByRole('button', { name: label }))
+    fireEvent.click(['Add diagram', 'Help'].includes(label) ? menuItemDGM140(label) : screen.getByRole('button', { name: label }))
     fireEvent.pointerDown(about); fireEvent.mouseDown(about); fireEvent.click(about)
     expect(screen.queryByRole('dialog', { name: 'About Azure Diagram Studio' })).toBeNull()
     expect(screen.getAllByRole('dialog')).toHaveLength(1)
@@ -2082,40 +2082,53 @@ describe('controlled editor', () => {
     fireEvent.click(screen.getByRole('option', { name: 'Align top' }))
     expect(props.onCommand).not.toHaveBeenCalled()
   })
-  it('should_show_all_eleven_native_previews_and_distinct_source_cues_plus_Blank_DGM123', () => {
+  it('should_preview_one_selected_catalog_architecture_without_mutating_the_document_DGM164', () => {
     const { props } = setup()
-    fireEvent.click(menuItemDGM140('New diagram'))
-    const dialog = screen.getByRole('dialog', { name: 'New diagram' })
-    expect(dialog.querySelectorAll('.starter-choice')).toHaveLength(12)
-    expect(dialog.querySelectorAll('.starter-preview')).toHaveLength(11)
-    expect(within(dialog).getAllByText('Learn adaptation')).toHaveLength(7)
-    expect(within(dialog).getAllByText('Synthetic example')).toHaveLength(4)
+    fireEvent.click(menuItemDGM140('Add diagram'))
+    const dialog = screen.getByRole('dialog', { name: 'Add diagram' })
+    expect(dialog.querySelectorAll('.architecture-catalog-preview')).toHaveLength(1)
+    expect(within(dialog).getAllByText('Grounded knowledge assistant with retrieval-augmented generation').length).toBeGreaterThan(0)
+    expect(within(dialog).getByText('Microsoft origin')).toBeTruthy()
+    expect(within(dialog).getByRole('link', { name: 'Open primary source' })).toBeTruthy()
     expect(within(dialog).getByRole('button', { name: 'Blank' })).toBeTruthy()
-    for (const choice of starterCatalog) {
-      const button = within(dialog).getByRole('button', { name: choice.label })
-      const scene = buildScene(starterDocument(choice.key))
-      expect(button.querySelector('svg')?.getAttribute('viewBox')).toBe(`${scene.contentBounds.x} ${scene.contentBounds.y} ${Math.max(1, scene.contentBounds.width)} ${Math.max(1, scene.contentBounds.height)}`)
-      expect(button.querySelectorAll('[data-preview-connection]')).toHaveLength(scene.connections.length)
-      fireEvent.click(button)
-      expect(props.onChooseStarter).toHaveBeenLastCalledWith(choice.key)
-    }
+    expect(within(dialog).getByRole('img', { name: /100 percent$/ })).toBeTruthy()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Fit overview' }))
+    expect(within(dialog).getByRole('img', { name: /50 percent$/ })).toBeTruthy()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Reset preview zoom' }))
+    expect(within(dialog).getByRole('img', { name: /100 percent$/ })).toBeTruthy()
+    expect(within(dialog).getByRole('region', { name: 'Scrollable diagram preview' })).toHaveProperty('tabIndex', 0)
+    expect(dialog.querySelectorAll('[data-preview-connection]')).toHaveLength(starterDocument('ms-rag-grounded-knowledge-assistant').connections.length)
     expect(props.onCommand).not.toHaveBeenCalled()
+    expect(props.onChooseStarter).not.toHaveBeenCalled()
     expect(props.onNew).not.toHaveBeenCalled()
   })
-  it('should_reach_all_choices_with_Arrows_and_wrap_Tab_without_replacing_work_DGM123', () => {
+  it('should_reset_catalog_preview_zoom_and_scroll_when_switching_templates_DGM164', () => {
+    setup()
+    fireEvent.click(menuItemDGM140('Add diagram'))
+    const dialog = screen.getByRole('dialog', { name: 'Add diagram' })
+    const viewport = within(dialog).getByRole('region', { name: 'Scrollable diagram preview' }) as HTMLDivElement
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Fit overview' }))
+    viewport.scrollLeft = 300
+    viewport.scrollTop = 200
+    fireEvent.click(within(dialog).getByRole('button', { name: /Document-grounded assistant with separate ingestion and evaluation pathsGoogle Cloud/ }))
+    expect(within(dialog).getByRole('img', { name: /100 percent$/ })).toBeTruthy()
+    expect(viewport.scrollLeft).toBe(0)
+    expect(viewport.scrollTop).toBe(0)
+  })
+  it('should_trap_links_and_controls_but_leave_search_arrows_native_without_replacing_work_DGM164', () => {
     const { props } = setup({ document: sampleDiagram() })
-    const origin = menuOriginDGM140('New diagram')
-    fireEvent.click(menuItemDGM140('New diagram'))
-    const dialog = screen.getByRole('dialog', { name: 'New diagram' })
-    const close = within(dialog).getByRole('button', { name: 'Close new diagram' })
-    const choices = [within(dialog).getByRole('button', { name: 'Blank' }), ...starterCatalog.map(choice => within(dialog).getByRole('button', { name: choice.label }))]
+    const origin = menuOriginDGM140('Add diagram')
+    fireEvent.click(menuItemDGM140('Add diagram'))
+    const dialog = screen.getByRole('dialog', { name: 'Add diagram' })
+    const close = within(dialog).getByRole('button', { name: 'Close Add diagram' })
     close.focus()
-    for (const button of choices) { fireEvent.keyDown(document.activeElement!, { key: 'ArrowDown' }); expect(document.activeElement).toBe(button) }
-    fireEvent.keyDown(choices.at(-1)!, { key: 'Tab' })
-    expect(document.activeElement).toBe(close)
     fireEvent.keyDown(close, { key: 'Tab', shiftKey: true })
-    expect(document.activeElement).toBe(choices.at(-1))
-    for (const button of [...choices.slice(0, -1)].reverse()) { fireEvent.keyDown(document.activeElement!, { key: 'ArrowUp' }); expect(document.activeElement).toBe(button) }
+    expect(document.activeElement).toBe(within(dialog).getByRole('button', { name: 'Add Diagram' }))
+    const search = within(dialog).getByRole('searchbox')
+    search.focus(); fireEvent.keyDown(search, { key: 'ArrowLeft' })
+    expect(document.activeElement).toBe(search)
+    fireEvent.keyDown(search, { key: 'Tab', shiftKey: true })
+    expect(document.activeElement).toBe(within(dialog).getByRole('button', { name: 'Close Add diagram' }))
     fireEvent.keyDown(document.activeElement!, { key: 'Escape' })
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(document.activeElement).toBe(origin)
@@ -2127,7 +2140,7 @@ describe('controlled editor', () => {
     const field = screen.getByLabelText('Architecture description (Markdown)') as HTMLTextAreaElement
     expect(field.value).toBe(props.document.description)
     fireEvent.change(field, { target: { value: '# Pending guide edit' } })
-    const origin = menuItemDGM140('New diagram')
+    const origin = menuItemDGM140('Add diagram')
     fireEvent.pointerDown(origin)
     fireEvent.blur(field, { relatedTarget: origin })
     fireEvent.click(origin)
@@ -2144,16 +2157,16 @@ describe('controlled editor', () => {
     field.focus()
     fireEvent.change(field, { target: { value: 'Uncommitted starter draft' } })
     const previews = vi.mocked(props.onPreviewChange).mock.calls.length
-    const origin = menuItemDGM140('New diagram')
+    const origin = menuItemDGM140('Add diagram')
     fireEvent.pointerDown(origin); fireEvent.mouseDown(origin)
     fireEvent.blur(field, { relatedTarget: origin }); fireEvent.click(origin)
-    const dialog = screen.getByRole('dialog', { name: 'New diagram' })
+    const dialog = screen.getByRole('dialog', { name: 'Add diagram' })
     expect(props.onCommand).not.toHaveBeenCalled()
     expect(props.onNew).not.toHaveBeenCalled()
     fireEvent.keyDown(dialog, { key: 'ArrowRight' })
     fireEvent.keyDown(dialog, { key: 'Escape' })
     expect(screen.queryByRole('dialog')).toBeNull()
-    expect(document.activeElement).toBe(menuOriginDGM140('New diagram'))
+    expect(document.activeElement).toBe(menuOriginDGM140('Add diagram'))
     expect((field as HTMLInputElement).value).toBe('Uncommitted starter draft')
     expect(props.onPreviewChange).toHaveBeenCalledTimes(previews)
     expect(props.onCommand).not.toHaveBeenCalled()
@@ -2166,32 +2179,32 @@ describe('controlled editor', () => {
     beginInlineDGM154(screen.getByText('app'))
     const input = screen.getByRole('textbox', { name: /^Inline / })
     fireEvent.change(input, { target: { value: 'x'.repeat(121) } })
-    fireEvent.click(menuItemDGM140('New diagram'))
-    fireEvent.click(screen.getByRole('button', { name: /Web\/API/ }))
+    fireEvent.click(menuItemDGM140('Add diagram'))
+    fireEvent.click(screen.getByRole('button', { name: 'Add Diagram' }))
     expect(onChooseStarter).not.toHaveBeenCalled()
     expect(props.onCommand).not.toHaveBeenCalled()
     expect(screen.getByRole('alert').textContent).toMatch(/120|Limit/)
     fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
     fireEvent.change(input, { target: { value: 'Valid finalized edit' } })
-    fireEvent.click(menuItemDGM140('New diagram'))
-    fireEvent.click(screen.getByRole('button', { name: /Web\/API/ }))
+    fireEvent.click(menuItemDGM140('Add diagram'))
+    fireEvent.click(screen.getByRole('button', { name: 'Add Diagram' }))
     expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'updateEntity', id: 'app', patch: { label: 'Valid finalized edit' } })
-    expect(onChooseStarter).toHaveBeenCalledExactlyOnceWith('web-api')
+    expect(onChooseStarter).toHaveBeenCalledExactlyOnceWith('ms-rag-grounded-knowledge-assistant')
     expect(flow.props.nodes.find((node: any) => node.id === 'app').selected).toBe(true)
     expect(screen.getByRole('dialog')).toBeTruthy()
   })
   it('should_clear_only_accepted_starter_selection_when_object_ids_repeat_DGM109', () => {
-    const original = starterDocument('web-api'), replacement = { ...starterDocument('web-api'), id: 'fresh-copy' }
+    const original = starterDocument('ms-rag-grounded-knowledge-assistant'), replacement = { ...starterDocument('ms-rag-grounded-knowledge-assistant'), id: 'fresh-copy' }
     const onChooseStarter = vi.fn(() => false)
     const { props, rerender } = setup({ document: original, onChooseStarter })
     const id = original.entities.find(entity => entity.kind === 'component')!.id
     fireEvent.click(screen.getByText(id))
-    fireEvent.click(menuItemDGM140('New diagram'))
-    const choice = screen.getByRole('button', { name: /Web\/API/ })
-    fireEvent.click(choice)
+    fireEvent.click(menuItemDGM140('Add diagram'))
+    const add = screen.getByRole('button', { name: 'Add Diagram' })
+    fireEvent.click(add)
     expect(flow.props.nodes.find((node: any) => node.id === id).selected).toBe(true)
     onChooseStarter.mockReturnValue(true)
-    fireEvent.click(choice); fireEvent.click(choice)
+    fireEvent.click(add); fireEvent.click(add)
     rerender(<Editor {...props} document={replacement} />)
     expect(onChooseStarter).toHaveBeenCalledTimes(2)
     expect(screen.queryByRole('dialog')).toBeNull()
@@ -2202,33 +2215,36 @@ describe('controlled editor', () => {
   it('should_observe_blank_identity_and_reject_stored_choice_when_document_or_guard_changes_DGM109', () => {
     const onChooseStarter = vi.fn(() => true)
     const { props, rerender } = setup({ document: sampleDiagram(), onChooseStarter })
-    fireEvent.click(menuItemDGM140('New diagram'))
+    fireEvent.click(menuItemDGM140('Add diagram'))
     fireEvent.click(screen.getByRole('button', { name: 'Blank' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add Diagram' }))
     expect(props.onNew).toHaveBeenCalledOnce()
     expect(screen.getByRole('dialog')).toBeTruthy()
-    const stale = screen.getByRole('button', { name: /Web\/API/ })
+    const stale = screen.getByRole('button', { name: 'Add Diagram' })
     rerender(<Editor {...props} document={createDocument('accepted-blank')} />)
     expect(screen.queryByRole('dialog')).toBeNull()
     fireEvent.click(stale)
     expect(onChooseStarter).not.toHaveBeenCalled()
-    fireEvent.click(menuItemDGM140('New diagram'))
+    fireEvent.click(menuItemDGM140('Add diagram'))
     rerender(<Editor {...props} document={createDocument('accepted-blank')} readOnly />)
     expect(screen.queryByRole('dialog')).toBeNull()
   })
   it('should_start_blank_once_while_waiting_for_its_new_document_identity_DGM109', () => {
     const { props } = setup({ document: sampleDiagram() })
-    fireEvent.click(menuItemDGM140('New diagram'))
+    fireEvent.click(menuItemDGM140('Add diagram'))
     const blank = screen.getByRole('button', { name: 'Blank' })
     fireEvent.click(blank)
-    fireEvent.click(blank)
+    const add = screen.getByRole('button', { name: 'Add Diagram' })
+    fireEvent.click(add)
+    fireEvent.click(add)
     expect(props.onNew).toHaveBeenCalledOnce()
   })
   it('should_open_same_nonmutating_chooser_when_New_is_selected_in_commands_DGM109', () => {
     const { props } = setup()
     fireEvent.change(screen.getByLabelText('Document title'), { target: { value: 'Pending command draft' } })
     fireEvent.click(screen.getByRole('button', { name: 'Commands' }))
-    fireEvent.click(screen.getByRole('option', { name: 'New diagram' }))
-    expect(screen.getByRole('dialog', { name: 'New diagram' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('option', { name: 'Add diagram' }))
+    expect(screen.getByRole('dialog', { name: 'Add diagram' })).toBeTruthy()
     fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
     expect(props.onCommand).not.toHaveBeenCalled()
     expect(props.onNew).not.toHaveBeenCalled()
@@ -3201,7 +3217,7 @@ describe('controlled editor', () => {
     expect(container.querySelector('.app-shell')?.classList.contains('presenting')).toBe(true)
     expect(screen.queryByRole('navigation', { name: 'Drawing tools' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Auto-arrange' })).toBeNull()
-    expect(screen.queryByRole('button', { name: 'New diagram' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Add diagram' })).toBeNull()
     expect(screen.getByLabelText('Component library').hasAttribute('inert')).toBe(true)
     expect(screen.getByLabelText('Markdown').hasAttribute('inert')).toBe(true)
     expect(screen.getByLabelText('Markdown').classList.contains('open')).toBe(false)
@@ -3381,7 +3397,7 @@ describe('controlled editor', () => {
     const { props } = setup({ document: sampleDiagram() })
     fireEvent.click(screen.getByText('gateway'))
     const priorFlow = flow.props
-    const stale = ['Auto-arrange', 'New diagram', 'Load', 'Import skill JSON', 'Undo', 'Redo'].map(label => ['New diagram', 'Load', 'Import skill JSON'].includes(label) ? menuItemDGM140(label) : screen.getByLabelText(label))
+    const stale = ['Auto-arrange', 'Add diagram', 'Load', 'Import skill JSON', 'Undo', 'Redo'].map(label => ['Add diagram', 'Load', 'Import skill JSON'].includes(label) ? menuItemDGM140(label) : screen.getByLabelText(label))
     const title = screen.getByLabelText('Document title')
     const iconInput = screen.getByLabelText('Import icon file')
     fireEvent.click(screen.getByRole('button', { name: 'Present' }))
@@ -4059,10 +4075,10 @@ describe('controlled editor', () => {
   })
   it('should_forward_file_history_and_busy_state_when_toolbar_is_used', () => {
     const { props } = setup({ isArranging: true, isExporting: true, saveState: 'error', message: 'Storage unavailable. Save.' })
-    fireEvent.click(menuItemDGM140('New diagram'))
-    expect(screen.getByRole('dialog', { name: 'New diagram' })).toBeTruthy()
+    fireEvent.click(menuItemDGM140('Add diagram'))
+    expect(screen.getByRole('dialog', { name: 'Add diagram' })).toBeTruthy()
     expect(props.onNew).not.toHaveBeenCalled()
-    fireEvent.keyDown(screen.getByRole('dialog', { name: 'New diagram' }), { key: 'Escape' })
+    fireEvent.keyDown(screen.getByRole('dialog', { name: 'Add diagram' }), { key: 'Escape' })
     for (const [label, callback] of [['Load', props.onOpen], ['Import skill JSON', props.onImport], ['Save', props.onSaveJson], ['Undo', props.onUndo], ['Redo', props.onRedo]] as const) { fireEvent.click(['Undo', 'Redo'].includes(label) ? screen.getByLabelText(label) : menuItemDGM140(label)); expect(callback).toHaveBeenCalledTimes(1) }
     expect((screen.getByLabelText('Auto-arrange') as HTMLButtonElement).disabled).toBe(true)
     expect(screen.getByLabelText('Export').getAttribute('aria-disabled')).toBe('true')
@@ -4331,24 +4347,22 @@ describe('controlled editor', () => {
   })
 })
 describe('DGM-127 unified new document and template picker', () => {
-  it('should_focus_Blank_as_default_when_New_diagram_or_Commands_opens_picker_DGM127', () => {
+  it('should_preview_a_researched_architecture_when_Add_diagram_or_Commands_opens_picker_DGM164', () => {
     const { props } = setup({ document: sampleDiagram() })
-    fireEvent.click(menuItemDGM140('New diagram'))
-    const dialog = screen.getByRole('dialog', { name: 'New diagram' })
-    const blank = within(dialog).getByRole('button', { name: 'Blank' })
-    expect(document.activeElement).toBe(blank)
-    expect(blank.classList.contains('default')).toBe(true)
+    fireEvent.click(menuItemDGM140('Add diagram'))
+    const dialog = screen.getByRole('dialog', { name: 'Add diagram' })
+    expect(within(dialog).getAllByText('Grounded knowledge assistant with retrieval-augmented generation').length).toBeGreaterThan(0)
     fireEvent.keyDown(dialog, { key: 'Escape' })
     fireEvent.click(screen.getByRole('button', { name: 'Commands' }))
-    fireEvent.click(screen.getByRole('option', { name: 'New diagram' }))
-    expect(document.activeElement).toBe(within(screen.getByRole('dialog', { name: 'New diagram' })).getByRole('button', { name: 'Blank' }))
+    fireEvent.click(screen.getByRole('option', { name: 'Add diagram' }))
+    expect(within(screen.getByRole('dialog', { name: 'Add diagram' })).getAllByText('Grounded knowledge assistant with retrieval-augmented generation').length).toBeGreaterThan(0)
     expect(props.onNew).not.toHaveBeenCalled()
     expect(props.onChooseStarter).not.toHaveBeenCalled()
   })
   it('should_open_offered_startup_picker_once_with_Blank_focused_and_acknowledge_it_DGM127', () => {
     const onStarterOffered = vi.fn()
     const { props, rerender } = setup({ document: createDocument('fresh'), backupDirty: false, saveState: 'saving', starterOffer: true, onStarterOffered })
-    expect(screen.getAllByRole('dialog', { name: 'New diagram' })).toHaveLength(1)
+    expect(screen.getAllByRole('dialog', { name: 'Add diagram' })).toHaveLength(1)
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Blank' }))
     expect(onStarterOffered).toHaveBeenCalledOnce()
     rerender(<Editor {...props} starterOffer={false} />)
@@ -4363,6 +4377,7 @@ describe('DGM-127 unified new document and template picker', () => {
   it('should_close_fresh_startup_picker_on_Blank_without_replacing_pristine_document_DGM127', () => {
     const { props } = setup({ document: createDocument('fresh'), backupDirty: false, starterOffer: true, onStarterOffered: vi.fn() })
     fireEvent.click(screen.getByRole('button', { name: 'Blank' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add Diagram' }))
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(props.onNew).not.toHaveBeenCalled()
     expect(props.onCommand).not.toHaveBeenCalled()

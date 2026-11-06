@@ -1,0 +1,553 @@
+{
+  "schemaVersion": 1,
+  "id": "gcp-rag-app-alloydb-origin-v1",
+  "title": "Document-grounded assistant with separate ingestion and evaluation paths",
+  "subtitle": "A RAG application ingests files into a vector store and uses retrieved context for model responses, with a separate response-quality evaluation loop. Synthetic Azure reference; no deployment is implie",
+  "description": "### Problem\nAn organization wants an assistant to answer questions using its own current documents and to measure whether generated responses are relevant and grounded.\n\n### Flow and Azure mapping\nUpload events trigger document processing. A pipeline extracts text, chunks content, creates embeddings, and indexes records in Azure AI Search. At request time, an application retrieves relevant chunks, packages context with the user question, calls a selected Azure model endpoint, applies response checks, and returns a response. An offline evaluation path stores prompts and response ratings for review and regression tests.\n\n### Trade-offs and assumptions\nThe Google source separates ingestion, serving, evaluation, and databases, and uses an AlloyDB pgvector store. Azure AI Search is a different retrieval service, not an equivalent database extension; index configuration, filtering, hybrid retrieval, embedding compatibility, and data lifecycle need separate choices. Evaluation does not guarantee factual answers, and document access controls must be enforced during retrieval.\n\nSource: [Google Cloud Architecture Center](https://docs.cloud.google.com/architecture/rag-capable-gen-ai-app-using-vertex-ai).\n\n## Source provenance\n\n- Origin provider: Google Cloud\n- Target: Azure conceptual adaptation\n- Primary source: [RAG infrastructure for generative AI using Agent Platform and AlloyDB for PostgreSQL](https://docs.cloud.google.com/architecture/rag-capable-gen-ai-app-using-vertex-ai)\n- Reviewed: 2026-11-06\n\n## Catalog status\n\nThis is an original, editable Azure conceptual adaptation. It is synthetic reference material, not a deployed system, certified vendor architecture, or automatic deployment plan.\n\n## Mapping caveats\n\n- Evaluation logs can contain sensitive prompts and responses; apply retention and access controls.",
+  "synthetic": true,
+  "legendVisible": true,
+  "legend": [
+    {
+      "label": "Illustrative Azure flow",
+      "color": "#0078d4",
+      "meaning": "Original conceptual flow, not verified deployment connectivity."
+    },
+    {
+      "label": "Synthetic reference",
+      "color": "#62696c",
+      "dashed": true,
+      "meaning": "Editable starting point requiring workload-specific design."
+    }
+  ],
+  "revision": 1,
+  "direction": "RIGHT",
+  "entities": [
+    {
+      "id": "group-source",
+      "kind": "boundary",
+      "label": "Document sources and users",
+      "subtitle": "External actors",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 24,
+      "y": 198.2,
+      "width": 312,
+      "height": 330,
+      "color": "azure"
+    },
+    {
+      "id": "group-ingest",
+      "kind": "boundary",
+      "label": "Azure content ingestion",
+      "subtitle": "Data preparation",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 1785,
+      "y": 24,
+      "width": 1583,
+      "height": 227.5,
+      "color": "teal"
+    },
+    {
+      "id": "group-serve",
+      "kind": "boundary",
+      "label": "Azure assistant serving",
+      "subtitle": "Application and model access",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 620,
+      "y": 243.2,
+      "width": 765,
+      "height": 238,
+      "color": "amber"
+    },
+    {
+      "id": "group-eval",
+      "kind": "boundary",
+      "label": "Evaluation and observability",
+      "subtitle": "Offline quality loop",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 1785,
+      "y": 271.5,
+      "width": 312,
+      "height": 214,
+      "color": "rose"
+    },
+    {
+      "id": "upload",
+      "kind": "component",
+      "label": "Document sources",
+      "subtitle": "Generic files and databases",
+      "parentId": "group-source",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 103,
+      "color": "azure",
+      "icon": "database",
+      "status": "synthetic"
+    },
+    {
+      "id": "user",
+      "kind": "component",
+      "label": "User",
+      "subtitle": "Generic user",
+      "parentId": "group-source",
+      "layer": "foreground",
+      "x": 24,
+      "y": 210,
+      "width": 264,
+      "height": 96,
+      "color": "azure",
+      "icon": "user",
+      "status": "synthetic"
+    },
+    {
+      "id": "trigger",
+      "kind": "component",
+      "label": "Ingestion trigger",
+      "subtitle": "Azure Event Grid",
+      "parentId": "group-ingest",
+      "layer": "foreground",
+      "x": 24,
+      "y": 91.5,
+      "width": 264,
+      "height": 96,
+      "color": "teal",
+      "icon": "queue",
+      "status": "synthetic"
+    },
+    {
+      "id": "pipeline",
+      "kind": "component",
+      "label": "Parse, chunk, and enrich",
+      "subtitle": "Azure Functions",
+      "parentId": "group-ingest",
+      "layer": "foreground",
+      "x": 446,
+      "y": 87,
+      "width": 264,
+      "height": 105,
+      "color": "teal",
+      "icon": "function",
+      "status": "synthetic"
+    },
+    {
+      "id": "embedding",
+      "kind": "component",
+      "label": "Embedding model",
+      "subtitle": "Azure AI model endpoint",
+      "parentId": "group-ingest",
+      "layer": "foreground",
+      "x": 874,
+      "y": 91.5,
+      "width": 264,
+      "height": 96,
+      "color": "teal",
+      "icon": "model",
+      "status": "synthetic"
+    },
+    {
+      "id": "index",
+      "kind": "component",
+      "label": "Vector and text index",
+      "subtitle": "Azure AI Search",
+      "parentId": "group-ingest",
+      "layer": "foreground",
+      "x": 1295,
+      "y": 107.5,
+      "width": 264,
+      "height": 96,
+      "color": "teal",
+      "icon": "service",
+      "status": "synthetic"
+    },
+    {
+      "id": "app",
+      "kind": "component",
+      "label": "Assistant serving app",
+      "subtitle": "Azure App Service",
+      "parentId": "group-serve",
+      "layer": "foreground",
+      "x": 477,
+      "y": 102.8,
+      "width": 264,
+      "height": 96,
+      "color": "amber",
+      "icon": "server",
+      "status": "synthetic"
+    },
+    {
+      "id": "model",
+      "kind": "component",
+      "label": "Language model endpoint",
+      "subtitle": "Azure AI model endpoint",
+      "parentId": "group-serve",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 105,
+      "color": "amber",
+      "icon": "model",
+      "status": "synthetic"
+    },
+    {
+      "id": "eval",
+      "kind": "component",
+      "label": "Quality evaluation",
+      "subtitle": "Evaluation pipeline and analytics store",
+      "parentId": "group-eval",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 103,
+      "color": "rose",
+      "icon": "function",
+      "status": "synthetic"
+    }
+  ],
+  "connections": [
+    {
+      "id": "gcp-rag-app-alloydb-origin-flow-1",
+      "from": "upload",
+      "to": "trigger",
+      "label": "new document",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 312,
+          "y": 297.2
+        },
+        {
+          "x": 612,
+          "y": 297.2
+        },
+        {
+          "x": 612,
+          "y": 199.5
+        },
+        {
+          "x": 1809,
+          "y": 199.5
+        }
+      ],
+      "labelPosition": {
+        "x": 1210.5,
+        "y": 199.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-rag-app-alloydb-origin-flow-2",
+      "from": "trigger",
+      "to": "pipeline",
+      "label": "ingestion event",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 2073,
+          "y": 163.5
+        },
+        {
+          "x": 2231,
+          "y": 163.5
+        }
+      ],
+      "labelPosition": {
+        "x": 2152,
+        "y": 163.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-rag-app-alloydb-origin-flow-3",
+      "from": "pipeline",
+      "to": "embedding",
+      "label": "prepared chunks",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 2495,
+          "y": 163.5
+        },
+        {
+          "x": 2659,
+          "y": 163.5
+        }
+      ],
+      "labelPosition": {
+        "x": 2577,
+        "y": 163.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-rag-app-alloydb-origin-flow-4",
+      "from": "embedding",
+      "to": "index",
+      "label": "vector records",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 2923,
+          "y": 199.5
+        },
+        {
+          "x": 3064,
+          "y": 199.5
+        },
+        {
+          "x": 3064,
+          "y": 143.5
+        },
+        {
+          "x": 3080,
+          "y": 143.5
+        }
+      ],
+      "labelPosition": {
+        "x": 2993.5,
+        "y": 199.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-rag-app-alloydb-origin-flow-5",
+      "from": "user",
+      "to": "app",
+      "label": "question",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 312,
+          "y": 420.2
+        },
+        {
+          "x": 636,
+          "y": 420.2
+        },
+        {
+          "x": 636,
+          "y": 443.2
+        },
+        {
+          "x": 1081,
+          "y": 443.2
+        },
+        {
+          "x": 1081,
+          "y": 390
+        },
+        {
+          "x": 1097,
+          "y": 390
+        }
+      ],
+      "labelPosition": {
+        "x": 858.5,
+        "y": 459.2
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-rag-app-alloydb-origin-flow-6",
+      "from": "app",
+      "to": "index",
+      "label": "semantic retrieval",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1361,
+          "y": 358
+        },
+        {
+          "x": 1777,
+          "y": 358
+        },
+        {
+          "x": 1777,
+          "y": 224
+        },
+        {
+          "x": 3056,
+          "y": 224
+        },
+        {
+          "x": 3056,
+          "y": 195.5
+        },
+        {
+          "x": 3080,
+          "y": 195.5
+        }
+      ],
+      "labelPosition": {
+        "x": 2416.5,
+        "y": 240
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-rag-app-alloydb-origin-flow-7",
+      "from": "index",
+      "to": "app",
+      "label": "matching context",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 3080,
+          "y": 215.5
+        },
+        {
+          "x": 2931,
+          "y": 215.5
+        },
+        {
+          "x": 2931,
+          "y": 263.5
+        },
+        {
+          "x": 1385,
+          "y": 263.5
+        },
+        {
+          "x": 1385,
+          "y": 378
+        },
+        {
+          "x": 1361,
+          "y": 378
+        }
+      ],
+      "labelPosition": {
+        "x": 2158,
+        "y": 247.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-rag-app-alloydb-origin-flow-8",
+      "from": "app",
+      "to": "model",
+      "label": "contextual prompt",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1097,
+          "y": 378
+        },
+        {
+          "x": 924,
+          "y": 378
+        },
+        {
+          "x": 924,
+          "y": 403.2
+        },
+        {
+          "x": 908,
+          "y": 403.2
+        }
+      ],
+      "labelPosition": {
+        "x": 1010.5,
+        "y": 362
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-rag-app-alloydb-origin-flow-9",
+      "from": "model",
+      "to": "app",
+      "label": "response",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 908,
+          "y": 423.2
+        },
+        {
+          "x": 1077,
+          "y": 423.2
+        },
+        {
+          "x": 1077,
+          "y": 398
+        },
+        {
+          "x": 1097,
+          "y": 398
+        }
+      ],
+      "labelPosition": {
+        "x": 992.5,
+        "y": 423.2
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-rag-app-alloydb-origin-flow-10",
+      "from": "app",
+      "to": "eval",
+      "label": "selected evaluation traces",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1361,
+          "y": 430
+        },
+        {
+          "x": 1793,
+          "y": 430
+        },
+        {
+          "x": 1793,
+          "y": 370.5
+        },
+        {
+          "x": 1809,
+          "y": 370.5
+        }
+      ],
+      "labelPosition": {
+        "x": 1577,
+        "y": 430
+      },
+      "routeRevision": 1
+    }
+  ]
+}

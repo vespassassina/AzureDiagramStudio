@@ -4,12 +4,13 @@ import { qualityFixtures } from './fixtures.ts'
 import { absolutePosition, measureEntity, sampleDiagram } from './model.ts'
 import { starterDocument, starterKeys } from './app/session.ts'
 import { starterCatalog } from './app/starters.ts'
+import { researchedArchitectureCatalog } from './app/architecture-catalog.generated.ts'
 import { isSelectableIcon } from './catalog/presentation.ts'
 import { entityTextGeometry } from './model.ts'
 import { buildScene, renderSvg } from './scene.ts'
 import { parseDocument } from './document/index.ts'
 
-test('should_offer_eleven_guided_native_starters_with_frozen_references_DGM123', () => {
+test('should_retain_eleven_guided_starters_and_offer_twenty_four_researched_architectures_DGM164', () => {
   const references = {
     'aks-baseline': 'https://learn.microsoft.com/en-us/azure/architecture/reference-architectures/containers/aks/baseline-aks',
     'container-apps-microservices': 'https://learn.microsoft.com/en-us/azure/architecture/example-scenario/serverless/microservices-with-container-apps',
@@ -19,9 +20,27 @@ test('should_offer_eleven_guided_native_starters_with_frozen_references_DGM123',
     'file-claim-check': 'https://learn.microsoft.com/en-us/azure/architecture/patterns/claim-check',
     'azure-data-warehouse': 'https://learn.microsoft.com/en-us/azure/architecture/example-scenario/data/data-warehouse',
   }
-  assert.deepEqual(starterKeys, ['web-api', 'event-driven', 'fabric', 'enterprise', ...Object.keys(references)])
-  for (const key of starterKeys) {
-    const document = starterDocument(key)
+  const legacyKeys = ['web-api', 'event-driven', 'fabric', 'enterprise', ...Object.keys(references)]
+  assert.deepEqual(starterKeys.slice(0, legacyKeys.length), legacyKeys)
+  assert.equal(starterKeys.length, 35)
+  assert.equal(researchedArchitectureCatalog.length, 24)
+  assert.deepEqual(Object.fromEntries(['Microsoft', 'AWS', 'Google Cloud'].map(origin => [origin, researchedArchitectureCatalog.filter(choice => choice.origin === origin).length])), { Microsoft: 8, AWS: 8, 'Google Cloud': 8 })
+  assert.equal(new Set(researchedArchitectureCatalog.map(choice => choice.key)).size, 24)
+  for (const choice of researchedArchitectureCatalog) {
+    const document = starterDocument(choice.key)
+    assert.equal(document.synthetic, true)
+    assert.ok(document.description?.includes(choice.reference), choice.key)
+    assert.ok(document.description?.includes('Catalog status'), choice.key)
+    assert.ok(document.description?.includes('Mapping caveats'), choice.key)
+    assert.ok(document.description?.includes('## Source provenance'), choice.key)
+    assert.ok(document.description?.includes(`Origin provider: ${choice.origin}`), choice.key)
+    assert.ok(document.description?.includes('Target: Azure conceptual adaptation'), choice.key)
+    assert.match(document.description!, /Primary source: \[.+\]\(https?:\/\/.+\)/, choice.key)
+    assert.match(document.description!, /Reviewed: 2026-\d{2}-\d{2}/, choice.key)
+    assert.ok(choice.categoryPath[0] && choice.categoryPath[1], choice.key)
+  }
+  for (const key of legacyKeys) {
+    const document = starterDocument(key as import('./contracts.ts').StarterKey)
     assert.equal(document.schemaVersion, 1)
     assert.equal(document.synthetic, true)
     assert.ok(document.description)
@@ -37,16 +56,18 @@ test('should_offer_eleven_guided_native_starters_with_frozen_references_DGM123',
   }
 })
 
-test('should_validate_native_geometry_icons_sources_and_artwork_independence_for_each_starter_DGM123', () => {
-  assert.equal(new Set(starterCatalog.map(choice => choice.key)).size, 11)
-  assert.equal(new Set(starterCatalog.map(choice => choice.label)).size, 11)
+test('should_validate_native_geometry_icons_sources_and_artwork_independence_for_each_starter_DGM164', () => {
+  assert.equal(new Set(starterCatalog.map(choice => choice.key)).size, 35)
+  assert.equal(new Set(starterCatalog.map(choice => choice.label)).size, 35)
   for (const choice of starterCatalog) {
     const document = starterDocument(choice.key)
     const parsed = parseDocument(choice.source)
     assert.ok(parsed.ok)
     assert.deepEqual(parsed.value, document)
-    assert.equal(choice.sourceCue, choice.reference ? 'Learn adaptation' : 'Synthetic example')
-    if (!choice.reference) continue
+    if (choice.sourceCue === 'Architecture catalog') {
+      assert.ok(document.description?.includes('original, editable Azure conceptual adaptation'))
+    } else assert.equal(choice.sourceCue, choice.reference ? 'Learn adaptation' : 'Synthetic example')
+    if (!choice.reference || choice.sourceCue === 'Architecture catalog') continue
     assert.ok(document.description!.includes(choice.reference))
     assert.ok(document.entities.filter(entity => entity.kind === 'component').length >= 6)
     assert.ok(document.entities.filter(entity => entity.kind === 'component').length <= 12)

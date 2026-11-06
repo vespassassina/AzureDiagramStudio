@@ -1,0 +1,1098 @@
+{
+  "research_meta": {
+    "researched_on": "2026-11-06",
+    "follow_up_blog_reviewed_on": "2026-11-06",
+    "scope": "Public-source research and conceptual Azure adaptations only; no source diagrams, images, vendor prose, or deployment artifacts copied.",
+    "counts": {
+      "total_candidates": 24,
+      "microsoft_origin": 8,
+      "aws_origin": 8,
+      "google_cloud_origin": 8
+    },
+    "catalog_note": "These are curated candidates for original editable reference diagrams, not deployed solutions, certification claims, or production-ready designs. Origin provider records provenance only; every target design is Azure-oriented. Sources were fetched and checked on the date above. Source terms were not independently reviewed; link to sources and retain attribution, and do not reuse their diagrams or prose.",
+    "hierarchy_recommendation": "Workload-first, two-level category paths are used; origin provider should be a filter/badge rather than the primary navigation tree. Keep existing starter diagrams separately and deduplicate by graph shape before implementation.",
+    "blogs_reviewed": [
+      {
+        "title": "Two zones or three? A design framework for zone-resilient Azure workloads",
+        "url": "https://azure.microsoft.com/en-us/blog/two-zones-or-three-a-design-framework-for-zone-resilient-azure-workloads/",
+        "published_on": "2026-09-09",
+        "associated_candidate_ids": ["ms-appservice-multiregion-recovery"],
+        "relevance": "Microsoft distinguishes zonal resilience from regional disaster recovery and recommends deciding zone requirements component by component. Use this to keep the App Service multi-region candidate's regional failover claim separate from within-region zone design."
+      },
+      {
+        "title": "Journey to Cloud-Native Architecture Series #7: Using Containers and Cell-based design for higher resiliency and efficiency",
+        "url": "https://aws.amazon.com/blogs/architecture/journey-to-cloud-native-architecture-series-7-using-containers-and-cell-based-design-for-higher-resiliency-and-efficiency/",
+        "published_on": "2023-10-30",
+        "associated_candidate_ids": ["aws-cell-router-tenant-placement"],
+        "relevance": "AWS describes lightweight routing, independently deployable cells, customer-to-cell mapping, and shuffle sharding. This supports the cell placement concept while remaining AWS-origin evidence; its container and account topology is not copied into the Azure adaptation."
+      },
+      {
+        "title": "Uncomplicating the complex: How Spanner simplifies microservices-based architectures",
+        "url": "https://cloud.google.com/blog/products/databases/why-spanner-is-a-good-fit-for-microservices-based-applications",
+        "published_on": "2024-05-03",
+        "associated_candidate_ids": ["gcp-global-multiregion-relational-app"],
+        "relevance": "Google discusses relational replication, stale reads, sharding, and Spanner's global consistency characteristics. It reinforces that those source capabilities cannot be attributed to Azure SQL; the Azure adaptation below uses a single write region and asynchronous secondary instead."
+      }
+    ],
+    "limitations": [
+      "The follow-up verified three primary-provider architecture/engineering blog posts as supplementary evidence; they do not replace the primary architecture references.",
+      "The Google Cloud Analytics Lakehouse and BigQuery Data Warehouse Jump Start Solution pages were fetched but currently return retirement/deletion instructions, not architecture descriptions. They are excluded as candidates rather than treated as current evidence.",
+      "A direct AWS Prescriptive Guidance cross-account EventBridge pattern URL redirected to the generic patterns index and was not used.",
+      "Microsoft's secured Virtual WAN topology was reviewed but excluded from the 24 because it substantially overlaps the existing Hub-Spoke starter.",
+      "Public content does not establish a license for copying provider diagrams; this research uses facts and original summaries only."
+    ]
+  },
+  "entries": [
+    {
+      "id": "ms-rag-grounded-knowledge-assistant",
+      "title": "Grounded knowledge assistant with retrieval-augmented generation",
+      "target": "Azure",
+      "origin_provider": "Microsoft",
+      "category_path": ["AI and search", "Grounded assistants"],
+      "summary": "A standard RAG pattern pairs an application orchestrator with indexed source material so answers can be grounded in retrieved passages.",
+      "reference": {
+        "title": "Design and Develop a RAG Solution on Azure",
+        "url": "https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/rag/rag-solution-design-and-evaluation-guide",
+        "reviewed_on": "2026-11-06",
+        "source_terms": "Not independently verified; no source image or wording reproduced."
+      },
+      "supporting_sources": [],
+      "explanation_md": "### Problem\nUsers need answers based on private or domain-specific documents that a general language model might not know. A fixed retrieval pipeline is a useful starting point for single-index question answering.\n\n### Flow and Azure mapping\nAn editor or source system supplies documents; an ingestion pipeline chunks and enriches them, creates embeddings, and writes an Azure AI Search index. A user sends a question through an application API; an orchestrator retrieves relevant passages, builds a grounded prompt, calls a selected model endpoint, and returns a response with citations. Keep ingestion and query paths distinct in the diagram.\n\n### Trade-offs and assumptions\nChunking, embedding choice, retrieval mode, access filtering, and evaluation are workload-specific and require testing. This is standard RAG, not agentic retrieval, and no response-quality guarantee is implied. Model deployment choice, private networking, identity filtering, and content safety are explicit follow-up decisions.\n\nSource: [Microsoft Learn](https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/rag/rag-solution-design-and-evaluation-guide).",
+      "nodes": [
+        {"id":"source","label":"Knowledge sources","role":"External data","technology":"Generic systems"},
+        {"id":"ingest","label":"Chunk and enrich","role":"Ingestion","technology":"Azure Functions or Data Factory"},
+        {"id":"embed","label":"Create embeddings","role":"AI preparation","technology":"Azure AI model endpoint"},
+        {"id":"index","label":"Search index","role":"Vector and text retrieval","technology":"Azure AI Search"},
+        {"id":"user","label":"User","role":"External actor","technology":"Generic user"},
+        {"id":"app","label":"Assistant application","role":"Presentation and API","technology":"Azure App Service"},
+        {"id":"orchestrator","label":"Retrieval orchestrator","role":"Request orchestration","technology":"Azure Functions or Container Apps"},
+        {"id":"model","label":"Language model","role":"Inference","technology":"Azure AI model endpoint"},
+        {"id":"response","label":"Grounded answer","role":"Response","technology":"Generic response"}
+      ],
+      "groups": [
+        {"id":"external","label":"External users and sources","boundary":"External"},
+        {"id":"azure-data","label":"Azure ingestion and retrieval","boundary":"Azure data plane"},
+        {"id":"azure-app","label":"Azure application and AI","boundary":"Azure application plane"}
+      ],
+      "edges": [
+        {"from":"source","to":"ingest","label":"documents"},
+        {"from":"ingest","to":"embed","label":"clean chunks"},
+        {"from":"embed","to":"index","label":"vectors and metadata"},
+        {"from":"user","to":"app","label":"question"},
+        {"from":"app","to":"orchestrator","label":"query"},
+        {"from":"orchestrator","to":"index","label":"retrieve top matches"},
+        {"from":"index","to":"orchestrator","label":"grounding passages"},
+        {"from":"orchestrator","to":"model","label":"contextual prompt"},
+        {"from":"model","to":"orchestrator","label":"generated answer"},
+        {"from":"orchestrator","to":"response","label":"grounded response"}
+      ],
+      "caveats": ["Index access must enforce the caller's document permissions; the source emphasizes evaluation, not automatic correctness."]
+    },
+    {
+      "id": "ms-industrial-opcua-telemetry",
+      "title": "Industrial telemetry from OPC UA equipment to analytics",
+      "target": "Azure",
+      "origin_provider": "Microsoft",
+      "category_path": ["IoT and edge", "Industrial telemetry"],
+      "summary": "An edge-connected industrial pattern collects OPC UA telemetry, processes it near equipment, and routes selected data to cloud analytics.",
+      "reference": {
+        "title": "OPC UA reference solution",
+        "url": "https://learn.microsoft.com/en-us/azure/architecture/guide/iot/iot-industrial-solution-architecture",
+        "reviewed_on": "2026-11-06",
+        "source_terms": "Not independently verified; source explicitly says its reference solution is provided as-is and is not a Microsoft-supported product offering."
+      },
+      "supporting_sources": [
+        {"title":"Get started with IoT architecture design","url":"https://learn.microsoft.com/en-us/azure/architecture/guide/iot/iot-get-started","reviewed_on":"2026-11-06"}
+      ],
+      "explanation_md": "### Problem\nFactories need interoperable collection and analysis of equipment telemetry across sites, including local edge processing and cloud insight workflows.\n\n### Flow and Azure mapping\nIndustrial controllers and sensors expose OPC UA data to an edge environment running Azure IoT Operations on Azure Arc-enabled Kubernetes. Edge data flows normalize or filter telemetry, then deliver selected records through an Azure Event Hubs-compatible ingestion path to Azure Data Explorer or a Fabric eventhouse for query and dashboards. A distinct optional branch can send events to alerting or maintenance workflows.\n\n### Trade-offs and assumptions\nThe source solution uses a specific demonstration and includes Azure IoT Operations, PostgreSQL, and analytics options; this catalog diagram is a smaller conceptual abstraction, not a deployment reproduction. Site connectivity, OPC UA certificate trust, buffering, schema governance, and industrial safety remain design requirements. Do not depict cloud analytics as a replacement for deterministic control loops.\n\nSource: [Microsoft Learn](https://learn.microsoft.com/en-us/azure/architecture/guide/iot/iot-industrial-solution-architecture).",
+      "nodes": [
+        {"id":"plc","label":"Equipment and PLCs","role":"Industrial source","technology":"OPC UA"},
+        {"id":"edge","label":"Edge Kubernetes","role":"Local platform","technology":"Azure Arc-enabled Kubernetes"},
+        {"id":"ops","label":"Edge data operations","role":"Device and data plane","technology":"Azure IoT Operations"},
+        {"id":"flow","label":"Telemetry flow","role":"Edge processing","technology":"Azure IoT Operations data flows"},
+        {"id":"ingest","label":"Cloud event ingress","role":"Streaming ingress","technology":"Azure Event Hubs"},
+        {"id":"store","label":"Time-series analytics","role":"Analytics store","technology":"Azure Data Explorer"},
+        {"id":"dash","label":"Operations dashboards","role":"Visualization","technology":"Power BI or Azure Managed Grafana"},
+        {"id":"operator","label":"Plant operator","role":"External actor","technology":"Generic user"}
+      ],
+      "groups": [
+        {"id":"plant","label":"Plant OT zone","boundary":"Operational technology trust boundary"},
+        {"id":"edge-zone","label":"Managed edge zone","boundary":"Edge compute and local data plane"},
+        {"id":"azure-cloud","label":"Azure analytics","boundary":"Cloud data and visualization"}
+      ],
+      "edges": [
+        {"from":"plc","to":"ops","label":"OPC UA telemetry"},
+        {"from":"edge","to":"ops","label":"hosts"},
+        {"from":"ops","to":"flow","label":"device streams"},
+        {"from":"flow","to":"ingest","label":"selected telemetry"},
+        {"from":"ingest","to":"store","label":"stream ingest"},
+        {"from":"store","to":"dash","label":"queries and metrics"},
+        {"from":"dash","to":"operator","label":"operational view"}
+      ],
+      "caveats": ["The source cautions that the sample is not a supported product offering and should be validated before production use."]
+    },
+    {
+      "id": "ms-ml-private-inference-promotion",
+      "title": "Private machine-learning inference with controlled model promotion",
+      "target": "Azure",
+      "origin_provider": "Microsoft",
+      "category_path": ["AI and machine learning", "Model serving and governance"],
+      "summary": "A separated Dev, Stage, and Prod architecture trains candidate models, promotes versioned artifacts, and serves online inference privately.",
+      "reference": {
+        "title": "Baseline Azure Machine Learning Inference Reference Architecture",
+        "url": "https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/baseline-azure-machine-learning-inference",
+        "reviewed_on": "2026-11-06",
+        "source_terms": "Not independently verified; no source diagram or prose copied."
+      },
+      "supporting_sources": [],
+      "explanation_md": "### Problem\nEnterprise ML teams need a controlled path from experimentation to production inference, with environment isolation, private access, and traceable model artifacts.\n\n### Flow and Azure mapping\nA Dev environment reads governed training data, runs feature preparation and training, evaluates a candidate, and publishes approved model and environment versions to a shared Azure Machine Learning registry. Promotion pipelines import the approved artifacts into Stage and Prod. AKS hosts online endpoints behind Application Gateway and API Management; private endpoints, managed identities, and monitoring support operations. Blue/green deployment shifts traffic only after validation.\n\n### Trade-offs and assumptions\nThe Microsoft baseline is explicitly single-region and focuses on online inference; streaming inference is out of scope. The diagram should not imply that batch scoring, high availability, a particular feature store, or a full MLOps control framework is automatically included. Release gates and approval roles are conceptual, and must be designed for the organization's governance needs.\n\nSource: [Microsoft Learn](https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/baseline-azure-machine-learning-inference).",
+      "nodes": [
+        {"id":"data","label":"Training data","role":"Data source","technology":"Azure Data Lake Storage"},
+        {"id":"dev","label":"Development workspace","role":"Training environment","technology":"Azure Machine Learning"},
+        {"id":"pipeline","label":"Build and promotion pipeline","role":"Release automation","technology":"Azure DevOps or GitHub Actions"},
+        {"id":"registry","label":"Approved model registry","role":"Artifact promotion","technology":"Azure Machine Learning registry"},
+        {"id":"stage","label":"Stage endpoint","role":"Validation environment","technology":"AKS online endpoint"},
+        {"id":"prod","label":"Production endpoint","role":"Inference environment","technology":"AKS online endpoint"},
+        {"id":"gateway","label":"Private API ingress","role":"Ingress and policy","technology":"Application Gateway and API Management"},
+        {"id":"client","label":"Application client","role":"External caller","technology":"Generic client"},
+        {"id":"monitor","label":"Model and service monitoring","role":"Operations","technology":"Azure Monitor"}
+      ],
+      "groups": [
+        {"id":"dev-sub","label":"Development subscription","boundary":"Isolated environment"},
+        {"id":"shared-sub","label":"Shared model registry","boundary":"Promotion boundary"},
+        {"id":"stage-prod","label":"Stage and production subscriptions","boundary":"Isolated inference environments"}
+      ],
+      "edges": [
+        {"from":"data","to":"dev","label":"training input"},
+        {"from":"dev","to":"pipeline","label":"candidate model and image"},
+        {"from":"pipeline","to":"registry","label":"approved version"},
+        {"from":"registry","to":"stage","label":"promoted artifact"},
+        {"from":"stage","to":"pipeline","label":"test evidence"},
+        {"from":"pipeline","to":"prod","label":"approved release"},
+        {"from":"client","to":"gateway","label":"inference request"},
+        {"from":"gateway","to":"prod","label":"private route"},
+        {"from":"prod","to":"client","label":"prediction"},
+        {"from":"prod","to":"monitor","label":"telemetry"}
+      ],
+      "caveats": ["Source architecture is single-region; a separate regional recovery design is required."]
+    },
+    {
+      "id": "ms-appservice-multiregion-recovery",
+      "title": "Multi-region web application recovery with active-active routing",
+      "target": "Azure",
+      "origin_provider": "Microsoft",
+      "category_path": ["Resilience and recovery", "Multi-region web apps"],
+      "summary": "Identical independent web deployments serve through Azure Front Door, with health-based traffic exclusion when a region is impaired.",
+      "reference": {
+        "title": "Multiple-region Architectures for Azure App Service Disaster Recovery",
+        "url": "https://learn.microsoft.com/en-us/azure/architecture/web-apps/guides/multi-region-app-service/multi-region-app-service",
+        "reviewed_on": "2026-11-06",
+        "source_terms": "Not independently verified; no source diagram or prose copied."
+      },
+      "supporting_sources": [
+        {
+          "title": "Two zones or three? A design framework for zone-resilient Azure workloads",
+          "url": "https://azure.microsoft.com/en-us/blog/two-zones-or-three-a-design-framework-for-zone-resilient-azure-workloads/",
+          "reviewed_on": "2026-11-06",
+          "relevance": "Clarifies that availability-zone protection is component-specific and does not replace a separate multi-region recovery design."
+        }
+      ],
+      "explanation_md": "### Problem\nA single-region web application can become unavailable during a regional outage even when its regional deployment is otherwise highly available.\n\n### Flow and Azure mapping\nDeploy independent, equivalent App Service plans and web apps in two regions. Azure Front Door distributes normal traffic across both origins and uses health probes to stop routing to an impaired origin. Restrict direct public app access so requests traverse the edge entry point. Keep application state in suitable external data services and deploy configuration consistently through repeatable CI/CD.\n\n### Trade-offs and assumptions\nActive-active costs more and requires both regions to be ready for normal load and failover load. Data replication, consistency, session handling, and failback behavior are not solved by the web tier alone. The reference compares active-active, active-passive, and passive-cold options; this specific candidate selects active-active for exploration and makes no RTO/RPO promise. A database or storage layer needs its own recovery design.\n\nSource: [Microsoft Learn](https://learn.microsoft.com/en-us/azure/architecture/web-apps/guides/multi-region-app-service/multi-region-app-service).",
+      "nodes": [
+        {"id":"users","label":"Global users","role":"External actor","technology":"Generic clients"},
+        {"id":"frontdoor","label":"Global routing and WAF","role":"Edge ingress","technology":"Azure Front Door"},
+        {"id":"health","label":"Origin health checks","role":"Health signals","technology":"Azure Front Door probes"},
+        {"id":"app1","label":"Web app region A","role":"Application tier","technology":"Azure App Service"},
+        {"id":"app2","label":"Web app region B","role":"Application tier","technology":"Azure App Service"},
+        {"id":"state","label":"Shared or replicated state","role":"State layer","technology":"Azure SQL or Azure Storage (design-dependent)"},
+        {"id":"pipeline","label":"Deployment pipeline","role":"Configuration synchronization","technology":"Azure DevOps or GitHub Actions"},
+        {"id":"monitor","label":"Availability monitoring","role":"Operations","technology":"Application Insights"}
+      ],
+      "groups": [
+        {"id":"edge","label":"Global edge","boundary":"Public ingress"},
+        {"id":"region-a","label":"Azure region A","boundary":"Regional failure domain"},
+        {"id":"region-b","label":"Azure region B","boundary":"Regional failure domain"},
+        {"id":"control","label":"Deployment and operations","boundary":"Management plane"}
+      ],
+      "edges": [
+        {"from":"users","to":"frontdoor","label":"HTTPS requests"},
+        {"from":"frontdoor","to":"health","label":"probe origins"},
+        {"from":"health","to":"app1","label":"health state"},
+        {"from":"health","to":"app2","label":"health state"},
+        {"from":"frontdoor","to":"app1","label":"route traffic"},
+        {"from":"frontdoor","to":"app2","label":"route traffic"},
+        {"from":"app1","to":"state","label":"application state"},
+        {"from":"app2","to":"state","label":"application state"},
+        {"from":"pipeline","to":"app1","label":"same release"},
+        {"from":"pipeline","to":"app2","label":"same release"},
+        {"from":"app1","to":"monitor","label":"availability telemetry"}
+      ],
+      "caveats": ["State replication and failover must be selected independently; Front Door health routing alone does not provide application-data recovery."]
+    },
+    {
+      "id": "ms-azure-local-hyperconverged-platform",
+      "title": "Connected Azure Local hyperconverged platform",
+      "target": "Azure",
+      "origin_provider": "Microsoft",
+      "category_path": ["Hybrid and edge", "Private cloud platform"],
+      "summary": "A connected 2–16 machine Azure Local cluster combines local compute and storage with Azure Arc-based cloud management.",
+      "reference": {
+        "title": "Azure Local Hyperconverged Baseline Reference Architecture",
+        "url": "https://learn.microsoft.com/en-us/azure/architecture/hybrid/azure-local-baseline",
+        "reviewed_on": "2026-11-06",
+        "source_terms": "Not independently verified; Microsoft page includes its own architecture attribution and is not copied."
+      },
+      "supporting_sources": [],
+      "explanation_md": "### Problem\nOrganizations may need local workload execution and storage while using Azure for centralized governance, monitoring, security, and lifecycle management.\n\n### Flow and Azure mapping\nValidated physical machines connect through redundant top-of-rack switches and an upstream corporate network. The Azure Local instance provides Hyper-V and Storage Spaces Direct; workloads run as VMs or supported Kubernetes deployments. Azure Arc connects the instance to Azure management services, while Azure Monitor, Key Vault, Defender for Cloud, and backup/recovery services remain cloud-hosted. Management traffic and workload traffic should be distinguished from the local east-west storage path.\n\n### Trade-offs and assumptions\nThe source describes a connected, storage-switched baseline for 2–16 machines; it excludes single-machine, disconnected, switchless, rack-aware, and disaggregated designs. Hardware validation, networking, update cadence, and workload sizing are prerequisites. Do not depict Azure monitoring or policy agents as on-premises services unless the selected configuration explicitly supports that deployment.\n\nSource: [Microsoft Learn](https://learn.microsoft.com/en-us/azure/architecture/hybrid/azure-local-baseline).",
+      "nodes": [
+        {"id":"machines","label":"Validated physical nodes","role":"Compute and storage","technology":"Azure Local hardware"},
+        {"id":"tor","label":"Redundant top-of-rack switches","role":"Local network fabric","technology":"Generic validated network"},
+        {"id":"cluster","label":"Hyper-V and Storage Spaces Direct","role":"Hyperconverged platform","technology":"Azure Local"},
+        {"id":"vm","label":"Virtual machine workloads","role":"Workload tier","technology":"Azure Local VMs"},
+        {"id":"k8s","label":"Kubernetes workloads","role":"Workload tier","technology":"AKS on Azure Local (where supported)"},
+        {"id":"firewall","label":"Corporate firewall","role":"Outbound boundary","technology":"Generic enterprise firewall"},
+        {"id":"arc","label":"Cloud management connection","role":"Hybrid management","technology":"Azure Arc"},
+        {"id":"azureops","label":"Governance and operations","role":"Cloud control plane","technology":"Azure Monitor, Key Vault, Defender for Cloud"}
+      ],
+      "groups": [
+        {"id":"datacenter","label":"Customer datacenter or edge site","boundary":"On-premises physical and workload boundary"},
+        {"id":"azure","label":"Azure management plane","boundary":"Cloud control plane"}
+      ],
+      "edges": [
+        {"from":"machines","to":"tor","label":"redundant links"},
+        {"from":"tor","to":"cluster","label":"management and workload networking"},
+        {"from":"machines","to":"cluster","label":"local compute and storage"},
+        {"from":"cluster","to":"vm","label":"hosts"},
+        {"from":"cluster","to":"k8s","label":"hosts"},
+        {"from":"cluster","to":"firewall","label":"outbound Azure connectivity"},
+        {"from":"firewall","to":"arc","label":"controlled management traffic"},
+        {"from":"arc","to":"azureops","label":"resource registration and telemetry"}
+      ],
+      "caveats": ["The reference excludes disconnected operations and a single-node design; do not imply Azure management services execute locally."]
+    },
+    {
+      "id": "ms-mainframe-change-data-capture",
+      "title": "Mainframe change-data capture into Azure analytics and serving stores",
+      "target": "Azure",
+      "origin_provider": "Microsoft",
+      "category_path": ["Data integration", "Legacy-system replication"],
+      "summary": "A change capture path moves mainframe or midrange updates over private connectivity into Azure event, database, and analytics targets.",
+      "reference": {
+        "title": "Replicate Mainframe Data by Using Precisely Connect",
+        "url": "https://learn.microsoft.com/en-us/azure/architecture/example-scenario/mainframe/mainframe-replication-precisely-connect",
+        "reviewed_on": "2026-11-06",
+        "source_terms": "Not independently verified; source architecture includes a commercial third-party replication product not reproduced in this candidate."
+      },
+      "supporting_sources": [],
+      "explanation_md": "### Problem\nModernization and analytics programs often need timely copies of legacy records while avoiding repeated heavy reads against operational mainframe systems.\n\n### Flow and Azure mapping\nA source-side capture component reads transaction logs and stages changes. A replication service transports ordered change records across ExpressRoute or VPN to an Azure landing point. Azure Event Hubs can carry streaming updates; downstream consumers can materialize selected records into Azure SQL or land them in Data Lake Storage/OneLake for analytics. A mapping and validation layer adapts source formats and schemas before consumer use.\n\n### Trade-offs and assumptions\nThe Microsoft reference uses Precisely Connect for source capture, transport, and apply; Azure services alone do not automatically provide native mainframe log capture. This conceptual Azure-ready diagram therefore shows a generic, replaceable CDC connector as an external/partner component and highlights data consistency, schema conversion, initial-load coordination, replay, and source-system load as design decisions. It does not claim zero latency or exactly-once semantics.\n\nSource: [Microsoft Learn](https://learn.microsoft.com/en-us/azure/architecture/example-scenario/mainframe/mainframe-replication-precisely-connect).",
+      "nodes": [
+        {"id":"legacy","label":"Mainframe and midrange sources","role":"Operational source","technology":"Generic Db2, IMS, VSAM, and files"},
+        {"id":"capture","label":"Source log capture","role":"CDC connector","technology":"External CDC product or custom connector"},
+        {"id":"transport","label":"Private transport","role":"Connectivity","technology":"ExpressRoute or VPN Gateway"},
+        {"id":"ingress","label":"Change event ingress","role":"Streaming intake","technology":"Azure Event Hubs"},
+        {"id":"transform","label":"Schema mapping and validation","role":"Processing","technology":"Azure Functions or Azure Databricks"},
+        {"id":"sql","label":"Operational replica","role":"Relational serving store","technology":"Azure SQL Database or Managed Instance"},
+        {"id":"lake","label":"Historical analytics data","role":"Lake storage","technology":"Azure Data Lake Storage or OneLake"},
+        {"id":"analytics","label":"Analytics consumers","role":"Consumption","technology":"Fabric or Azure Databricks"}
+      ],
+      "groups": [
+        {"id":"legacy-zone","label":"Legacy datacenter","boundary":"Source system boundary"},
+        {"id":"connector-zone","label":"Replication connector boundary","boundary":"Third-party or custom CDC component"},
+        {"id":"azure-zone","label":"Azure data landing and consumption","boundary":"Cloud data plane"}
+      ],
+      "edges": [
+        {"from":"legacy","to":"capture","label":"transaction logs"},
+        {"from":"capture","to":"transport","label":"ordered changes"},
+        {"from":"transport","to":"ingress","label":"private delivery"},
+        {"from":"ingress","to":"transform","label":"change stream"},
+        {"from":"transform","to":"sql","label":"mapped records"},
+        {"from":"transform","to":"lake","label":"history and snapshots"},
+        {"from":"lake","to":"analytics","label":"curated datasets"},
+        {"from":"sql","to":"analytics","label":"operational query"}
+      ],
+      "caveats": ["CDC capture is vendor- or source-specific; do not imply Event Hubs itself reads mainframe transaction logs."]
+    },
+    {
+      "id": "ms-digital-twin-operations-graph",
+      "title": "Live digital twin graph for facilities and connected assets",
+      "target": "Azure",
+      "origin_provider": "Microsoft",
+      "category_path": ["IoT and edge", "Digital twins"],
+      "summary": "A modeled twin graph combines device and business-system updates, supports relationship queries, and routes state changes to downstream analytics.",
+      "reference": {
+        "title": "What is Azure Digital Twins?",
+        "url": "https://learn.microsoft.com/en-us/azure/digital-twins/overview",
+        "reviewed_on": "2026-11-06",
+        "source_terms": "Not independently verified; no source image or prose copied."
+      },
+      "supporting_sources": [],
+      "explanation_md": "### Problem\nA facilities or asset team needs context-rich views of connected things and their relationships, rather than isolated device readings.\n\n### Flow and Azure mapping\nModel the domain with Digital Twins Definition Language and create twins and relationships in Azure Digital Twins. IoT Hub or other business-system connectors deliver property changes; Azure Functions can apply domain logic and keep the graph current. Queries traverse the graph for current operational context. Event routes can send changes through Event Grid, Event Hubs, or Service Bus to Azure Data Explorer or a downstream application. A 3D visualization is optional and should be shown as a consumer, not as the twin store.\n\n### Trade-offs and assumptions\nThis differs from the industrial telemetry candidate: its focus is the contextual graph and topology, not OPC UA collection or edge operations. The twin is a model of real assets, not a replacement for the source of truth in every business system. Model evolution, event ordering, historical retention, and synchronization policies need explicit ownership.\n\nSource: [Microsoft Learn](https://learn.microsoft.com/en-us/azure/digital-twins/overview).",
+      "nodes": [
+        {"id":"devices","label":"Connected devices","role":"Physical source","technology":"Generic IoT devices"},
+        {"id":"business","label":"Business systems","role":"Enterprise source","technology":"Generic APIs and systems"},
+        {"id":"hub","label":"Device connectivity","role":"Device management and messaging","technology":"Azure IoT Hub"},
+        {"id":"compute","label":"Domain event processing","role":"State synchronization","technology":"Azure Functions"},
+        {"id":"twins","label":"Twin graph and models","role":"Contextual digital representation","technology":"Azure Digital Twins and DTDL"},
+        {"id":"query","label":"Operational queries","role":"Insight access","technology":"Azure Digital Twins query API"},
+        {"id":"routes","label":"Event routing","role":"Downstream distribution","technology":"Event Grid, Event Hubs, or Service Bus"},
+        {"id":"history","label":"Historical analytics","role":"Analytics store","technology":"Azure Data Explorer"},
+        {"id":"scene","label":"Facility visualization","role":"Presentation","technology":"Custom application or 3D Scenes Studio"}
+      ],
+      "groups": [
+        {"id":"physical","label":"Physical assets and business sources","boundary":"External systems"},
+        {"id":"twin","label":"Azure twin service","boundary":"Operational graph"},
+        {"id":"consumers","label":"Analytics and applications","boundary":"Downstream consumers"}
+      ],
+      "edges": [
+        {"from":"devices","to":"hub","label":"telemetry and state"},
+        {"from":"business","to":"compute","label":"business updates"},
+        {"from":"hub","to":"compute","label":"device events"},
+        {"from":"compute","to":"twins","label":"update modeled properties"},
+        {"from":"twins","to":"query","label":"relationship queries"},
+        {"from":"twins","to":"routes","label":"twin change events"},
+        {"from":"routes","to":"history","label":"historize updates"},
+        {"from":"query","to":"scene","label":"live context"}
+      ],
+      "caveats": ["Azure Digital Twins is distinct from IoT Hub device twins and from Fabric digital twin builder; those products are not interchangeable."]
+    },
+    {
+      "id": "ms-fabric-cross-cloud-analytics",
+      "title": "Cross-cloud and streaming analytics estate on Microsoft Fabric",
+      "target": "Azure",
+      "origin_provider": "Microsoft",
+      "category_path": ["Data and analytics", "Cross-cloud data estate"],
+      "summary": "Multiple cloud and on-premises sources feed Fabric lakehouse, warehouse, and event analytics with governance and BI consumers.",
+      "reference": {
+        "title": "Analytics End-to-End with Microsoft Fabric",
+        "url": "https://learn.microsoft.com/en-us/azure/architecture/example-scenario/dataplate2e/data-platform-end-to-end",
+        "reviewed_on": "2026-11-06",
+        "source_terms": "Not independently verified; the source uses third-party product names only as source examples; no provider diagram or wording copied."
+      },
+      "supporting_sources": [],
+      "explanation_md": "### Problem\nAn organization has structured, unstructured, and streaming data spread across on-premises systems, Azure databases, and external cloud stores, and needs consistent analytics and reporting.\n\n### Flow and Azure mapping\nUse Fabric Data Factory copy/orchestration and database mirroring where supported, and eventstreams for real-time ingestion. OneLake provides the shared data layer; a lakehouse retains raw and semi-structured data, a warehouse serves structured SQL analytics, and an eventhouse handles high-volume event queries. Notebooks, Dataflow Gen2, or SQL transformations prepare curated datasets; Power BI and approved data/AI applications consume them. Microsoft Purview, Entra ID, and Key Vault are cross-cutting governance and identity services.\n\n### Trade-offs and assumptions\nThis candidate is purposefully a cross-cloud ingestion and multi-modal analytics pattern, not the existing generic Fabric starter or Azure data warehouse. Connector availability, replication support, licensing, data residency, and source egress are workload-specific. Fabric and OneLake are a platform choice, not a claim that external stores are copied or federated automatically.\n\nSource: [Microsoft Learn](https://learn.microsoft.com/en-us/azure/architecture/example-scenario/dataplate2e/data-platform-end-to-end).",
+      "nodes": [
+        {"id":"sources","label":"On-premises and cloud sources","role":"External data estate","technology":"Generic databases, object stores, files"},
+        {"id":"ingest","label":"Batch and mirrored ingestion","role":"Data movement","technology":"Fabric Data Factory and mirroring"},
+        {"id":"events","label":"Streaming event ingress","role":"Real-time ingestion","technology":"Fabric eventstreams or Azure Event Hubs"},
+        {"id":"lake","label":"Unified lake storage","role":"Raw and curated data","technology":"OneLake lakehouse"},
+        {"id":"warehouse","label":"Structured analytics","role":"SQL analytics","technology":"Fabric Data Warehouse"},
+        {"id":"eventhouse","label":"Real-time analytics","role":"Event query store","technology":"Fabric eventhouse"},
+        {"id":"process","label":"Transform and enrich","role":"Data processing","technology":"Fabric notebooks and Dataflow Gen2"},
+        {"id":"govern","label":"Governance and access","role":"Cross-cutting control","technology":"Microsoft Purview and Entra ID"},
+        {"id":"bi","label":"Reports and data applications","role":"Consumption","technology":"Power BI and Fabric data agents"}
+      ],
+      "groups": [
+        {"id":"sources","label":"On-premises and external cloud sources","boundary":"External source environments"},
+        {"id":"fabric","label":"Microsoft Fabric data platform","boundary":"Unified analytics workspace"},
+        {"id":"users","label":"Governed consumers","boundary":"Business access"}
+      ],
+      "edges": [
+        {"from":"sources","to":"ingest","label":"batch data and database changes"},
+        {"from":"sources","to":"events","label":"streaming events"},
+        {"from":"ingest","to":"lake","label":"replicate or copy"},
+        {"from":"events","to":"eventhouse","label":"real-time event stream"},
+        {"from":"lake","to":"process","label":"raw and semi-structured data"},
+        {"from":"process","to":"warehouse","label":"curated tables"},
+        {"from":"lake","to":"bi","label":"lakehouse and SQL endpoints"},
+        {"from":"warehouse","to":"bi","label":"analytics data"},
+        {"from":"govern","to":"lake","label":"policy and identity"},
+        {"from":"eventhouse","to":"bi","label":"real-time queries"}
+      ],
+      "caveats": ["Database mirroring has supported-source constraints; don't imply universal real-time replication for all clouds or systems."]
+    },
+
+    {
+      "id": "aws-mobile-graphql-backend",
+      "title": "Mobile application backend with identity and GraphQL data access",
+      "target": "Azure",
+      "origin_provider": "AWS",
+      "category_path": ["Applications and APIs", "Mobile application backend"],
+      "summary": "A mobile client authenticates users and accesses data through a managed GraphQL/API layer backed by a multi-tenant data store.",
+      "reference": {
+        "title": "Build a serverless React Native mobile app by using AWS Amplify",
+        "url": "https://docs.aws.amazon.com/prescriptive-guidance/latest/patterns/build-a-serverless-react-native-mobile-app-by-using-aws-amplify.html",
+        "reviewed_on": "2026-11-06",
+        "source_terms": "Not independently verified; source architecture is summarized without copying its sample UI or text."
+      },
+      "supporting_sources": [],
+      "explanation_md": "### Problem\nA mobile application needs user authentication and a stable API surface for reading and updating application records without embedding direct database credentials in the client.\n\n### Flow and Azure mapping\nA mobile client signs in through Microsoft Entra External ID or another approved identity provider, then calls an API layer. The API validates identity and authorization, resolves the requested data operation, and accesses a backend store through managed identity. A GraphQL endpoint can be hosted as an application API or implemented with a selected Azure API product; an App Service or Functions backend can supply resolvers and Cosmos DB or Azure SQL can persist records.\n\n### Trade-offs and assumptions\nThe AWS source specifically combines Amplify, Cognito, AppSync GraphQL, and DynamoDB. Azure has no exact one-service substitution for that bundled developer experience; identity, schema/resolver execution, offline sync, and database behavior need separate choices. This is a conceptual backend design, not an endorsement of a particular mobile SDK or an assumption of offline synchronization.\n\nSource: [AWS Prescriptive Guidance](https://docs.aws.amazon.com/prescriptive-guidance/latest/patterns/build-a-serverless-react-native-mobile-app-by-using-aws-amplify.html).",
+      "nodes": [
+        {"id":"mobile","label":"Mobile client","role":"Client application","technology":"Generic iOS or Android app"},
+        {"id":"identity","label":"User identity","role":"Authentication","technology":"Microsoft Entra External ID (candidate)"},
+        {"id":"api","label":"GraphQL or application API","role":"API boundary","technology":"Azure API Management plus app backend"},
+        {"id":"resolver","label":"Request handlers","role":"Application logic","technology":"Azure Functions or App Service"},
+        {"id":"db","label":"Application records","role":"Data store","technology":"Azure Cosmos DB or Azure SQL"},
+        {"id":"telemetry","label":"Application telemetry","role":"Operations","technology":"Application Insights"}
+      ],
+      "groups": [
+        {"id":"client","label":"Mobile client boundary","boundary":"Untrusted client"},
+        {"id":"azure-api","label":"Azure identity and API","boundary":"Authenticated API boundary"},
+        {"id":"data","label":"Azure application data","boundary":"Protected data plane"}
+      ],
+      "edges": [
+        {"from":"mobile","to":"identity","label":"sign in"},
+        {"from":"identity","to":"mobile","label":"token"},
+        {"from":"mobile","to":"api","label":"authorized query or mutation"},
+        {"from":"api","to":"resolver","label":"route operation"},
+        {"from":"resolver","to":"db","label":"managed-identity data access"},
+        {"from":"resolver","to":"telemetry","label":"request and error telemetry"}
+      ],
+      "caveats": ["No direct service equivalence is asserted for AppSync, Cognito, or DynamoDB; GraphQL and offline-sync details need separate decisions."]
+    },
+    {
+      "id": "aws-private-file-access",
+      "title": "Private file access through an API and private object-storage path",
+      "target": "Azure",
+      "origin_provider": "AWS",
+      "category_path": ["Security and data access", "Private file exchange"],
+      "summary": "Corporate users request controlled file access through an API while data traffic remains on private paths to object storage.",
+      "reference": {
+        "title": "Set up private access to an Amazon S3 bucket through a VPC endpoint",
+        "url": "https://docs.aws.amazon.com/prescriptive-guidance/latest/patterns/set-up-private-access-to-an-amazon-s3-bucket-through-a-vpc-endpoint.html",
+        "reviewed_on": "2026-11-06",
+        "source_terms": "Not independently verified; source-specific custom-domain technique is not reproduced as an Azure feature claim."
+      },
+      "supporting_sources": [],
+      "explanation_md": "### Problem\nAn enterprise needs an internal file exchange path that avoids exposing object downloads through a generally reachable public storage endpoint.\n\n### Flow and Azure mapping\nCorporate users resolve an internal application endpoint and authenticate to an API. The API authorizes the requested object operation and returns a short-lived access mechanism or streams the content itself. The backend reaches Azure Blob Storage through private networking and private endpoints; private DNS and storage access policies constrain the path. Separate upload and download operations can use different controls.\n\n### Trade-offs and assumptions\nThe AWS pattern relies on an internal load balancer, API Gateway, Lambda, a VPC endpoint, and a special presigned-URL/domain arrangement. Azure SAS URL behavior and private endpoint DNS are not identical; whether a client can reach the private storage route must be verified for the actual network. Avoid placing bearer links in logs, and choose between proxying bytes and delegated access based on governance and throughput requirements.\n\nSource: [AWS Prescriptive Guidance](https://docs.aws.amazon.com/prescriptive-guidance/latest/patterns/set-up-private-access-to-an-amazon-s3-bucket-through-a-vpc-endpoint.html).",
+      "nodes": [
+        {"id":"user","label":"Corporate user","role":"External actor","technology":"Generic enterprise client"},
+        {"id":"dns","label":"Private name resolution","role":"Name service","technology":"Private DNS"},
+        {"id":"gateway","label":"Internal API ingress","role":"Private ingress","technology":"Application Gateway or API Management"},
+        {"id":"api","label":"File authorization API","role":"Authorization and URL issuance","technology":"Azure Functions or App Service"},
+        {"id":"private","label":"Private storage route","role":"Network boundary","technology":"Private Endpoint"},
+        {"id":"blob","label":"Private object store","role":"File storage","technology":"Azure Blob Storage"},
+        {"id":"identity","label":"Identity and access policy","role":"Authorization","technology":"Microsoft Entra ID and storage RBAC"},
+        {"id":"audit","label":"Access audit","role":"Monitoring","technology":"Azure Monitor"}
+      ],
+      "groups": [
+        {"id":"corp","label":"Corporate network","boundary":"Private client network"},
+        {"id":"azure-ingress","label":"Azure private API tier","boundary":"Application access boundary"},
+        {"id":"storage","label":"Azure private storage","boundary":"Data boundary"}
+      ],
+      "edges": [
+        {"from":"user","to":"dns","label":"resolve internal name"},
+        {"from":"dns","to":"gateway","label":"private endpoint"},
+        {"from":"user","to":"gateway","label":"authenticated file request"},
+        {"from":"gateway","to":"api","label":"route request"},
+        {"from":"api","to":"identity","label":"authorize user and object"},
+        {"from":"api","to":"private","label":"private data-plane access"},
+        {"from":"private","to":"blob","label":"read or write object"},
+        {"from":"api","to":"audit","label":"access decision and operation"}
+      ],
+      "caveats": ["The source's internal presigned URL/domain pattern has AWS-specific details; Azure private endpoint DNS and SAS behavior require validation."]
+    },
+    {
+      "id": "aws-dynamodb-change-stream-to-lake",
+      "title": "Operational record changes streamed into an analytics lake",
+      "target": "Azure",
+      "origin_provider": "AWS",
+      "category_path": ["Data integration", "Change streams to lake"],
+      "summary": "Database item changes flow through a durable stream and transformation stage to object storage for downstream analytics.",
+      "reference": {
+        "title": "Deliver DynamoDB records to Amazon S3 using Kinesis Data Streams and Firehose with AWS CDK",
+        "url": "https://docs.aws.amazon.com/prescriptive-guidance/latest/patterns/deliver-dynamodb-records-to-amazon-s3-using-kinesis-data-streams-and-amazon-data-firehose-with-aws-cdk.html",
+        "reviewed_on": "2026-11-06",
+        "source_terms": "Not independently verified; no AWS code, diagram, or wording copied."
+      },
+      "supporting_sources": [],
+      "explanation_md": "### Problem\nAnalytics consumers need a near-real-time history of changes from an operational database without repeatedly scanning the primary tables.\n\n### Flow and Azure mapping\nAn application writes records to an operational store. A database change feed or CDC connector publishes change events to Azure Event Hubs. A transformation consumer validates the event envelope, normalizes fields, and writes partitioned files to Azure Data Lake Storage. Fabric, Azure Databricks, or another approved query engine can consume the lake data for dashboards, audit, and modeling. Keep the primary transactional write path separate from its analytics copy.\n\n### Trade-offs and assumptions\nThe AWS example uses DynamoDB change capture, Kinesis Data Streams, Firehose, and Lambda conversion. Azure Cosmos DB change feed is not a drop-in equivalent for DynamoDB Streams, and Event Hubs plus an ingestion consumer must be designed for ordering, retries, schema evolution, duplicates, and checkpointing. The diagram is an Azure adaptation of the data movement idea, not a promise of identical consistency or delivery semantics.\n\nSource: [AWS Prescriptive Guidance](https://docs.aws.amazon.com/prescriptive-guidance/latest/patterns/deliver-dynamodb-records-to-amazon-s3-using-kinesis-data-streams-and-amazon-data-firehose-with-aws-cdk.html).",
+      "nodes": [
+        {"id":"app","label":"Operational application","role":"Producer","technology":"Generic application"},
+        {"id":"db","label":"Operational database","role":"Transactional store","technology":"Azure Cosmos DB or Azure SQL"},
+        {"id":"cdc","label":"Change feed or CDC adapter","role":"Change capture","technology":"Database-specific connector"},
+        {"id":"stream","label":"Durable event stream","role":"Streaming buffer","technology":"Azure Event Hubs"},
+        {"id":"transform","label":"Record normalization","role":"Transformation","technology":"Azure Functions or Azure Stream Analytics"},
+        {"id":"lake","label":"Analytics landing zone","role":"Object storage","technology":"Azure Data Lake Storage"},
+        {"id":"consumer","label":"Analytics consumers","role":"Query and reporting","technology":"Fabric or Azure Databricks"}
+      ],
+      "groups": [
+        {"id":"source","label":"Operational application boundary","boundary":"Transactional data plane"},
+        {"id":"streaming","label":"Azure streaming ingestion","boundary":"Durable event path"},
+        {"id":"analytics","label":"Azure analytics zone","boundary":"Lake and consumers"}
+      ],
+      "edges": [
+        {"from":"app","to":"db","label":"transactional writes"},
+        {"from":"db","to":"cdc","label":"record changes"},
+        {"from":"cdc","to":"stream","label":"publish changes"},
+        {"from":"stream","to":"transform","label":"consume events"},
+        {"from":"transform","to":"lake","label":"normalized records"},
+        {"from":"lake","to":"consumer","label":"batch and incremental analytics"}
+      ],
+      "caveats": ["Change capture capabilities vary by selected Azure database and source engine; do not claim identical change ordering or delivery guarantees."]
+    },
+    {
+      "id": "aws-lambda-telemetry-analytics",
+      "title": "Serverless workload telemetry into searchable operations analytics",
+      "target": "Azure",
+      "origin_provider": "AWS",
+      "category_path": ["Operations and observability", "Telemetry analytics"],
+      "summary": "A function runtime emits logs and metrics through an extension/collector path to a search-oriented analytics store.",
+      "reference": {
+        "title": "Send telemetry data from AWS Lambda to OpenSearch for real-time analytics and visualization",
+        "url": "https://docs.aws.amazon.com/prescriptive-guidance/latest/patterns/send-telemetry-data-from-lambda-to-opensearch-for-analytics-visualization.html",
+        "reviewed_on": "2026-11-06",
+        "source_terms": "Not independently verified; this entry abstracts the pattern and does not reproduce the source implementation."
+      },
+      "supporting_sources": [],
+      "explanation_md": "### Problem\nOperators need searchable, timely telemetry from event-driven application functions, with useful views for troubleshooting and service health.\n\n### Flow and Azure mapping\nFunctions emit structured logs and metrics to Azure Monitor through supported instrumentation or a collector. Diagnostic settings and data collection rules route selected records to Log Analytics or an Azure Data Explorer workspace. Workbooks or dashboards let operators correlate requests, dependencies, and failures. A separate export path can deliver governed records to an external observability platform if required.\n\n### Trade-offs and assumptions\nThe AWS source uses a Lambda Telemetry API extension to send telemetry directly to OpenSearch, bypassing its default log intermediary. Azure Monitor is the natural Azure-native baseline, but not a direct OpenSearch substitute; high-cardinality data, retention, sampling, ingestion volume, and query costs need sizing. Avoid routing every verbose trace or sensitive payload into long-retention logs. The graph is an observability pattern, not an application architecture.\n\nSource: [AWS Prescriptive Guidance](https://docs.aws.amazon.com/prescriptive-guidance/latest/patterns/send-telemetry-data-from-lambda-to-opensearch-for-analytics-visualization.html).",
+      "nodes": [
+        {"id":"functions","label":"Event-driven functions","role":"Application workload","technology":"Azure Functions"},
+        {"id":"instrument","label":"Telemetry instrumentation","role":"Collection","technology":"Application Insights SDK"},
+        {"id":"monitor","label":"Central monitoring","role":"Metrics and logs","technology":"Azure Monitor"},
+        {"id":"workspace","label":"Queryable telemetry","role":"Analytics store","technology":"Log Analytics or Azure Data Explorer"},
+        {"id":"dash","label":"Operations dashboards","role":"Visualization","technology":"Azure Monitor Workbooks"},
+        {"id":"operator","label":"Service operator","role":"External actor","technology":"Generic user"}
+      ],
+      "groups": [
+        {"id":"workload","label":"Azure application workload","boundary":"Application runtime"},
+        {"id":"monitoring","label":"Azure observability plane","boundary":"Monitoring data"}
+      ],
+      "edges": [
+        {"from":"functions","to":"instrument","label":"logs, metrics, and traces"},
+        {"from":"instrument","to":"monitor","label":"telemetry ingestion"},
+        {"from":"monitor","to":"workspace","label":"selected diagnostics"},
+        {"from":"workspace","to":"dash","label":"queries"},
+        {"from":"dash","to":"operator","label":"health and troubleshooting"}
+      ],
+      "caveats": ["Azure Monitor and OpenSearch have different data models, retention, query languages, and cost dimensions."]
+    },
+    {
+      "id": "aws-cell-router-tenant-placement",
+      "title": "Tenant-to-cell assignment and resilient SaaS routing control plane",
+      "target": "Azure",
+      "origin_provider": "AWS",
+      "category_path": ["SaaS and multitenancy", "Cell placement control plane"],
+      "summary": "A control-plane router assigns tenants to isolated cells, stores mappings, tracks capacity, and returns stable tenant endpoints.",
+      "reference": {
+        "title": "Set up a serverless cell router for a cell-based architecture",
+        "url": "https://docs.aws.amazon.com/prescriptive-guidance/latest/patterns/serverless-cell-router-architecture.html",
+        "reviewed_on": "2026-11-06",
+        "source_terms": "Not independently verified; AWS explicitly states the demo/code is explanatory and not production-ready."
+      },
+      "supporting_sources": [
+        {
+          "title": "Journey to Cloud-Native Architecture Series #7: Using Containers and Cell-based design for higher resiliency and efficiency",
+          "url": "https://aws.amazon.com/blogs/architecture/journey-to-cloud-native-architecture-series-7-using-containers-and-cell-based-design-for-higher-resiliency-and-efficiency/",
+          "reviewed_on": "2026-11-06",
+          "relevance": "Adds first-party implementation context for lightweight routing, cell isolation, tenant mapping, and shuffle sharding; the Azure diagram does not claim AWS topology or implementation parity."
+        }
+      ],
+      "explanation_md": "### Problem\nA multi-tenant service may need to assign newly registered tenants to bounded workload cells and avoid routing every request through a central control plane.\n\n### Flow and Azure mapping\nA client authenticates with Microsoft Entra ID and calls a placement API. The control plane looks up or assigns a tenant-to-cell mapping in a metadata store, checks recorded capacity, and returns a stable cell endpoint. Tenant workload traffic then goes directly to that cell through Azure Front Door or API Management. A queue-driven provisioning workflow can request additional cells, while monitoring tracks cell health and occupancy.\n\n### Trade-offs and assumptions\nThis is not the existing generic Deployment Stamps starter: the focus is tenant placement, static endpoint mapping, and independent control-plane availability. Azure Deployment Stamps can host cells, but the routing and placement logic remains workload-specific. The AWS reference is explicitly a demonstration, not production-ready. Assignment races, tenant migration, capacity definitions, endpoint caching, authentication continuity, and outage recovery need separate engineering.\n\nSource: [AWS Prescriptive Guidance](https://docs.aws.amazon.com/prescriptive-guidance/latest/patterns/serverless-cell-router-architecture.html).",
+      "nodes": [
+        {"id":"client","label":"Tenant client","role":"External actor","technology":"Generic application"},
+        {"id":"identity","label":"Tenant identity","role":"Authentication","technology":"Microsoft Entra ID"},
+        {"id":"router","label":"Placement API","role":"Control-plane API","technology":"Azure API Management"},
+        {"id":"orchestrator","label":"Placement and capacity logic","role":"Control-plane workflow","technology":"Azure Functions or Durable Functions"},
+        {"id":"mapping","label":"Tenant-to-cell directory","role":"Metadata store","technology":"Azure Cosmos DB"},
+        {"id":"queue","label":"Cell provisioning requests","role":"Async control messages","technology":"Azure Service Bus"},
+        {"id":"cell-a","label":"Cell A workload","role":"Tenant-serving cell","technology":"Azure Container Apps or AKS"},
+        {"id":"cell-b","label":"Cell B workload","role":"Tenant-serving cell","technology":"Azure Container Apps or AKS"},
+        {"id":"telemetry","label":"Capacity and health signals","role":"Operations","technology":"Azure Monitor"}
+      ],
+      "groups": [
+        {"id":"control","label":"Azure SaaS control plane","boundary":"Tenant placement and provisioning"},
+        {"id":"cells","label":"Independent tenant-serving cells","boundary":"Workload isolation"}
+      ],
+      "edges": [
+        {"from":"client","to":"identity","label":"authenticate"},
+        {"from":"client","to":"router","label":"register or resolve tenant"},
+        {"from":"router","to":"orchestrator","label":"placement request"},
+        {"from":"orchestrator","to":"mapping","label":"read or write assignment"},
+        {"from":"orchestrator","to":"queue","label":"request capacity"},
+        {"from":"mapping","to":"router","label":"cell endpoint"},
+        {"from":"router","to":"client","label":"stable endpoint"},
+        {"from":"client","to":"cell-a","label":"direct tenant traffic"},
+        {"from":"client","to":"cell-b","label":"direct tenant traffic"},
+        {"from":"cell-a","to":"telemetry","label":"health and occupancy"}
+      ],
+      "caveats": ["The source says the demo is not production-ready; provisioned cells and tenant-migration mechanics are outside its detailed scope."]
+    },
+    {
+      "id": "aws-iiot-edge-data-backbone",
+      "title": "Industrial edge-to-cloud data backbone for operational insights",
+      "target": "Azure",
+      "origin_provider": "AWS",
+      "category_path": ["IoT and edge", "Industrial data backbone"],
+      "summary": "Layered ingestion, edge buffering, cloud data management, and analytics support operational use cases across industrial sites.",
+      "reference": {
+        "title": "Phase 3: Defining a blueprint — Building an industrial Internet of Things digital transformation strategy",
+        "url": "https://docs.aws.amazon.com/prescriptive-guidance/latest/strategy-iiot-transformation/phase-3.html",
+        "reviewed_on": "2026-11-06",
+        "source_terms": "Not independently verified; source gives functional layers rather than a prescriptive Azure service mapping."
+      },
+      "supporting_sources": [],
+      "explanation_md": "### Problem\nIndustrial organizations need a repeatable, modular way to collect IT/OT data at multiple facilities, preserve local operation during connectivity interruptions, and make selected data useful to cloud analytics teams.\n\n### Flow and Azure mapping\nSensors, PLCs, historians, MES, and enterprise systems feed a site ingestion layer. Azure IoT Operations or a site gateway can normalize and buffer data locally; Azure Arc provides management where applicable. A secure site-to-cloud connection forwards selected telemetry to Azure Event Hubs or Data Lake Storage. Fabric, Azure Data Explorer, or Databricks supports analytics and downstream business applications. Identity, patching, logging, and configuration management are cross-cutting responsibilities.\n\n### Trade-offs and assumptions\nThe source is a functional blueprint, not a concrete AWS service diagram. Azure service choices are explicit adaptation proposals. Local autonomy, data residency, semantic models, buffering limits, and industrial protocol support vary by site. Don't overstate edge operation during disconnection or imply a single cloud platform covers PLC control and safety functions.\n\nSource: [AWS Prescriptive Guidance](https://docs.aws.amazon.com/prescriptive-guidance/latest/strategy-iiot-transformation/phase-3.html).",
+      "nodes": [
+        {"id":"equipment","label":"Sensors and control systems","role":"OT sources","technology":"Generic PLC, SCADA, DCS, historian"},
+        {"id":"site-ingest","label":"Site ingestion and normalization","role":"Edge intake","technology":"Azure IoT Operations or gateway"},
+        {"id":"buffer","label":"Local store and forward","role":"Edge resilience","technology":"Site-local storage (design-dependent)"},
+        {"id":"connect","label":"Secure site connectivity","role":"Hybrid network","technology":"ExpressRoute or VPN"},
+        {"id":"stream","label":"Cloud event intake","role":"Streaming ingress","technology":"Azure Event Hubs"},
+        {"id":"lake","label":"Cloud data management","role":"Storage and curation","technology":"Azure Data Lake Storage"},
+        {"id":"analytics","label":"Operational analytics","role":"Insight processing","technology":"Fabric or Azure Data Explorer"},
+        {"id":"users","label":"Operations and data teams","role":"Consumers","technology":"Generic applications and dashboards"}
+      ],
+      "groups": [
+        {"id":"site","label":"Industrial site","boundary":"OT and edge zone"},
+        {"id":"network","label":"Secure hybrid connection","boundary":"Site-to-cloud boundary"},
+        {"id":"cloud","label":"Azure data and insight services","boundary":"Cloud platform"}
+      ],
+      "edges": [
+        {"from":"equipment","to":"site-ingest","label":"industrial telemetry"},
+        {"from":"site-ingest","to":"buffer","label":"normalized event data"},
+        {"from":"buffer","to":"connect","label":"forward when connected"},
+        {"from":"connect","to":"stream","label":"secure cloud delivery"},
+        {"from":"stream","to":"lake","label":"stream and batch landing"},
+        {"from":"lake","to":"analytics","label":"curated data"},
+        {"from":"analytics","to":"users","label":"KPIs and insights"}
+      ],
+      "caveats": ["The source is conceptual and names no single prescribed service topology; local buffering, control, and protocols must be validated."]
+    },
+    {
+      "id": "aws-multiregion-read-local-write-global",
+      "title": "Multi-region read-local, write-primary application resilience",
+      "target": "Azure",
+      "origin_provider": "AWS",
+      "category_path": ["Resilience and recovery", "Multi-region data strategy"],
+      "summary": "Regional application stacks serve local reads while a designated primary accepts writes and replicates data asynchronously to a recovery region.",
+      "reference": {
+        "title": "Multi-Region fundamental 2: Understanding the data",
+        "url": "https://docs.aws.amazon.com/prescriptive-guidance/latest/aws-multi-region-fundamentals/fundamental-2.html",
+        "reviewed_on": "2026-11-06",
+        "source_terms": "Not independently verified; design principles are paraphrased, with no AWS diagram reused."
+      },
+      "supporting_sources": [],
+      "explanation_md": "### Problem\nA workload needs regional availability for read-heavy traffic while accepting that cross-region data replication is asynchronous and recovery may require reconciliation.\n\n### Flow and Azure mapping\nGlobal traffic routing sends users to a healthy regional application endpoint. Reads can use local replicas or caches; writes are directed to a selected primary data region. Azure SQL geo-replication or a selected Cosmos DB multi-region configuration may be considered only after confirming the workload's consistency and conflict requirements. A failover procedure changes routing and validates the data state; event replay or reconciliation handles in-flight work.\n\n### Trade-offs and assumptions\nThe source stresses that asynchronous replication can create stale reads and missing or in-flight writes after failure, and that applications often need changes for failover, idempotency, and reconciliation. Azure Cosmos DB and SQL geo-replication have different semantics; neither should be labeled a generic replacement for DynamoDB Global Tables or Aurora. No RTO/RPO or consistency guarantee is claimed.\n\nSource: [AWS Prescriptive Guidance](https://docs.aws.amazon.com/prescriptive-guidance/latest/aws-multi-region-fundamentals/fundamental-2.html).",
+      "nodes": [
+        {"id":"users","label":"Regional users","role":"External actors","technology":"Generic clients"},
+        {"id":"route","label":"Global traffic routing","role":"Ingress","technology":"Azure Front Door or Traffic Manager"},
+        {"id":"app1","label":"Application region A","role":"Regional compute","technology":"Azure App Service or AKS"},
+        {"id":"app2","label":"Application region B","role":"Regional compute","technology":"Azure App Service or AKS"},
+        {"id":"primary","label":"Write-primary data","role":"Authoritative writer","technology":"Azure SQL or Cosmos DB (choice-dependent)"},
+        {"id":"replica","label":"Asynchronous secondary copy","role":"Recovery/read replica","technology":"Selected Azure database replication option"},
+        {"id":"reconcile","label":"Failover and reconciliation","role":"Recovery process","technology":"Application workflow and runbook"},
+        {"id":"monitor","label":"Replication health","role":"Operations","technology":"Azure Monitor"}
+      ],
+      "groups": [
+        {"id":"region-a","label":"Azure region A — primary writes","boundary":"Regional failure domain"},
+        {"id":"region-b","label":"Azure region B — secondary reads/recovery","boundary":"Regional failure domain"},
+        {"id":"global","label":"Global entry and recovery control","boundary":"Cross-region control"}
+      ],
+      "edges": [
+        {"from":"users","to":"route","label":"requests"},
+        {"from":"route","to":"app1","label":"route by health and proximity"},
+        {"from":"route","to":"app2","label":"route by health and proximity"},
+        {"from":"app1","to":"primary","label":"writes and reads"},
+        {"from":"app2","to":"replica","label":"local reads"},
+        {"from":"primary","to":"replica","label":"asynchronous replication"},
+        {"from":"primary","to":"reconcile","label":"in-flight changes after outage"},
+        {"from":"replica","to":"monitor","label":"replication state"}
+      ],
+      "caveats": ["Consistency and failover behavior are database-specific; asynchronous replication can lose or delay unreplicated writes."]
+    },
+    {
+      "id": "aws-modern-governed-data-platform",
+      "title": "Governed data platform spanning lake, streams, search, and warehouse",
+      "target": "Azure",
+      "origin_provider": "AWS",
+      "category_path": ["Data and analytics", "Governed data platform"],
+      "summary": "A layered data estate combines scalable object storage, catalog and access governance, stream processing, search, and analytic serving.",
+      "reference": {
+        "title": "AWS modern data architecture",
+        "url": "https://docs.aws.amazon.com/prescriptive-guidance/latest/strategy-aws-data/aws-architecture.html",
+        "reviewed_on": "2026-11-06",
+        "source_terms": "Not independently verified; source lists service examples; this diagram uses Azure candidates and original explanatory text."
+      },
+      "supporting_sources": [],
+      "explanation_md": "### Problem\nAn enterprise wants to make governed data reusable across operational producers, analytics teams, and business consumers without forcing every workload into a single storage or query engine.\n\n### Flow and Azure mapping\nBatch and streaming producers land data in Azure Data Lake Storage or OneLake. Azure Data Factory, Event Hubs, and stream processing services feed and transform the data. A catalog and governance layer classifies data and coordinates access; curated datasets are served through Fabric Warehouse, Azure Data Explorer, Azure AI Search, or purpose-built stores. BI and ML consumers use approved interfaces. Select only components relevant to a particular implementation.\n\n### Trade-offs and assumptions\nThe AWS guide is a broad architecture overview, not a single deployable topology. The Azure graph is intentionally a composable platform pattern, and services such as Lake Formation, Glue, Redshift, OpenSearch, and Kinesis do not map one-to-one to Azure products. Data ownership, encryption, consent/privacy, retention, lineage, and quality are organizational practices as well as service settings.\n\nSource: [AWS Prescriptive Guidance](https://docs.aws.amazon.com/prescriptive-guidance/latest/strategy-aws-data/aws-architecture.html).",
+      "nodes": [
+        {"id":"producers","label":"Operational and external producers","role":"Data sources","technology":"Generic applications, databases, files"},
+        {"id":"batch","label":"Batch ingestion","role":"Data movement","technology":"Azure Data Factory"},
+        {"id":"events","label":"Streaming ingestion","role":"Event intake","technology":"Azure Event Hubs"},
+        {"id":"lake","label":"Shared object and lake storage","role":"Data foundation","technology":"Azure Data Lake Storage or OneLake"},
+        {"id":"catalog","label":"Catalog, lineage, and policy","role":"Governance","technology":"Microsoft Purview"},
+        {"id":"process","label":"Transform and curate","role":"Processing","technology":"Fabric, Azure Databricks, or Azure Stream Analytics"},
+        {"id":"serve","label":"Query and search services","role":"Serving layer","technology":"Fabric Warehouse, Azure Data Explorer, Azure AI Search"},
+        {"id":"consumers","label":"Analysts and applications","role":"Consumers","technology":"Power BI and approved applications"}
+      ],
+      "groups": [
+        {"id":"sources","label":"Data producer domain","boundary":"Producer-owned systems"},
+        {"id":"platform","label":"Azure data platform","boundary":"Governed data plane"},
+        {"id":"consumer","label":"Data consumers","boundary":"Access-controlled use"}
+      ],
+      "edges": [
+        {"from":"producers","to":"batch","label":"scheduled datasets"},
+        {"from":"producers","to":"events","label":"stream events"},
+        {"from":"batch","to":"lake","label":"batch landing"},
+        {"from":"events","to":"process","label":"real-time stream"},
+        {"from":"lake","to":"process","label":"raw and curated data"},
+        {"from":"catalog","to":"lake","label":"classification and access policy"},
+        {"from":"process","to":"serve","label":"curated output"},
+        {"from":"serve","to":"consumers","label":"governed query"}
+      ],
+      "caveats": ["This is a portfolio pattern, not a single product stack; avoid suggesting all stores and services are required."]
+    },
+
+    {
+      "id": "gcp-global-multiregion-relational-app",
+      "title": "Global application with regional front ends and a single-region Azure SQL writer",
+      "target": "Azure",
+      "origin_provider": "Google Cloud",
+      "category_path": ["Resilience and recovery", "Global application topology"],
+      "summary": "Global ingress routes to regional application tiers, while writes go to a single Azure SQL primary and a secondary receives asynchronous geo-replication.",
+      "reference": {
+        "title": "Global deployment with Compute Engine and Spanner",
+        "url": "https://docs.cloud.google.com/architecture/global-deployment-compute-engine-spanner",
+        "reviewed_on": "2026-11-06",
+        "source_terms": "Not independently verified; no Google architecture image or prose copied."
+      },
+      "supporting_sources": [
+        {"title":"Google Cloud global deployment archetype","url":"https://docs.cloud.google.com/architecture/deployment-archetypes/global","reviewed_on":"2026-11-06"},
+        {
+          "title": "Uncomplicating the complex: How Spanner simplifies microservices-based architectures",
+          "url": "https://cloud.google.com/blog/products/databases/why-spanner-is-a-good-fit-for-microservices-based-applications",
+          "reviewed_on": "2026-11-06",
+          "relevance": "Provides Google-side context on Spanner's relational and replication properties and trade-offs, making the non-equivalence of the Azure SQL adaptation explicit."
+        }
+      ],
+      "explanation_md": "### Problem\nA global audience needs regional application entry points and a recovery design, but the Azure target must not imply the source database's globally synchronous relational semantics.\n\n### Flow and Azure mapping\nAzure Front Door routes users to regional web and application tiers. Route all writes to one Azure SQL primary region. If local reads in a secondary region are needed, use a configured geo-secondary only for workloads that tolerate replication lag; otherwise route reads to the primary. Azure SQL geo-replication is asynchronous, so the secondary is not a globally consistent writable peer. On a regional failure, an operator or tested recovery workflow promotes the secondary and redirects writes according to the chosen recovery process.\n\n### Trade-offs and assumptions\nThe Google source uses regional application tiers with multi-region Spanner, which provides a capability this Azure SQL topology does not preserve. This adaptation **loses synchronous cross-region strong relational consistency and active-active multi-region writes**: secondary reads can be stale, and recent writes may not have replicated at failover. Azure SQL is not a Spanner equivalent. If the workload requires globally consistent relational transactions, this candidate is not a fit; evaluate a different data model or managed database design and document its actual guarantees. No RTO, RPO, latency, or zero-data-loss claim is made.\n\nSource: [Google Cloud Architecture Center](https://docs.cloud.google.com/architecture/global-deployment-compute-engine-spanner).",
+      "nodes": [
+        {"id":"users","label":"Global users","role":"External actors","technology":"Generic clients"},
+        {"id":"edge","label":"Global application ingress","role":"Edge routing","technology":"Azure Front Door"},
+        {"id":"web-a","label":"Regional web tier A","role":"Web compute","technology":"Azure App Service or AKS"},
+        {"id":"web-b","label":"Regional web tier B","role":"Web compute","technology":"Azure App Service or AKS"},
+        {"id":"internal-route","label":"Cross-region service routing","role":"Internal routing","technology":"Azure networking and application routing"},
+        {"id":"app-a","label":"Regional application tier A","role":"Application compute","technology":"Azure App Service or AKS"},
+        {"id":"app-b","label":"Regional application tier B","role":"Application compute","technology":"Azure App Service or AKS"},
+        {"id":"data-primary","label":"Azure SQL primary writer","role":"Single-region relational writer","technology":"Azure SQL Database"},
+        {"id":"data-secondary","label":"Asynchronous geo-secondary","role":"Read replica and recovery target","technology":"Azure SQL geo-replication (configured)"},
+        {"id":"ops","label":"Global and regional operations","role":"Monitoring","technology":"Azure Monitor"}
+      ],
+      "groups": [
+        {"id":"edge","label":"Global edge entry","boundary":"Public ingress"},
+        {"id":"region-a","label":"Azure region A","boundary":"Regional application failure domain"},
+        {"id":"region-b","label":"Azure region B","boundary":"Regional application failure domain"},
+        {"id":"data-boundary","label":"Data replication boundary","boundary":"Consistency and residency design"}
+      ],
+      "edges": [
+        {"from":"users","to":"edge","label":"global requests"},
+        {"from":"edge","to":"web-a","label":"health and proximity routing"},
+        {"from":"edge","to":"web-b","label":"health and proximity routing"},
+        {"from":"web-a","to":"internal-route","label":"application request"},
+        {"from":"web-b","to":"internal-route","label":"application request"},
+        {"from":"internal-route","to":"app-a","label":"regional backend"},
+        {"from":"internal-route","to":"app-b","label":"regional backend"},
+        {"from":"app-a","to":"data-primary","label":"read and write in primary region"},
+        {"from":"app-b","to":"data-primary","label":"writes routed to primary"},
+        {"from":"app-b","to":"data-secondary","label":"optional regional reads; may lag"},
+        {"from":"data-primary","to":"data-secondary","label":"asynchronous geo-replication"},
+        {"from":"data-primary","to":"ops","label":"primary health and replication status"}
+      ],
+      "caveats": ["This Azure target does not preserve Spanner's globally synchronous relational consistency or multi-region write behavior. Secondary reads can be stale, and failover can have nonzero data loss; verify current Azure SQL geo-replication behavior and workload requirements."]
+    },
+    {
+      "id": "gcp-hybrid-dr-recovery-site",
+      "title": "Cloud recovery site for an on-premises application",
+      "target": "Azure",
+      "origin_provider": "Google Cloud",
+      "category_path": ["Hybrid and edge", "Hybrid disaster recovery"],
+      "summary": "An on-premises application backs up data and maintains a cloud recovery copy that can be activated after a disruption.",
+      "reference": {
+        "title": "Google Cloud hybrid deployment archetype",
+        "url": "https://docs.cloud.google.com/architecture/deployment-archetypes/hybrid",
+        "reviewed_on": "2026-11-06",
+        "source_terms": "Not independently verified; source pattern is paraphrased and adapted to Azure."
+      },
+      "supporting_sources": [],
+      "explanation_md": "### Problem\nA business-critical on-premises application needs a recovery location without moving its primary operation immediately to a cloud-only model.\n\n### Flow and Azure mapping\nThe on-premises workload periodically backs up or replicates selected data over a secured connection to Azure. Azure Backup, Azure Site Recovery, or application-native replication may protect different components. A warm or cold Azure application environment is prepared according to recovery objectives; an operator activates the recovery workflow and updates traffic routing after validating dependencies and data state.\n\n### Trade-offs and assumptions\nThe Google source explicitly says recovery frequency and active/passive state depend on RTO and RPO, and notes that hybrid systems require reliable secure networking and added operational effort. Azure Site Recovery is not a universal substitute for database-native consistency or application-specific recovery. The catalog should show activation as an operator-controlled step and should not imply failover is automatic or that a tested RTO is known.\n\nSource: [Google Cloud Architecture Center](https://docs.cloud.google.com/architecture/deployment-archetypes/hybrid).",
+      "nodes": [
+        {"id":"users","label":"Application users","role":"External actors","technology":"Generic clients"},
+        {"id":"onprem-app","label":"Primary application","role":"Production workload","technology":"On-premises application"},
+        {"id":"onprem-data","label":"Primary data","role":"Source of truth","technology":"On-premises database and files"},
+        {"id":"backup","label":"Backup or replication service","role":"Data protection","technology":"Azure Backup or Azure Site Recovery (workload-dependent)"},
+        {"id":"link","label":"Hybrid network link","role":"Connectivity","technology":"ExpressRoute or VPN Gateway"},
+        {"id":"recovery-data","label":"Recovery data copy","role":"Protected data","technology":"Azure storage or recovery vault"},
+        {"id":"recovery-app","label":"Recovery application environment","role":"Standby workload","technology":"Azure VMs or App Service"},
+        {"id":"operator","label":"Recovery operator","role":"Activation control","technology":"Generic operations team"}
+      ],
+      "groups": [
+        {"id":"dc","label":"On-premises production site","boundary":"Primary workload boundary"},
+        {"id":"network","label":"Hybrid connectivity","boundary":"Secure transport boundary"},
+        {"id":"azure","label":"Azure recovery site","boundary":"Standby environment"}
+      ],
+      "edges": [
+        {"from":"users","to":"onprem-app","label":"normal traffic"},
+        {"from":"onprem-app","to":"onprem-data","label":"reads and writes"},
+        {"from":"onprem-data","to":"backup","label":"backup or replication"},
+        {"from":"backup","to":"link","label":"protected data transfer"},
+        {"from":"link","to":"recovery-data","label":"secure copy"},
+        {"from":"operator","to":"recovery-app","label":"activate after validation"},
+        {"from":"recovery-data","to":"recovery-app","label":"restore or attach data"},
+        {"from":"users","to":"recovery-app","label":"re-routed after recovery"}
+      ],
+      "caveats": ["Product and recovery workflow must be selected by workload; no RTO/RPO, replication mode, or automatic failover is asserted."]
+    },
+    {
+      "id": "gcp-rag-app-alloydb-origin",
+      "title": "Document-grounded assistant with separate ingestion and evaluation paths",
+      "target": "Azure",
+      "origin_provider": "Google Cloud",
+      "category_path": ["AI and search", "Grounded assistants"],
+      "summary": "A RAG application ingests files into a vector store and uses retrieved context for model responses, with a separate response-quality evaluation loop.",
+      "reference": {
+        "title": "RAG infrastructure for generative AI using Agent Platform and AlloyDB for PostgreSQL",
+        "url": "https://docs.cloud.google.com/architecture/rag-capable-gen-ai-app-using-vertex-ai",
+        "reviewed_on": "2026-11-06",
+        "source_terms": "Not independently verified; provider-specific architecture is not copied."
+      },
+      "supporting_sources": [],
+      "explanation_md": "### Problem\nAn organization wants an assistant to answer questions using its own current documents and to measure whether generated responses are relevant and grounded.\n\n### Flow and Azure mapping\nUpload events trigger document processing. A pipeline extracts text, chunks content, creates embeddings, and indexes records in Azure AI Search. At request time, an application retrieves relevant chunks, packages context with the user question, calls a selected Azure model endpoint, applies response checks, and returns a response. An offline evaluation path stores prompts and response ratings for review and regression tests.\n\n### Trade-offs and assumptions\nThe Google source separates ingestion, serving, evaluation, and databases, and uses an AlloyDB pgvector store. Azure AI Search is a different retrieval service, not an equivalent database extension; index configuration, filtering, hybrid retrieval, embedding compatibility, and data lifecycle need separate choices. Evaluation does not guarantee factual answers, and document access controls must be enforced during retrieval.\n\nSource: [Google Cloud Architecture Center](https://docs.cloud.google.com/architecture/rag-capable-gen-ai-app-using-vertex-ai).",
+      "nodes": [
+        {"id":"upload","label":"Document sources","role":"External data","technology":"Generic files and databases"},
+        {"id":"trigger","label":"Ingestion trigger","role":"Event notification","technology":"Azure Event Grid"},
+        {"id":"pipeline","label":"Parse, chunk, and enrich","role":"Ingestion processing","technology":"Azure Functions or Container Apps"},
+        {"id":"embedding","label":"Embedding model","role":"Vectorization","technology":"Azure AI model endpoint"},
+        {"id":"index","label":"Vector and text index","role":"Retrieval store","technology":"Azure AI Search"},
+        {"id":"app","label":"Assistant serving app","role":"User-facing API","technology":"Azure App Service"},
+        {"id":"model","label":"Language model endpoint","role":"Inference","technology":"Azure AI model endpoint"},
+        {"id":"eval","label":"Quality evaluation","role":"Offline evaluation","technology":"Evaluation pipeline and analytics store"},
+        {"id":"user","label":"User","role":"External actor","technology":"Generic user"}
+      ],
+      "groups": [
+        {"id":"source","label":"Document sources and users","boundary":"External actors"},
+        {"id":"ingest","label":"Azure content ingestion","boundary":"Data preparation"},
+        {"id":"serve","label":"Azure assistant serving","boundary":"Application and model access"},
+        {"id":"eval","label":"Evaluation and observability","boundary":"Offline quality loop"}
+      ],
+      "edges": [
+        {"from":"upload","to":"trigger","label":"new document"},
+        {"from":"trigger","to":"pipeline","label":"ingestion event"},
+        {"from":"pipeline","to":"embedding","label":"prepared chunks"},
+        {"from":"embedding","to":"index","label":"vector records"},
+        {"from":"user","to":"app","label":"question"},
+        {"from":"app","to":"index","label":"semantic retrieval"},
+        {"from":"index","to":"app","label":"matching context"},
+        {"from":"app","to":"model","label":"contextual prompt"},
+        {"from":"model","to":"app","label":"response"},
+        {"from":"app","to":"eval","label":"selected evaluation traces"}
+      ],
+      "caveats": ["Evaluation logs can contain sensitive prompts and responses; apply retention and access controls."]
+    },
+    {
+      "id": "gcp-secure-event-driven-functions",
+      "title": "Private event-triggered function with controlled service access",
+      "target": "Azure",
+      "origin_provider": "Google Cloud",
+      "category_path": ["Integration and event processing", "Private serverless processing"],
+      "summary": "A storage or messaging event triggers a function that accesses an internal service over a private network under constrained identity.",
+      "reference": {
+        "title": "Deploy a secured serverless architecture using Cloud Run functions",
+        "url": "https://docs.cloud.google.com/architecture/blueprints/serverless-functions-blueprint",
+        "reviewed_on": "2026-11-06",
+        "source_terms": "Not independently verified; source blueprint controls are paraphrased, not copied."
+      },
+      "supporting_sources": [],
+      "explanation_md": "### Problem\nA background action should run in response to a storage or messaging event and reach an internal service without exposing the function or its dependencies as public endpoints.\n\n### Flow and Azure mapping\nA private storage upload or event source emits a notification to Event Grid or Service Bus. An Azure Function consumes the event using a managed identity and connects through private networking to the target data service. Secrets belong in Key Vault; network egress is limited and monitored. Separate development, test, and production environments use isolated resource scopes and controlled release paths.\n\n### Trade-offs and assumptions\nThe Google blueprint uses Shared VPC, VPC Service Controls, Cloud KMS, Secret Manager, and Cloud Run functions. Azure Functions, Private Link, managed identity, Key Vault, and networking policies are conceptual counterparts, not feature parity claims. Exact trigger types and private reachability depend on the Azure service integration. Keep retries, poison-message handling, idempotency, and outbound allowlists visible in detailed diagrams.\n\nSource: [Google Cloud Architecture Center](https://docs.cloud.google.com/architecture/blueprints/serverless-functions-blueprint).",
+      "nodes": [
+        {"id":"source","label":"Private event source","role":"Event producer","technology":"Azure Blob Storage or application"},
+        {"id":"event","label":"Event routing","role":"Trigger and buffer","technology":"Event Grid or Service Bus"},
+        {"id":"function","label":"Event handler","role":"Serverless compute","technology":"Azure Functions"},
+        {"id":"identity","label":"Workload identity","role":"Access control","technology":"Managed identity"},
+        {"id":"secret","label":"Secret and key management","role":"Secret storage","technology":"Azure Key Vault"},
+        {"id":"private","label":"Private network path","role":"Network access","technology":"Private Endpoint and VNet integration"},
+        {"id":"service","label":"Internal data service","role":"Protected dependency","technology":"Azure SQL or internal API"},
+        {"id":"ops","label":"Logs and metrics","role":"Operations","technology":"Azure Monitor"}
+      ],
+      "groups": [
+        {"id":"producer","label":"Event producer boundary","boundary":"Source environment"},
+        {"id":"function-zone","label":"Azure serverless environment","boundary":"Application workload"},
+        {"id":"private-data","label":"Private service boundary","boundary":"Non-public dependency"}
+      ],
+      "edges": [
+        {"from":"source","to":"event","label":"event notification"},
+        {"from":"event","to":"function","label":"trigger"},
+        {"from":"function","to":"identity","label":"obtain workload identity"},
+        {"from":"function","to":"secret","label":"retrieve authorized secret"},
+        {"from":"function","to":"private","label":"private outbound connection"},
+        {"from":"private","to":"service","label":"authorized operation"},
+        {"from":"function","to":"ops","label":"execution telemetry"}
+      ],
+      "caveats": ["The exact private endpoint, trigger, and secret integration are service-dependent; the source's Google controls are not Azure controls."]
+    },
+    {
+      "id": "gcp-mlops-training-promotion",
+      "title": "Continuous training pipeline with model validation and release gates",
+      "target": "Azure",
+      "origin_provider": "Google Cloud",
+      "category_path": ["AI and machine learning", "Model lifecycle automation"],
+      "summary": "A model-training pipeline validates data, transforms features, trains and evaluates candidates, and promotes an approved model to serving.",
+      "reference": {
+        "title": "Architecture for MLOps using TFX, Vertex AI Pipelines, and Cloud Build",
+        "url": "https://docs.cloud.google.com/architecture/architecture-for-mlops-using-tfx-kubeflow-pipelines-and-cloud-build?hl=en",
+        "reviewed_on": "2026-11-06",
+        "source_terms": "Not independently verified; source diagrams and wording are not reused."
+      },
+      "supporting_sources": [
+        {"title":"Best practices for implementing machine learning on Google Cloud","url":"https://docs.cloud.google.com/architecture/ml-on-gcp-best-practices","reviewed_on":"2026-11-06"}
+      ],
+      "explanation_md": "### Problem\nRepeated model retraining needs consistent data validation, training and evaluation, reproducible artifacts, and a controlled route to online serving.\n\n### Flow and Azure mapping\nA data arrival or schedule triggers an Azure Machine Learning pipeline. It validates input data, transforms features, trains a candidate, evaluates it against criteria, and registers a versioned artifact. A release pipeline promotes a passing version into an inference environment such as managed online endpoints or AKS. Monitoring captures model and service signals and can inform future retraining decisions.\n\n### Trade-offs and assumptions\nThe Google source distinguishes continuous training on new data from CI/CD deployment of a changed pipeline implementation. Azure ML Pipelines and registries are candidates for the same responsibilities, but pipeline semantics and artifact formats differ. A promotion gate should not be implied to guarantee fairness, accuracy, or drift absence; the team must define measurable thresholds and human review where appropriate.\n\nSource: [Google Cloud Architecture Center](https://docs.cloud.google.com/architecture/architecture-for-mlops-using-tfx-kubeflow-pipelines-and-cloud-build?hl=en).",
+      "nodes": [
+        {"id":"data","label":"Versioned training data","role":"Data source","technology":"Azure Data Lake Storage"},
+        {"id":"trigger","label":"Data or schedule trigger","role":"Pipeline trigger","technology":"Azure Machine Learning pipeline"},
+        {"id":"validate","label":"Data validation","role":"Quality check","technology":"Azure Machine Learning pipeline step"},
+        {"id":"transform","label":"Feature preparation","role":"Transformation","technology":"Azure Machine Learning pipeline step"},
+        {"id":"train","label":"Model training","role":"Training compute","technology":"Azure Machine Learning"},
+        {"id":"evaluate","label":"Model evaluation gate","role":"Promotion criteria","technology":"Azure Machine Learning evaluation"},
+        {"id":"registry","label":"Versioned model registry","role":"Artifact management","technology":"Azure Machine Learning registry"},
+        {"id":"serve","label":"Online model endpoint","role":"Inference","technology":"Azure Machine Learning endpoint or AKS"},
+        {"id":"monitor","label":"Model and service monitoring","role":"Operations","technology":"Azure Monitor"}
+      ],
+      "groups": [
+        {"id":"data","label":"Data foundation","boundary":"Versioned input data"},
+        {"id":"pipeline","label":"Azure ML pipeline","boundary":"Training and evaluation"},
+        {"id":"release","label":"Model release and serving","boundary":"Production deployment"}
+      ],
+      "edges": [
+        {"from":"data","to":"trigger","label":"new data"},
+        {"from":"trigger","to":"validate","label":"start run"},
+        {"from":"validate","to":"transform","label":"validated data"},
+        {"from":"transform","to":"train","label":"features"},
+        {"from":"train","to":"evaluate","label":"candidate model"},
+        {"from":"evaluate","to":"registry","label":"approved version"},
+        {"from":"registry","to":"serve","label":"promote artifact"},
+        {"from":"serve","to":"monitor","label":"predictions and health"}
+      ],
+      "caveats": ["Model retraining on new data and redeployment of a changed pipeline are separate lifecycle paths."]
+    },
+    {
+      "id": "gcp-image-vision-analytics",
+      "title": "Event-driven image annotation and analytics pipeline",
+      "target": "Azure",
+      "origin_provider": "Google Cloud",
+      "category_path": ["AI and search", "Image enrichment"],
+      "summary": "Uploaded images trigger scalable processing and annotation, with structured results stored for analysis and optional model training.",
+      "reference": {
+        "title": "Build an ML vision analytics solution with Dataflow and Cloud Vision API",
+        "url": "https://docs.cloud.google.com/architecture/building-a-vision-analytics-solution",
+        "reviewed_on": "2026-11-06",
+        "source_terms": "Not independently verified; uses the source's flow concept without copying diagrams or prose."
+      },
+      "supporting_sources": [],
+      "explanation_md": "### Problem\nOrganizations need to enrich large collections of user- or device-submitted images with machine-readable annotations for search, reporting, or downstream models.\n\n### Flow and Azure mapping\nA client uploads an image to Blob Storage. Event Grid notifies a queue or processing function. A scalable worker invokes an approved image-analysis model or computer-vision service, stores annotations and processing metadata in a structured analytics destination, and emits status for retries and review. Data can be queried with Fabric or Azure Data Explorer, subject to the selected data shape.\n\n### Trade-offs and assumptions\nThe Google source uses Cloud Storage, Pub/Sub, Dataflow, Vision API, and BigQuery. Azure AI Vision and Azure analytics services are adaptation choices, not guaranteed equivalent feature sets. Input scanning, content rights, privacy, unsupported media, request quotas, asynchronous batch support, and cost per image must be evaluated. Avoid depicting face recognition or sensitive classification unless a policy review and specific use case justify it.\n\nSource: [Google Cloud Architecture Center](https://docs.cloud.google.com/architecture/building-a-vision-analytics-solution).",
+      "nodes": [
+        {"id":"client","label":"Image producer","role":"External actor","technology":"Generic application or device"},
+        {"id":"storage","label":"Image object store","role":"Raw media","technology":"Azure Blob Storage"},
+        {"id":"event","label":"Upload notification","role":"Event trigger","technology":"Event Grid"},
+        {"id":"queue","label":"Work queue","role":"Buffer and retry boundary","technology":"Azure Service Bus"},
+        {"id":"worker","label":"Image processing pipeline","role":"Scalable processing","technology":"Azure Functions or Azure Data Factory"},
+        {"id":"vision","label":"Image annotation model","role":"AI inference","technology":"Azure AI Vision or selected model endpoint"},
+        {"id":"results","label":"Structured annotations","role":"Analytics data","technology":"Fabric Warehouse or Azure Data Explorer"},
+        {"id":"analyst","label":"Analyst and applications","role":"Consumers","technology":"Power BI and approved apps"}
+      ],
+      "groups": [
+        {"id":"upload","label":"Upload and raw media","boundary":"External input and storage"},
+        {"id":"process","label":"Azure processing","boundary":"Event and AI workflow"},
+        {"id":"analytics","label":"Analytics consumers","boundary":"Governed results"}
+      ],
+      "edges": [
+        {"from":"client","to":"storage","label":"upload image"},
+        {"from":"storage","to":"event","label":"object-created event"},
+        {"from":"event","to":"queue","label":"processing notification"},
+        {"from":"queue","to":"worker","label":"queued job"},
+        {"from":"worker","to":"storage","label":"read image"},
+        {"from":"worker","to":"vision","label":"analyze image"},
+        {"from":"vision","to":"worker","label":"annotations"},
+        {"from":"worker","to":"results","label":"store metadata"},
+        {"from":"results","to":"analyst","label":"query and report"}
+      ],
+      "caveats": ["Vision model feature sets and quotas differ across providers; malware scanning and sensitive data controls may be required."]
+    },
+    {
+      "id": "gcp-multitenant-developer-platform",
+      "title": "Multi-environment container developer platform with regional clusters",
+      "target": "Azure",
+      "origin_provider": "Google Cloud",
+      "category_path": ["Applications and platforms", "Multi-tenant developer platform"],
+      "summary": "A platform blueprint isolates environments and tenant namespaces while delivering application services across regional Kubernetes clusters.",
+      "reference": {
+        "title": "Enterprise application blueprint architecture",
+        "url": "https://docs.cloud.google.com/architecture/blueprints/enterprise-application-blueprint/architecture",
+        "reviewed_on": "2026-11-06",
+        "source_terms": "Not independently verified; Google blueprint is used as design evidence only."
+      },
+      "supporting_sources": [],
+      "explanation_md": "### Problem\nA platform team needs consistent application delivery across development, non-production, and production, while isolating tenant workloads and operating regional clusters.\n\n### Flow and Azure mapping\nA build pipeline creates immutable container images and promotes them through environments. Azure Kubernetes Service clusters in separate environments and regions host tenant namespaces. Azure Front Door or an application gateway routes external traffic; an internal service mesh or Kubernetes service discovery handles service communication. Entra workload identities, Azure Container Registry, Azure Policy, and Azure Monitor provide candidate identity, artifact, governance, and operations layers.\n\n### Trade-offs and assumptions\nThis is a specialized multi-tenant platform blueprint, not a generic AKS baseline or a single application microservices diagram. Azure AKS Fleet Manager and service mesh choices need validation for current capabilities and operational model. Namespace-level separation alone is not a complete security boundary; per-tenant data resources, authorization, network controls, environment separation, and cluster failure domains must be selected deliberately.\n\nSource: [Google Cloud Architecture Center](https://docs.cloud.google.com/architecture/blueprints/enterprise-application-blueprint/architecture).",
+      "nodes": [
+        {"id":"dev","label":"Development environment","role":"Platform environment","technology":"Azure Kubernetes Service"},
+        {"id":"nonprod","label":"Non-production environment","role":"Platform environment","technology":"Azure Kubernetes Service"},
+        {"id":"prod-a","label":"Production cluster region A","role":"Regional application platform","technology":"Azure Kubernetes Service"},
+        {"id":"prod-b","label":"Production cluster region B","role":"Regional application platform","technology":"Azure Kubernetes Service"},
+        {"id":"pipeline","label":"Build and promotion pipeline","role":"CI/CD","technology":"Azure DevOps or GitHub Actions"},
+        {"id":"registry","label":"Immutable container images","role":"Artifact registry","technology":"Azure Container Registry"},
+        {"id":"edge","label":"Global application ingress","role":"Traffic distribution","technology":"Azure Front Door"},
+        {"id":"identity","label":"Workload identity and policy","role":"Security control","technology":"Microsoft Entra Workload ID and Azure Policy"},
+        {"id":"tenant","label":"Tenant workloads","role":"Namespaced services","technology":"AKS namespaces and tenant-owned data"}
+      ],
+      "groups": [
+        {"id":"dev","label":"Development environment","boundary":"Environment isolation"},
+        {"id":"test","label":"Non-production environment","boundary":"Environment isolation"},
+        {"id":"prod","label":"Production regions","boundary":"Environment and regional isolation"}
+      ],
+      "edges": [
+        {"from":"pipeline","to":"registry","label":"build and sign image"},
+        {"from":"registry","to":"dev","label":"deploy version"},
+        {"from":"dev","to":"nonprod","label":"promote after validation"},
+        {"from":"nonprod","to":"prod-a","label":"approved production release"},
+        {"from":"nonprod","to":"prod-b","label":"approved production release"},
+        {"from":"edge","to":"prod-a","label":"route to healthy region"},
+        {"from":"edge","to":"prod-b","label":"route to healthy region"},
+        {"from":"prod-a","to":"tenant","label":"host tenant services"},
+        {"from":"prod-b","to":"tenant","label":"host tenant services"},
+        {"from":"identity","to":"tenant","label":"workload identity and policy"}
+      ],
+      "caveats": ["Multi-cluster tenancy and tenant data isolation need dedicated design; namespaces do not alone guarantee hard isolation."]
+    },
+    {
+      "id": "gcp-log-export-replay-pipeline",
+      "title": "Resilient log export pipeline with replay and dead-letter handling",
+      "target": "Azure",
+      "origin_provider": "Google Cloud",
+      "category_path": ["Operations and observability", "Log export and replay"],
+      "summary": "Centralized logs enter a buffered stream, are transformed and exported to an external analytics service, and can be replayed after delivery failures.",
+      "reference": {
+        "title": "Stream logs from Google Cloud to Splunk",
+        "url": "https://docs.cloud.google.com/architecture/stream-logs-from-google-cloud-to-splunk",
+        "reviewed_on": "2026-11-06",
+        "source_terms": "Not independently verified; Splunk is shown only as a generic external log analytics destination in the Azure adaptation."
+      },
+      "supporting_sources": [],
+      "explanation_md": "### Problem\nCentralized log export can fail transiently when a downstream analytics platform is unavailable or throttles requests; operators need buffering and a controlled recovery path.\n\n### Flow and Azure mapping\nAzure Monitor diagnostic settings and Log Analytics export routes send selected records to Event Hubs. A stream-processing or worker layer enriches and forwards events to an external HTTP collector. A secondary queue or storage-backed dead-letter path retains failed messages for investigation and replay. Managed identity or a protected Key Vault secret authenticates outbound delivery; private networking and egress allowlists constrain access.\n\n### Trade-offs and assumptions\nThe Google reference uses an organization-level aggregated logging sink, Pub/Sub, a primary Dataflow-to-Splunk pipeline, and a secondary replay pipeline. Azure Monitor, Event Hubs, and Functions/Stream Analytics are not exact behavioral equivalents. Delivery guarantees, retention, ordering, duplicate handling, payload limits, and downstream acknowledgments need explicit decisions. Avoid collecting sensitive fields unless classification and redaction are in place.\n\nSource: [Google Cloud Architecture Center](https://docs.cloud.google.com/architecture/stream-logs-from-google-cloud-to-splunk).",
+      "nodes": [
+        {"id":"workloads","label":"Azure resources and applications","role":"Telemetry producers","technology":"Generic Azure workloads"},
+        {"id":"monitor","label":"Central log collection","role":"Log aggregation","technology":"Azure Monitor"},
+        {"id":"stream","label":"Buffered export stream","role":"Durable messaging","technology":"Azure Event Hubs"},
+        {"id":"primary","label":"Primary export processor","role":"Streaming delivery","technology":"Azure Functions or Azure Stream Analytics"},
+        {"id":"external","label":"External log analytics","role":"External sink","technology":"Generic HTTP collector"},
+        {"id":"deadletter","label":"Undelivered event store","role":"Failure isolation and replay","technology":"Service Bus dead-letter queue or Storage"},
+        {"id":"secret","label":"Export credential","role":"Secret management","technology":"Azure Key Vault"},
+        {"id":"ops","label":"Delivery monitoring","role":"Operations","technology":"Azure Monitor"}
+      ],
+      "groups": [
+        {"id":"azure-logs","label":"Azure log collection","boundary":"Organization logging plane"},
+        {"id":"export","label":"Azure export processing","boundary":"Integration boundary"},
+        {"id":"external","label":"External analytics provider","boundary":"Third-party service boundary"}
+      ],
+      "edges": [
+        {"from":"workloads","to":"monitor","label":"resource and app logs"},
+        {"from":"monitor","to":"stream","label":"diagnostic export"},
+        {"from":"stream","to":"primary","label":"stream records"},
+        {"from":"primary","to":"secret","label":"retrieve protected credential"},
+        {"from":"primary","to":"external","label":"HTTP event delivery"},
+        {"from":"primary","to":"deadletter","label":"failed delivery"},
+        {"from":"deadletter","to":"primary","label":"controlled replay"},
+        {"from":"primary","to":"ops","label":"delivery metrics"}
+      ],
+      "caveats": ["The source's managed Dataflow retry and autoscaling behavior is not guaranteed by this Azure adaptation; configure and test retries, retention, and replay."]
+    }
+  ]
+}

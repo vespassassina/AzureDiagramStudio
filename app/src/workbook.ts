@@ -143,6 +143,13 @@ export function addWorkbookPage(root: Workbook, page: Diagram, index = root.page
   const at = Math.max(0, Math.min(root.pages.length, index))
   return { ...root, revision: root.revision + 1, pages: [...root.pages.slice(0, at), page, ...root.pages.slice(at)] }
 }
+/** Removes one page while preserving every remaining page object and their revisions. */
+export function removeWorkbookPage(root: Workbook, pageId: string): Workbook {
+  if (root.pages.length <= 1) throw new Error('A workbook must keep at least one page')
+  const index = root.pages.findIndex(page => page.id === pageId)
+  if (index < 0) throw new Error('Unknown workbook page')
+  return { ...root, revision: root.revision + 1, pages: root.pages.filter(page => page.id !== pageId) }
+}
 export function updateWorkbookMetadata(root: Workbook, patch: WorkbookMetadataPatch): Workbook {
   if (patch.title !== undefined && (typeof patch.title !== 'string' || patch.title.length > MAX_WORKBOOK_TITLE)) throw new Error('Workbook title must be at most 120 characters')
   if (patch.description !== undefined && (typeof patch.description !== 'string' || patch.description.length > MAX_WORKBOOK_DESCRIPTION)) throw new Error('Workbook description must be at most 60000 characters')

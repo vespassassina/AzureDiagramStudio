@@ -1,0 +1,450 @@
+{
+  "schemaVersion": 1,
+  "id": "ms-digital-twin-operations-graph-v1",
+  "title": "Live digital twin graph for facilities and connected assets",
+  "subtitle": "A modeled twin graph combines device and business-system updates, supports relationship queries, and routes state changes to downstream analytics. Synthetic Azure reference; no deployment is implied.",
+  "description": "### Problem\nA facilities or asset team needs context-rich views of connected things and their relationships, rather than isolated device readings.\n\n### Flow and Azure mapping\nModel the domain with Digital Twins Definition Language and create twins and relationships in Azure Digital Twins. IoT Hub or other business-system connectors deliver property changes; Azure Functions can apply domain logic and keep the graph current. Queries traverse the graph for current operational context. Event routes can send changes through Event Grid, Event Hubs, or Service Bus to Azure Data Explorer or a downstream application. A 3D visualization is optional and should be shown as a consumer, not as the twin store.\n\n### Trade-offs and assumptions\nThis differs from the industrial telemetry candidate: its focus is the contextual graph and topology, not OPC UA collection or edge operations. The twin is a model of real assets, not a replacement for the source of truth in every business system. Model evolution, event ordering, historical retention, and synchronization policies need explicit ownership.\n\nSource: [Microsoft Learn](https://learn.microsoft.com/en-us/azure/digital-twins/overview).\n\n## Source provenance\n\n- Origin provider: Microsoft\n- Target: Azure conceptual adaptation\n- Primary source: [What is Azure Digital Twins?](https://learn.microsoft.com/en-us/azure/digital-twins/overview)\n- Reviewed: 2026-11-06\n\n## Catalog status\n\nThis is an original, editable Azure conceptual adaptation. It is synthetic reference material, not a deployed system, certified vendor architecture, or automatic deployment plan.\n\n## Mapping caveats\n\n- Azure Digital Twins is distinct from IoT Hub device twins and from Fabric digital twin builder; those products are not interchangeable.",
+  "synthetic": true,
+  "legendVisible": true,
+  "legend": [
+    {
+      "label": "Illustrative Azure flow",
+      "color": "#0078d4",
+      "meaning": "Original conceptual flow, not verified deployment connectivity."
+    },
+    {
+      "label": "Synthetic reference",
+      "color": "#62696c",
+      "dashed": true,
+      "meaning": "Editable starting point requiring workload-specific design."
+    }
+  ],
+  "revision": 1,
+  "direction": "RIGHT",
+  "entities": [
+    {
+      "id": "group-physical",
+      "kind": "boundary",
+      "label": "Physical assets and business sources",
+      "subtitle": "External systems",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 24,
+      "y": 27.833333333333343,
+      "width": 336,
+      "height": 323,
+      "color": "azure"
+    },
+    {
+      "id": "group-twin",
+      "kind": "boundary",
+      "label": "Azure twin service",
+      "subtitle": "Operational graph",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 720,
+      "y": 24,
+      "width": 1668,
+      "height": 330,
+      "color": "teal"
+    },
+    {
+      "id": "group-consumers",
+      "kind": "boundary",
+      "label": "Analytics and applications",
+      "subtitle": "Downstream consumers",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 2730,
+      "y": 27.5,
+      "width": 312,
+      "height": 323,
+      "color": "amber"
+    },
+    {
+      "id": "devices",
+      "kind": "component",
+      "label": "Connected devices",
+      "subtitle": "Generic IoT devices",
+      "parentId": "group-physical",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 96,
+      "color": "azure",
+      "icon": "service",
+      "status": "synthetic"
+    },
+    {
+      "id": "business",
+      "kind": "component",
+      "label": "Business systems",
+      "subtitle": "Generic APIs and systems",
+      "parentId": "group-physical",
+      "layer": "foreground",
+      "x": 24,
+      "y": 203,
+      "width": 264,
+      "height": 96,
+      "color": "azure",
+      "icon": "queue",
+      "status": "synthetic"
+    },
+    {
+      "id": "hub",
+      "kind": "component",
+      "label": "Device connectivity",
+      "subtitle": "Azure IoT Hub",
+      "parentId": "group-twin",
+      "layer": "foreground",
+      "x": 24,
+      "y": 148.83333333333334,
+      "width": 264,
+      "height": 96,
+      "color": "teal",
+      "icon": "api",
+      "status": "synthetic"
+    },
+    {
+      "id": "compute",
+      "kind": "component",
+      "label": "Domain event processing",
+      "subtitle": "Azure Functions",
+      "parentId": "group-twin",
+      "layer": "foreground",
+      "x": 435,
+      "y": 184.83333333333334,
+      "width": 264,
+      "height": 105,
+      "color": "teal",
+      "icon": "queue",
+      "status": "synthetic"
+    },
+    {
+      "id": "twins",
+      "kind": "component",
+      "label": "Twin graph and models",
+      "subtitle": "Azure Digital Twins and DTDL",
+      "parentId": "group-twin",
+      "layer": "foreground",
+      "x": 929,
+      "y": 185.83333333333334,
+      "width": 264,
+      "height": 103,
+      "color": "teal",
+      "icon": "model",
+      "status": "synthetic"
+    },
+    {
+      "id": "query",
+      "kind": "component",
+      "label": "Operational queries",
+      "subtitle": "Azure Digital Twins query API",
+      "parentId": "group-twin",
+      "layer": "foreground",
+      "x": 1380,
+      "y": 203,
+      "width": 264,
+      "height": 103,
+      "color": "teal",
+      "icon": "model",
+      "status": "synthetic"
+    },
+    {
+      "id": "routes",
+      "kind": "component",
+      "label": "Event routing",
+      "subtitle": "Event Grid, Event Hubs,",
+      "parentId": "group-twin",
+      "layer": "foreground",
+      "x": 1380,
+      "y": 87,
+      "width": 264,
+      "height": 96,
+      "color": "teal",
+      "icon": "queue",
+      "status": "synthetic"
+    },
+    {
+      "id": "history",
+      "kind": "component",
+      "label": "Historical analytics",
+      "subtitle": "Azure Data Explorer",
+      "parentId": "group-consumers",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 96,
+      "color": "amber",
+      "icon": "database",
+      "status": "synthetic"
+    },
+    {
+      "id": "scene",
+      "kind": "component",
+      "label": "Facility visualization",
+      "subtitle": "Custom application",
+      "parentId": "group-consumers",
+      "layer": "foreground",
+      "x": 24,
+      "y": 203,
+      "width": 264,
+      "height": 96,
+      "color": "amber",
+      "icon": "service",
+      "status": "synthetic"
+    }
+  ],
+  "connections": [
+    {
+      "id": "ms-digital-twin-operations-graph-flow-1",
+      "from": "devices",
+      "to": "hub",
+      "label": "telemetry and state",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 312,
+          "y": 198.83333333333334
+        },
+        {
+          "x": 728,
+          "y": 198.83333333333334
+        },
+        {
+          "x": 728,
+          "y": 184.83333333333334
+        },
+        {
+          "x": 744,
+          "y": 184.83333333333334
+        }
+      ],
+      "labelPosition": {
+        "x": 520,
+        "y": 198.83333333333334
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-digital-twin-operations-graph-flow-2",
+      "from": "business",
+      "to": "compute",
+      "label": "business updates",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 312,
+          "y": 242.83333333333334
+        },
+        {
+          "x": 736,
+          "y": 242.83333333333334
+        },
+        {
+          "x": 736,
+          "y": 281.83333333333337
+        },
+        {
+          "x": 1155,
+          "y": 281.83333333333337
+        }
+      ],
+      "labelPosition": {
+        "x": 524,
+        "y": 242.83333333333334
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-digital-twin-operations-graph-flow-3",
+      "from": "hub",
+      "to": "compute",
+      "label": "device events",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1008,
+          "y": 256.83333333333337
+        },
+        {
+          "x": 1139,
+          "y": 256.83333333333337
+        },
+        {
+          "x": 1139,
+          "y": 240.83333333333334
+        },
+        {
+          "x": 1155,
+          "y": 240.83333333333334
+        }
+      ],
+      "labelPosition": {
+        "x": 1073.5,
+        "y": 256.83333333333337
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-digital-twin-operations-graph-flow-4",
+      "from": "compute",
+      "to": "twins",
+      "label": "update modeled properties",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1419,
+          "y": 261.33333333333337
+        },
+        {
+          "x": 1649,
+          "y": 261.33333333333337
+        }
+      ],
+      "labelPosition": {
+        "x": 1534,
+        "y": 261.33333333333337
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-digital-twin-operations-graph-flow-5",
+      "from": "twins",
+      "to": "query",
+      "label": "relationship queries",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1913,
+          "y": 280.83333333333337
+        },
+        {
+          "x": 2084,
+          "y": 280.83333333333337
+        },
+        {
+          "x": 2084,
+          "y": 239
+        },
+        {
+          "x": 2100,
+          "y": 239
+        }
+      ],
+      "labelPosition": {
+        "x": 1998.5,
+        "y": 280.83333333333337
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-digital-twin-operations-graph-flow-6",
+      "from": "twins",
+      "to": "routes",
+      "label": "twin change events",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1913,
+          "y": 241.83333333333334
+        },
+        {
+          "x": 2084,
+          "y": 241.83333333333334
+        },
+        {
+          "x": 2084,
+          "y": 195
+        },
+        {
+          "x": 2100,
+          "y": 195
+        }
+      ],
+      "labelPosition": {
+        "x": 1998.5,
+        "y": 241.83333333333334
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-digital-twin-operations-graph-flow-7",
+      "from": "routes",
+      "to": "history",
+      "label": "historize updates",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 2364,
+          "y": 195
+        },
+        {
+          "x": 2738,
+          "y": 195
+        },
+        {
+          "x": 2738,
+          "y": 126.5
+        },
+        {
+          "x": 2754,
+          "y": 126.5
+        }
+      ],
+      "labelPosition": {
+        "x": 2551,
+        "y": 195
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "ms-digital-twin-operations-graph-flow-8",
+      "from": "query",
+      "to": "scene",
+      "label": "live context",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 2364,
+          "y": 278.5
+        },
+        {
+          "x": 2754,
+          "y": 278.5
+        }
+      ],
+      "labelPosition": {
+        "x": 2559,
+        "y": 278.5
+      },
+      "routeRevision": 1
+    }
+  ]
+}

@@ -1,0 +1,435 @@
+{
+  "schemaVersion": 1,
+  "id": "aws-modern-governed-data-platform-v1",
+  "title": "Governed data platform spanning lake, streams, search, and warehouse",
+  "subtitle": "A layered data estate combines scalable object storage, catalog and access governance, stream processing, search, and analytic serving. Synthetic Azure reference; no deployment is implied.",
+  "description": "### Problem\nAn enterprise wants to make governed data reusable across operational producers, analytics teams, and business consumers without forcing every workload into a single storage or query engine.\n\n### Flow and Azure mapping\nBatch and streaming producers land data in Azure Data Lake Storage or OneLake. Azure Data Factory, Event Hubs, and stream processing services feed and transform the data. A catalog and governance layer classifies data and coordinates access; curated datasets are served through Fabric Warehouse, Azure Data Explorer, Azure AI Search, or purpose-built stores. BI and ML consumers use approved interfaces. Select only components relevant to a particular implementation.\n\n### Trade-offs and assumptions\nThe AWS guide is a broad architecture overview, not a single deployable topology. The Azure graph is intentionally a composable platform pattern, and services such as Lake Formation, Glue, Redshift, OpenSearch, and Kinesis do not map one-to-one to Azure products. Data ownership, encryption, consent/privacy, retention, lineage, and quality are organizational practices as well as service settings.\n\nSource: [AWS Prescriptive Guidance](https://docs.aws.amazon.com/prescriptive-guidance/latest/strategy-aws-data/aws-architecture.html).\n\n## Source provenance\n\n- Origin provider: AWS\n- Target: Azure conceptual adaptation\n- Primary source: [AWS modern data architecture](https://docs.aws.amazon.com/prescriptive-guidance/latest/strategy-aws-data/aws-architecture.html)\n- Reviewed: 2026-11-06\n\n## Catalog status\n\nThis is an original, editable Azure conceptual adaptation. It is synthetic reference material, not a deployed system, certified vendor architecture, or automatic deployment plan.\n\n## Mapping caveats\n\n- This is a portfolio pattern, not a single product stack; avoid suggesting all stores and services are required.",
+  "synthetic": true,
+  "legendVisible": true,
+  "legend": [
+    {
+      "label": "Illustrative Azure flow",
+      "color": "#0078d4",
+      "meaning": "Original conceptual flow, not verified deployment connectivity."
+    },
+    {
+      "label": "Synthetic reference",
+      "color": "#62696c",
+      "dashed": true,
+      "meaning": "Editable starting point requiring workload-specific design."
+    }
+  ],
+  "revision": 1,
+  "direction": "RIGHT",
+  "entities": [
+    {
+      "id": "group-sources",
+      "kind": "boundary",
+      "label": "Data producer domain",
+      "subtitle": "Producer-owned systems",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 24,
+      "y": 157,
+      "width": 312,
+      "height": 231,
+      "color": "azure"
+    },
+    {
+      "id": "group-platform",
+      "kind": "boundary",
+      "label": "Azure data platform",
+      "subtitle": "Governed data plane",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 689,
+      "y": 24,
+      "width": 1718,
+      "height": 390,
+      "color": "teal"
+    },
+    {
+      "id": "group-consumer",
+      "kind": "boundary",
+      "label": "Data consumers",
+      "subtitle": "Access-controlled use",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 2734,
+      "y": 50,
+      "width": 312,
+      "height": 231,
+      "color": "amber"
+    },
+    {
+      "id": "producers",
+      "kind": "component",
+      "label": "Operational and external producers",
+      "subtitle": "Generic applications, databases, files",
+      "parentId": "group-sources",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 120,
+      "color": "azure",
+      "icon": "database",
+      "status": "synthetic"
+    },
+    {
+      "id": "batch",
+      "kind": "component",
+      "label": "Batch ingestion",
+      "subtitle": "Azure Data Factory",
+      "parentId": "group-platform",
+      "layer": "foreground",
+      "x": 24,
+      "y": 212,
+      "width": 264,
+      "height": 96,
+      "color": "teal",
+      "icon": "service",
+      "status": "synthetic"
+    },
+    {
+      "id": "events",
+      "kind": "component",
+      "label": "Streaming ingestion",
+      "subtitle": "Azure Event Hubs",
+      "parentId": "group-platform",
+      "layer": "foreground",
+      "x": 548,
+      "y": 270,
+      "width": 264,
+      "height": 96,
+      "color": "teal",
+      "icon": "queue",
+      "status": "synthetic"
+    },
+    {
+      "id": "lake",
+      "kind": "component",
+      "label": "Shared object and lake storage",
+      "subtitle": "Azure Data Lake Storage",
+      "parentId": "group-platform",
+      "layer": "foreground",
+      "x": 548,
+      "y": 104.5,
+      "width": 264,
+      "height": 105,
+      "color": "teal",
+      "icon": "storage",
+      "status": "synthetic"
+    },
+    {
+      "id": "catalog",
+      "kind": "component",
+      "label": "Catalog, lineage, and policy",
+      "subtitle": "Microsoft Purview",
+      "parentId": "group-platform",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 105,
+      "color": "teal",
+      "icon": "shield",
+      "status": "synthetic"
+    },
+    {
+      "id": "process",
+      "kind": "component",
+      "label": "Transform and curate",
+      "subtitle": "Fabric, Azure Databricks,",
+      "parentId": "group-platform",
+      "layer": "foreground",
+      "x": 1009,
+      "y": 125,
+      "width": 264,
+      "height": 96,
+      "color": "teal",
+      "icon": "queue",
+      "status": "synthetic"
+    },
+    {
+      "id": "serve",
+      "kind": "component",
+      "label": "Query and search services",
+      "subtitle": "Fabric Warehouse, Azure Data Explorer, Azure AI Search",
+      "parentId": "group-platform",
+      "layer": "foreground",
+      "x": 1430,
+      "y": 105.5,
+      "width": 264,
+      "height": 135,
+      "color": "teal",
+      "icon": "database",
+      "status": "synthetic"
+    },
+    {
+      "id": "consumers",
+      "kind": "component",
+      "label": "Analysts and applications",
+      "subtitle": "Power BI and approved applications",
+      "parentId": "group-consumer",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 120,
+      "color": "amber",
+      "icon": "user",
+      "status": "synthetic"
+    }
+  ],
+  "connections": [
+    {
+      "id": "aws-modern-governed-data-platform-flow-1",
+      "from": "producers",
+      "to": "batch",
+      "label": "scheduled datasets",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 312,
+          "y": 256
+        },
+        {
+          "x": 697,
+          "y": 256
+        },
+        {
+          "x": 697,
+          "y": 320
+        },
+        {
+          "x": 713,
+          "y": 320
+        }
+      ],
+      "labelPosition": {
+        "x": 504.5,
+        "y": 256
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-modern-governed-data-platform-flow-2",
+      "from": "producers",
+      "to": "events",
+      "label": "stream events",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 312,
+          "y": 352
+        },
+        {
+          "x": 1221,
+          "y": 352
+        },
+        {
+          "x": 1221,
+          "y": 306
+        },
+        {
+          "x": 1237,
+          "y": 306
+        }
+      ],
+      "labelPosition": {
+        "x": 766.5,
+        "y": 352
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-modern-governed-data-platform-flow-3",
+      "from": "batch",
+      "to": "lake",
+      "label": "batch landing",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 977,
+          "y": 248
+        },
+        {
+          "x": 1221,
+          "y": 248
+        },
+        {
+          "x": 1221,
+          "y": 201.5
+        },
+        {
+          "x": 1237,
+          "y": 201.5
+        }
+      ],
+      "labelPosition": {
+        "x": 1099,
+        "y": 248
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-modern-governed-data-platform-flow-4",
+      "from": "events",
+      "to": "process",
+      "label": "real-time stream",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1501,
+          "y": 306
+        },
+        {
+          "x": 1682,
+          "y": 306
+        },
+        {
+          "x": 1682,
+          "y": 213
+        },
+        {
+          "x": 1698,
+          "y": 213
+        }
+      ],
+      "labelPosition": {
+        "x": 1591.5,
+        "y": 306
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-modern-governed-data-platform-flow-5",
+      "from": "lake",
+      "to": "process",
+      "label": "raw and curated data",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1501,
+          "y": 221.5
+        },
+        {
+          "x": 1682,
+          "y": 221.5
+        },
+        {
+          "x": 1682,
+          "y": 181
+        },
+        {
+          "x": 1698,
+          "y": 181
+        }
+      ],
+      "labelPosition": {
+        "x": 1591.5,
+        "y": 221.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-modern-governed-data-platform-flow-6",
+      "from": "catalog",
+      "to": "lake",
+      "label": "classification and access policy",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 977,
+          "y": 204
+        },
+        {
+          "x": 1221,
+          "y": 204
+        },
+        {
+          "x": 1221,
+          "y": 160.5
+        },
+        {
+          "x": 1237,
+          "y": 160.5
+        }
+      ],
+      "labelPosition": {
+        "x": 1099,
+        "y": 204
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-modern-governed-data-platform-flow-7",
+      "from": "process",
+      "to": "serve",
+      "label": "curated output",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1962,
+          "y": 197
+        },
+        {
+          "x": 2119,
+          "y": 197
+        }
+      ],
+      "labelPosition": {
+        "x": 2040.5,
+        "y": 197
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "aws-modern-governed-data-platform-flow-8",
+      "from": "serve",
+      "to": "consumers",
+      "label": "governed query",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 2383,
+          "y": 197
+        },
+        {
+          "x": 2758,
+          "y": 197
+        }
+      ],
+      "labelPosition": {
+        "x": 2570.5,
+        "y": 197
+      },
+      "routeRevision": 1
+    }
+  ]
+}

@@ -1,0 +1,508 @@
+{
+  "schemaVersion": 1,
+  "id": "gcp-image-vision-analytics-v1",
+  "title": "Event-driven image annotation and analytics pipeline",
+  "subtitle": "Uploaded images trigger scalable processing and annotation, with structured results stored for analysis and optional model training. Synthetic Azure reference; no deployment is implied.",
+  "description": "### Problem\nOrganizations need to enrich large collections of user- or device-submitted images with machine-readable annotations for search, reporting, or downstream models.\n\n### Flow and Azure mapping\nA client uploads an image to Blob Storage. Event Grid notifies a queue or processing function. A scalable worker invokes an approved image-analysis model or computer-vision service, stores annotations and processing metadata in a structured analytics destination, and emits status for retries and review. Data can be queried with Fabric or Azure Data Explorer, subject to the selected data shape.\n\n### Trade-offs and assumptions\nThe Google source uses Cloud Storage, Pub/Sub, Dataflow, Vision API, and BigQuery. Azure AI Vision and Azure analytics services are adaptation choices, not guaranteed equivalent feature sets. Input scanning, content rights, privacy, unsupported media, request quotas, asynchronous batch support, and cost per image must be evaluated. Avoid depicting face recognition or sensitive classification unless a policy review and specific use case justify it.\n\nSource: [Google Cloud Architecture Center](https://docs.cloud.google.com/architecture/building-a-vision-analytics-solution).\n\n## Source provenance\n\n- Origin provider: Google Cloud\n- Target: Azure conceptual adaptation\n- Primary source: [Build an ML vision analytics solution with Dataflow and Cloud Vision API](https://docs.cloud.google.com/architecture/building-a-vision-analytics-solution)\n- Reviewed: 2026-11-06\n\n## Catalog status\n\nThis is an original, editable Azure conceptual adaptation. It is synthetic reference material, not a deployed system, certified vendor architecture, or automatic deployment plan.\n\n## Mapping caveats\n\n- Vision model feature sets and quotas differ across providers; malware scanning and sensitive data controls may be required.",
+  "synthetic": true,
+  "legendVisible": true,
+  "legend": [
+    {
+      "label": "Illustrative Azure flow",
+      "color": "#0078d4",
+      "meaning": "Original conceptual flow, not verified deployment connectivity."
+    },
+    {
+      "label": "Synthetic reference",
+      "color": "#62696c",
+      "dashed": true,
+      "meaning": "Editable starting point requiring workload-specific design."
+    }
+  ],
+  "revision": 1,
+  "direction": "RIGHT",
+  "entities": [
+    {
+      "id": "group-upload",
+      "kind": "boundary",
+      "label": "Upload and raw media",
+      "subtitle": "External input and storage",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 1626,
+      "y": 24,
+      "width": 716,
+      "height": 223,
+      "color": "azure"
+    },
+    {
+      "id": "group-process",
+      "kind": "boundary",
+      "label": "Azure processing",
+      "subtitle": "Event and AI workflow",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 61,
+      "y": 83.5,
+      "width": 1195,
+      "height": 323,
+      "color": "teal"
+    },
+    {
+      "id": "group-analytics",
+      "kind": "boundary",
+      "label": "Analytics consumers",
+      "subtitle": "Governed results",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 1626,
+      "y": 287,
+      "width": 744,
+      "height": 231,
+      "color": "amber"
+    },
+    {
+      "id": "client",
+      "kind": "component",
+      "label": "Image producer",
+      "subtitle": "Generic application",
+      "parentId": "group-upload",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 96,
+      "color": "azure",
+      "icon": "service",
+      "status": "synthetic"
+    },
+    {
+      "id": "storage",
+      "kind": "component",
+      "label": "Image object store",
+      "subtitle": "Azure Blob Storage",
+      "parentId": "group-upload",
+      "layer": "foreground",
+      "x": 428,
+      "y": 103,
+      "width": 264,
+      "height": 96,
+      "color": "azure",
+      "icon": "storage",
+      "status": "synthetic"
+    },
+    {
+      "id": "event",
+      "kind": "component",
+      "label": "Upload notification",
+      "subtitle": "Event Grid",
+      "parentId": "group-process",
+      "layer": "foreground",
+      "x": 24,
+      "y": 203,
+      "width": 264,
+      "height": 96,
+      "color": "teal",
+      "icon": "queue",
+      "status": "synthetic"
+    },
+    {
+      "id": "queue",
+      "kind": "component",
+      "label": "Work queue",
+      "subtitle": "Azure Service Bus",
+      "parentId": "group-process",
+      "layer": "foreground",
+      "x": 496,
+      "y": 203,
+      "width": 264,
+      "height": 96,
+      "color": "teal",
+      "icon": "queue",
+      "status": "synthetic"
+    },
+    {
+      "id": "worker",
+      "kind": "component",
+      "label": "Image processing pipeline",
+      "subtitle": "Azure Functions",
+      "parentId": "group-process",
+      "layer": "foreground",
+      "x": 907,
+      "y": 98.5,
+      "width": 264,
+      "height": 105,
+      "color": "teal",
+      "icon": "function",
+      "status": "synthetic"
+    },
+    {
+      "id": "vision",
+      "kind": "component",
+      "label": "Image annotation model",
+      "subtitle": "Azure AI Vision",
+      "parentId": "group-process",
+      "layer": "foreground",
+      "x": 496,
+      "y": 87,
+      "width": 264,
+      "height": 96,
+      "color": "teal",
+      "icon": "model",
+      "status": "synthetic"
+    },
+    {
+      "id": "results",
+      "kind": "component",
+      "label": "Structured annotations",
+      "subtitle": "Fabric Warehouse",
+      "parentId": "group-analytics",
+      "layer": "foreground",
+      "x": 24,
+      "y": 99,
+      "width": 264,
+      "height": 96,
+      "color": "amber",
+      "icon": "database",
+      "status": "synthetic"
+    },
+    {
+      "id": "analyst",
+      "kind": "component",
+      "label": "Analyst and applications",
+      "subtitle": "Power BI and approved apps",
+      "parentId": "group-analytics",
+      "layer": "foreground",
+      "x": 456,
+      "y": 87,
+      "width": 264,
+      "height": 120,
+      "color": "amber",
+      "icon": "user",
+      "status": "synthetic"
+    }
+  ],
+  "connections": [
+    {
+      "id": "gcp-image-vision-analytics-flow-1",
+      "from": "client",
+      "to": "storage",
+      "label": "upload image",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1914,
+          "y": 195
+        },
+        {
+          "x": 2038,
+          "y": 195
+        },
+        {
+          "x": 2038,
+          "y": 139
+        },
+        {
+          "x": 2054,
+          "y": 139
+        }
+      ],
+      "labelPosition": {
+        "x": 1976,
+        "y": 195
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-image-vision-analytics-flow-2",
+      "from": "storage",
+      "to": "event",
+      "label": "object-created event",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 2054,
+          "y": 191
+        },
+        {
+          "x": 2030,
+          "y": 191
+        },
+        {
+          "x": 2030,
+          "y": 279
+        },
+        {
+          "x": 1240,
+          "y": 279
+        },
+        {
+          "x": 1240,
+          "y": 295
+        },
+        {
+          "x": 829,
+          "y": 295
+        },
+        {
+          "x": 829,
+          "y": 278.5
+        },
+        {
+          "x": 365,
+          "y": 278.5
+        },
+        {
+          "x": 365,
+          "y": 298.5
+        },
+        {
+          "x": 349,
+          "y": 298.5
+        }
+      ],
+      "labelPosition": {
+        "x": 1635,
+        "y": 263
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-image-vision-analytics-flow-3",
+      "from": "event",
+      "to": "queue",
+      "label": "processing notification",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 349,
+          "y": 344.5
+        },
+        {
+          "x": 541,
+          "y": 344.5
+        },
+        {
+          "x": 541,
+          "y": 334.5
+        },
+        {
+          "x": 557,
+          "y": 334.5
+        }
+      ],
+      "labelPosition": {
+        "x": 445,
+        "y": 344.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-image-vision-analytics-flow-4",
+      "from": "queue",
+      "to": "worker",
+      "label": "queued job",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 821,
+          "y": 298.5
+        },
+        {
+          "x": 952,
+          "y": 298.5
+        },
+        {
+          "x": 952,
+          "y": 235
+        },
+        {
+          "x": 968,
+          "y": 235
+        }
+      ],
+      "labelPosition": {
+        "x": 886.5,
+        "y": 314.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-image-vision-analytics-flow-5",
+      "from": "worker",
+      "to": "storage",
+      "label": "read image",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1232,
+          "y": 194
+        },
+        {
+          "x": 1642,
+          "y": 194
+        },
+        {
+          "x": 1642,
+          "y": 215
+        },
+        {
+          "x": 2038,
+          "y": 215
+        },
+        {
+          "x": 2038,
+          "y": 211
+        },
+        {
+          "x": 2054,
+          "y": 211
+        }
+      ],
+      "labelPosition": {
+        "x": 1437,
+        "y": 194
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-image-vision-analytics-flow-6",
+      "from": "worker",
+      "to": "vision",
+      "label": "analyze image",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 968,
+          "y": 214
+        },
+        {
+          "x": 837,
+          "y": 214
+        },
+        {
+          "x": 837,
+          "y": 234.5
+        },
+        {
+          "x": 821,
+          "y": 234.5
+        }
+      ],
+      "labelPosition": {
+        "x": 902.5,
+        "y": 214
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-image-vision-analytics-flow-7",
+      "from": "vision",
+      "to": "worker",
+      "label": "annotations",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 821,
+          "y": 254.5
+        },
+        {
+          "x": 948,
+          "y": 254.5
+        },
+        {
+          "x": 948,
+          "y": 234
+        },
+        {
+          "x": 968,
+          "y": 234
+        }
+      ],
+      "labelPosition": {
+        "x": 884.5,
+        "y": 254.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-image-vision-analytics-flow-8",
+      "from": "worker",
+      "to": "results",
+      "label": "store metadata",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1232,
+          "y": 275
+        },
+        {
+          "x": 1551,
+          "y": 275
+        },
+        {
+          "x": 1551,
+          "y": 398
+        },
+        {
+          "x": 1650,
+          "y": 398
+        }
+      ],
+      "labelPosition": {
+        "x": 1391.5,
+        "y": 259
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-image-vision-analytics-flow-9",
+      "from": "results",
+      "to": "analyst",
+      "label": "query and report",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1914,
+          "y": 434
+        },
+        {
+          "x": 2082,
+          "y": 434
+        }
+      ],
+      "labelPosition": {
+        "x": 1998,
+        "y": 434
+      },
+      "routeRevision": 1
+    }
+  ]
+}

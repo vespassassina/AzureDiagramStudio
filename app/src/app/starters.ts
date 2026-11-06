@@ -10,8 +10,9 @@ import hubSpokeSource from '../../../examples/hub-spoke-network.json?raw'
 import stampsSource from '../../../examples/saas-deployment-stamps.json?raw'
 import claimCheckSource from '../../../examples/file-claim-check.json?raw'
 import warehouseSource from '../../../examples/azure-data-warehouse.json?raw'
+import { researchedArchitectureCatalog } from './architecture-catalog.generated.ts'
 
-export type StarterChoice = { key: StarterKey; label: string; source: string; sourceCue: 'Synthetic example' | 'Learn adaptation'; reference?: string }
+export type StarterChoice = { key: StarterKey; label: string; source: string; sourceCue: 'Synthetic example' | 'Learn adaptation' | 'Architecture catalog'; reference?: string }
 export const starterCatalog: readonly StarterChoice[] = [
   { key: 'web-api', label: 'Web/API', source: webApiSource, sourceCue: 'Synthetic example' },
   { key: 'event-driven', label: 'Event-driven', source: eventSource, sourceCue: 'Synthetic example' },
@@ -24,4 +25,5 @@ export const starterCatalog: readonly StarterChoice[] = [
   { key: 'saas-deployment-stamps', label: 'SaaS Deployment Stamps', source: stampsSource, sourceCue: 'Learn adaptation', reference: 'https://learn.microsoft.com/en-us/azure/architecture/patterns/deployment-stamp' },
   { key: 'file-claim-check', label: 'File Processing With Claim Check', source: claimCheckSource, sourceCue: 'Learn adaptation', reference: 'https://learn.microsoft.com/en-us/azure/architecture/patterns/claim-check' },
   { key: 'azure-data-warehouse', label: 'Azure Data Warehouse', source: warehouseSource, sourceCue: 'Learn adaptation', reference: 'https://learn.microsoft.com/en-us/azure/architecture/example-scenario/data/data-warehouse' },
+  ...researchedArchitectureCatalog,
 ]

@@ -16,6 +16,41 @@ import * as workbookModel from '../workbook.ts'
 import { computeLayout } from '../layout.ts'
 import { routeFixedGeometry } from '../routing.ts'
 
+describe('UI-only workbook page operations DGM163', () => {
+  it('should_append_a_template_page_and_preserve_the_current_page_through_undo_redo', async () => {
+    const original = { ...createDocument('page-a'), title: 'Edited page' }
+    const h = await ready(original)
+    expect(h.session.workbookCommand({ type: 'addStarterPage', key: 'fabric' })).toBe(true)
+    const added = h.session.getSnapshot()
+    expect(isWorkbook(added.root)).toBe(true)
+    if (!isWorkbook(added.root)) throw new Error('Expected workbook')
+    expect(added.root.pages).toHaveLength(2)
+    expect(added.root.pages[0]).toBe(original)
+    expect(added.document.id).toBe(added.root.pages[1].id)
+    h.session.undo()
+    expect(h.session.getSnapshot().document).toBe(original)
+    h.session.redo()
+    expect(isWorkbook(h.session.getSnapshot().root)).toBe(true)
+    h.session.stop()
+  })
+  it('should_remove_active_or_inactive_pages_without_destroying_other_page_identity', async () => {
+    const h = await ready(createDocument('page-a'))
+    h.session.workbookCommand({ type: 'addPage' })
+    const root = h.session.getSnapshot().root
+    if (!isWorkbook(root)) throw new Error('Expected workbook')
+    const [first, second] = root.pages
+    h.session.selectPage(first.id)
+    expect(h.session.workbookCommand({ type: 'removePage', pageId: second.id })).toBe(true)
+    expect(h.session.getSnapshot().document).toBe(first)
+    h.session.undo()
+    h.session.selectPage(second.id)
+    expect(h.session.workbookCommand({ type: 'removePage', pageId: second.id })).toBe(true)
+    expect(h.session.getSnapshot().document.id).toBe(first.id)
+    expect(h.session.workbookCommand({ type: 'removePage', pageId: first.id })).toBe(false)
+    h.session.stop()
+  })
+})
+
 function deferred<T>() {
   let resolve!: (value: T) => void
   let reject!: (error: Error) => void

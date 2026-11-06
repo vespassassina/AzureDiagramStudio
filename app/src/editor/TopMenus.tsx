@@ -1,6 +1,6 @@
-import { useId, useLayoutEffect, useRef, useState } from 'react'
+import { Fragment, useId, useLayoutEffect, useRef, useState } from 'react'
 
-export type TopMenuItem = { label: string; disabled?: boolean; checked?: boolean; description?: string; run(origin: HTMLButtonElement): void }
+export type TopMenuItem = { label: string; disabled?: boolean; checked?: boolean; description?: string; separatorBefore?: boolean; run(origin: HTMLButtonElement): void }
 export type TopMenu = { label: string; items: TopMenuItem[] }
 
 export function TopMenus({ menus, open, onOpen, disabled }: {
@@ -78,7 +78,7 @@ export function TopMenus({ menus, open, onOpen, disabled }: {
           : event.key === 'ArrowDown' ? (index + 1) % items.length : event.key === 'ArrowUp' ? (index + items.length - 1) % items.length : -1
         if (next >= 0) { event.preventDefault(); items[next].focus() }
       }}>
-      {active.items.map(item => <button key={item.label} type="button" role={item.checked === undefined ? 'menuitem' : 'menuitemcheckbox'}
+      {active.items.map(item => <Fragment key={item.label}>{item.separatorBefore && <hr className="application-menu-separator" role="separator" />}<button type="button" role={item.checked === undefined ? 'menuitem' : 'menuitemcheckbox'}
         aria-checked={item.checked} aria-disabled={item.disabled || undefined} aria-description={item.description} tabIndex={-1}
         onClick={() => {
           if (item.disabled) return
@@ -87,7 +87,7 @@ export function TopMenus({ menus, open, onOpen, disabled }: {
           // Run synchronously inside the trusted activation: file pickers must
           // not be deferred to a timer or an effect.
           if (origin) item.run(origin)
-        }}><span aria-hidden="true" className="menu-check">{item.checked ? '✓' : ''}</span>{item.label}</button>)}
+        }}><span aria-hidden="true" className="menu-check">{item.checked ? '✓' : ''}</span>{item.label}</button></Fragment>)}
     </div>}
   </nav>
 }

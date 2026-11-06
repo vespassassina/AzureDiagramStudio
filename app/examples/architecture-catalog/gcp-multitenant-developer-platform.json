@@ -1,0 +1,532 @@
+{
+  "schemaVersion": 1,
+  "id": "gcp-multitenant-developer-platform-v1",
+  "title": "Multi-environment container developer platform with regional clusters",
+  "subtitle": "A platform blueprint isolates environments and tenant namespaces while delivering application services across regional Kubernetes clusters. Synthetic Azure reference; no deployment is implied.",
+  "description": "### Problem\nA platform team needs consistent application delivery across development, non-production, and production, while isolating tenant workloads and operating regional clusters.\n\n### Flow and Azure mapping\nA build pipeline creates immutable container images and promotes them through environments. Azure Kubernetes Service clusters in separate environments and regions host tenant namespaces. Azure Front Door or an application gateway routes external traffic; an internal service mesh or Kubernetes service discovery handles service communication. Entra workload identities, Azure Container Registry, Azure Policy, and Azure Monitor provide candidate identity, artifact, governance, and operations layers.\n\n### Trade-offs and assumptions\nThis is a specialized multi-tenant platform blueprint, not a generic AKS baseline or a single application microservices diagram. Azure AKS Fleet Manager and service mesh choices need validation for current capabilities and operational model. Namespace-level separation alone is not a complete security boundary; per-tenant data resources, authorization, network controls, environment separation, and cluster failure domains must be selected deliberately.\n\nSource: [Google Cloud Architecture Center](https://docs.cloud.google.com/architecture/blueprints/enterprise-application-blueprint/architecture).\n\n## Source provenance\n\n- Origin provider: Google Cloud\n- Target: Azure conceptual adaptation\n- Primary source: [Enterprise application blueprint architecture](https://docs.cloud.google.com/architecture/blueprints/enterprise-application-blueprint/architecture)\n- Reviewed: 2026-11-06\n\n## Catalog status\n\nThis is an original, editable Azure conceptual adaptation. It is synthetic reference material, not a deployed system, certified vendor architecture, or automatic deployment plan.\n\n## Mapping caveats\n\n- Multi-cluster tenancy and tenant data isolation need dedicated design; namespaces do not alone guarantee hard isolation.",
+  "synthetic": true,
+  "legendVisible": true,
+  "legend": [
+    {
+      "label": "Illustrative Azure flow",
+      "color": "#0078d4",
+      "meaning": "Original conceptual flow, not verified deployment connectivity."
+    },
+    {
+      "label": "Synthetic reference",
+      "color": "#62696c",
+      "dashed": true,
+      "meaning": "Editable starting point requiring workload-specific design."
+    }
+  ],
+  "revision": 1,
+  "direction": "RIGHT",
+  "entities": [
+    {
+      "id": "group-dev",
+      "kind": "boundary",
+      "label": "Development environment",
+      "subtitle": "Environment isolation",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 1231,
+      "y": 24,
+      "width": 312,
+      "height": 216,
+      "color": "azure"
+    },
+    {
+      "id": "group-test",
+      "kind": "boundary",
+      "label": "Non-production environment",
+      "subtitle": "Environment isolation",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 61,
+      "y": 24,
+      "width": 760,
+      "height": 341,
+      "color": "teal"
+    },
+    {
+      "id": "group-prod",
+      "kind": "boundary",
+      "label": "Production regions",
+      "subtitle": "Environment and regional isolation",
+      "parentId": null,
+      "layer": "foreground",
+      "x": 1231,
+      "y": 280,
+      "width": 1286,
+      "height": 481,
+      "color": "amber"
+    },
+    {
+      "id": "dev",
+      "kind": "component",
+      "label": "Development environment",
+      "subtitle": "Azure Kubernetes Service",
+      "parentId": "group-dev",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 105,
+      "color": "azure",
+      "icon": "server",
+      "status": "synthetic"
+    },
+    {
+      "id": "nonprod",
+      "kind": "component",
+      "label": "Non-production environment",
+      "subtitle": "Azure Kubernetes Service",
+      "parentId": "group-test",
+      "layer": "foreground",
+      "x": 24,
+      "y": 212,
+      "width": 264,
+      "height": 105,
+      "color": "teal",
+      "icon": "server",
+      "status": "synthetic"
+    },
+    {
+      "id": "pipeline",
+      "kind": "component",
+      "label": "Build and promotion pipeline",
+      "subtitle": "Azure DevOps",
+      "parentId": "group-test",
+      "layer": "foreground",
+      "x": 24,
+      "y": 87,
+      "width": 264,
+      "height": 105,
+      "color": "teal",
+      "icon": "function",
+      "status": "synthetic"
+    },
+    {
+      "id": "registry",
+      "kind": "component",
+      "label": "Immutable container images",
+      "subtitle": "Azure Container Registry",
+      "parentId": "group-test",
+      "layer": "foreground",
+      "x": 472,
+      "y": 87,
+      "width": 264,
+      "height": 105,
+      "color": "teal",
+      "icon": "database",
+      "status": "synthetic"
+    },
+    {
+      "id": "prod-a",
+      "kind": "component",
+      "label": "Production cluster region A",
+      "subtitle": "Azure Kubernetes Service",
+      "parentId": "group-prod",
+      "layer": "foreground",
+      "x": 496,
+      "y": 227,
+      "width": 264,
+      "height": 105,
+      "color": "amber",
+      "icon": "server",
+      "status": "synthetic"
+    },
+    {
+      "id": "prod-b",
+      "kind": "component",
+      "label": "Production cluster region B",
+      "subtitle": "Azure Kubernetes Service",
+      "parentId": "group-prod",
+      "layer": "foreground",
+      "x": 496,
+      "y": 352,
+      "width": 264,
+      "height": 105,
+      "color": "amber",
+      "icon": "server",
+      "status": "synthetic"
+    },
+    {
+      "id": "edge",
+      "kind": "component",
+      "label": "Global application ingress",
+      "subtitle": "Azure Front Door",
+      "parentId": "group-prod",
+      "layer": "foreground",
+      "x": 24,
+      "y": 273,
+      "width": 264,
+      "height": 105,
+      "color": "amber",
+      "icon": "api",
+      "status": "synthetic"
+    },
+    {
+      "id": "identity",
+      "kind": "component",
+      "label": "Workload identity and policy",
+      "subtitle": "Microsoft Entra Workload ID and Azure Policy",
+      "parentId": "group-prod",
+      "layer": "foreground",
+      "x": 496,
+      "y": 87,
+      "width": 264,
+      "height": 120,
+      "color": "amber",
+      "icon": "shield",
+      "status": "synthetic"
+    },
+    {
+      "id": "tenant",
+      "kind": "component",
+      "label": "Tenant workloads",
+      "subtitle": "AKS namespaces and tenant-owned data",
+      "parentId": "group-prod",
+      "layer": "foreground",
+      "x": 998,
+      "y": 228,
+      "width": 264,
+      "height": 103,
+      "color": "amber",
+      "icon": "service",
+      "status": "synthetic"
+    }
+  ],
+  "connections": [
+    {
+      "id": "gcp-multitenant-developer-platform-flow-1",
+      "from": "pipeline",
+      "to": "registry",
+      "label": "build and sign image",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 349,
+          "y": 163.5
+        },
+        {
+          "x": 533,
+          "y": 163.5
+        }
+      ],
+      "labelPosition": {
+        "x": 441,
+        "y": 163.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-multitenant-developer-platform-flow-2",
+      "from": "registry",
+      "to": "dev",
+      "label": "deploy version",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 797,
+          "y": 163.5
+        },
+        {
+          "x": 1239,
+          "y": 163.5
+        },
+        {
+          "x": 1239,
+          "y": 153.5
+        },
+        {
+          "x": 1255,
+          "y": 153.5
+        }
+      ],
+      "labelPosition": {
+        "x": 1018,
+        "y": 163.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-multitenant-developer-platform-flow-3",
+      "from": "dev",
+      "to": "nonprod",
+      "label": "promote after validation",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1255,
+          "y": 204
+        },
+        {
+          "x": 805,
+          "y": 204
+        },
+        {
+          "x": 805,
+          "y": 248
+        },
+        {
+          "x": 349,
+          "y": 248
+        }
+      ],
+      "labelPosition": {
+        "x": 577,
+        "y": 248
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-multitenant-developer-platform-flow-4",
+      "from": "nonprod",
+      "to": "prod-a",
+      "label": "approved production release",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 349,
+          "y": 309
+        },
+        {
+          "x": 1231,
+          "y": 309
+        },
+        {
+          "x": 1231,
+          "y": 519
+        },
+        {
+          "x": 1727,
+          "y": 519
+        }
+      ],
+      "labelPosition": {
+        "x": 790,
+        "y": 309
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-multitenant-developer-platform-flow-5",
+      "from": "nonprod",
+      "to": "prod-b",
+      "label": "approved production release",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 349,
+          "y": 329
+        },
+        {
+          "x": 1223,
+          "y": 329
+        },
+        {
+          "x": 1223,
+          "y": 545
+        },
+        {
+          "x": 1711,
+          "y": 545
+        },
+        {
+          "x": 1711,
+          "y": 644
+        },
+        {
+          "x": 1727,
+          "y": 644
+        }
+      ],
+      "labelPosition": {
+        "x": 786,
+        "y": 345
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-multitenant-developer-platform-flow-6",
+      "from": "edge",
+      "to": "prod-a",
+      "label": "route to healthy region",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1519,
+          "y": 565
+        },
+        {
+          "x": 1535,
+          "y": 565
+        },
+        {
+          "x": 1535,
+          "y": 600
+        },
+        {
+          "x": 1727,
+          "y": 600
+        }
+      ],
+      "labelPosition": {
+        "x": 1623,
+        "y": 582.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-multitenant-developer-platform-flow-7",
+      "from": "edge",
+      "to": "prod-b",
+      "label": "route to healthy region",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1519,
+          "y": 646
+        },
+        {
+          "x": 1551,
+          "y": 646
+        },
+        {
+          "x": 1551,
+          "y": 664
+        },
+        {
+          "x": 1727,
+          "y": 664
+        }
+      ],
+      "labelPosition": {
+        "x": 1595,
+        "y": 680
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-multitenant-developer-platform-flow-8",
+      "from": "prod-a",
+      "to": "tenant",
+      "label": "host tenant services",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1991,
+          "y": 559.5
+        },
+        {
+          "x": 2213,
+          "y": 559.5
+        },
+        {
+          "x": 2213,
+          "y": 539.5
+        },
+        {
+          "x": 2229,
+          "y": 539.5
+        }
+      ],
+      "labelPosition": {
+        "x": 2102,
+        "y": 559.5
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-multitenant-developer-platform-flow-9",
+      "from": "prod-b",
+      "to": "tenant",
+      "label": "host tenant services",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1991,
+          "y": 644
+        },
+        {
+          "x": 2213,
+          "y": 644
+        },
+        {
+          "x": 2213,
+          "y": 579
+        },
+        {
+          "x": 2229,
+          "y": 579
+        }
+      ],
+      "labelPosition": {
+        "x": 2102,
+        "y": 644
+      },
+      "routeRevision": 1
+    },
+    {
+      "id": "gcp-multitenant-developer-platform-flow-10",
+      "from": "identity",
+      "to": "tenant",
+      "label": "workload identity and policy",
+      "style": "solid",
+      "arrow": "forward",
+      "sourceSide": "auto",
+      "targetSide": "auto",
+      "points": [
+        {
+          "x": 1991,
+          "y": 475
+        },
+        {
+          "x": 2183,
+          "y": 475
+        },
+        {
+          "x": 2183,
+          "y": 560
+        },
+        {
+          "x": 2229,
+          "y": 560
+        }
+      ],
+      "labelPosition": {
+        "x": 2135,
+        "y": 475
+      },
+      "routeRevision": 1
+    }
+  ]
+}
