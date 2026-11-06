@@ -6,6 +6,10 @@ A local architecture editor for Azure, Microsoft Fabric, Microsoft applications 
 
 ## 0.5.3
 
+[Download the latest Windows portable release](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.5.3)
+for ARM64 or x64, with published SHA-256 checksums. Fresh public downloads of
+both executables matched the qualified packages.
+
 The source now uses **File > Add Diagram** to browse architectures and append
 the selected diagram to the current workbook instead of replacing it.
 **Add New Page** and the trailing page-strip **+** create a blank page directly.
@@ -28,7 +32,7 @@ review date and cross-cloud limitations; it accompanies the added page.
 These verified features
 ([workbook UI](docs/verification/DGM-163.md),
 [architecture catalog](docs/verification/DGM-164.md)) are included in the
-qualified 0.5.3 Windows ARM64 and x64 portable packages. See the
+published 0.5.3 Windows ARM64 and x64 portable packages. See the
 [exact-package verification report](docs/verification/DGM-165.md).
 The executables are unsigned; x64 was exercised under Windows ARM64
 emulation, not on native x64 hardware. Native Visio and native OS chooser

@@ -1,6 +1,7 @@
 ﻿# Azure Diagram Studio: Short Manual
 
-**Windows 0.5.3:** the qualified portable packages include the workbook/page
+**[Windows 0.5.3](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.5.3):**
+the stable/latest portable packages include the workbook/page
 controls and 35-starter architecture catalog described in the current
 sections below. File groups workbook operations separately from Add New Page
 and Add Diagram. Add Diagram appends to the current workbook; it does not

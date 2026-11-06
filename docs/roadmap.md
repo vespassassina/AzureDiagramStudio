@@ -1,6 +1,6 @@
 # Diagrammer Roadmap and Delegation Plan
 
-Updated: 2026-11-06. Status: DGM-165 WINDOWS 0.5.3 EXACT PACKAGES QUALIFIED / SOURCE COMMITTED / PUBLICATION NEXT. OLDER RELEASES, INSTALLATIONS, PREVIEWS AND DRAFTS REMAIN PRESERVED.
+Updated: 2026-11-06. Status: DGM-165 WINDOWS 0.5.3 STABLE/LATEST PUBLISHED / SOURCE PUSHED AND TAGGED / FRESH PUBLIC DOWNLOADS VERIFIED. OLDER RELEASES, INSTALLATIONS, PREVIEWS AND DRAFTS REMAIN PRESERVED.
 
 ## Current Execution Policy
 
@@ -98,10 +98,19 @@ Both ASARs match all 61 staged files; both actual GUI/MCP runtimes passed
 35-template discovery, architecture insertion/Markdown preservation and
 JSON/PNG/three-page PDF checks. x64 was exercised under ARM64 emulation.
 See [exact package evidence](verification/DGM-165.md).
-**Exact next action:** fast-forward push source/docs, create the new annotated
-0.5.3 tag, publish both qualified executables and checksums, and verify fresh
-public downloads. Preserve 0.5.2 and current previews; publication is not yet
-complete.
+Source and qualification documentation were fast-forward pushed to the current
+branch and established default `feat/DGM-070-desktop-release`, without a PR or
+force push. New annotated tag `0.5.3` targets
+`95905972348d272fb74a9020c5df97046f1f5749`; product source remains `8f8e3de`.
+[Stable/latest 0.5.3](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.5.3)
+was published at 22:35:55 UTC with both executables and SHA256SUMS. Fresh
+anonymous public downloads returned HTTP 200 and matched both qualified byte
+counts/hashes; the public checksum file matched, and GitHub's latest-release
+endpoint confirmed 0.5.3. Receipts are retained under the candidate's
+`published-download/` directory. Release 0.5.2 and existing previews/drafts
+remain untouched.
+**Exact next action:** delivery is complete; no further approved feature,
+package or publication work remains in this batch. Await the PO's next scope.
 
 **Accepted feature cursor, 2026-11-06: DGM-163 and DGM-164 complete;
 compiled catalog preview open.**
