@@ -1,6 +1,6 @@
 # Diagrammer Roadmap and Delegation Plan
 
-Updated: 2026-11-04. Status: DGM-147 STABLE/LATEST0.5.1 PUBLISHED / INDEPENDENT PUBLIC DOWNLOADS VERIFIED / NOT INSTALLED. INSTALLED0.5.0, OLDER RELEASES/TAGS AND KNOWN PNG LIMIT REMAIN PRESERVED.
+Updated: 2026-11-06. Status: DGM-165 WINDOWS 0.5.3 EXACT PACKAGES QUALIFIED / SOURCE COMMITTED / PUBLICATION NEXT. OLDER RELEASES, INSTALLATIONS, PREVIEWS AND DRAFTS REMAIN PRESERVED.
 
 ## Current Execution Policy
 
@@ -90,14 +90,20 @@ supersedes earlier participant-trial stops, not technical safety requirements.
 ## Execution Queue
 
 **Latest delivery authorization, 2026-11-06:** the PO requested "compile and
-publish latest". [DGM-165](specs/DGM-165.md) is preparing a distinct 0.5.3
-Windows ARM64/x64 release from the accepted DGM-163/164 source. Version,
-desktop/build/staging and both portable packages are owned by one release
-implementer. Exact-package qualification precedes source commit/fast-forward
-push, new tag and stable publication with fresh-download checksum checks.
-Preserve 0.5.2 and the user's current previews. Publication is not yet complete.
+publish latest". [DGM-165](specs/DGM-165.md) has compiled and independently
+qualified both distinct 0.5.3 Windows ARM64/x64 portable packages from accepted
+DGM-163/164 source commit `8f8e3de`. Desktop tests passed 115/115, the focused
+verification-script correction passed 21/21, and build/staging/packaging passed.
+Both ASARs match all 61 staged files; both actual GUI/MCP runtimes passed
+35-template discovery, architecture insertion/Markdown preservation and
+JSON/PNG/three-page PDF checks. x64 was exercised under ARM64 emulation.
+See [exact package evidence](verification/DGM-165.md).
+**Exact next action:** fast-forward push source/docs, create the new annotated
+0.5.3 tag, publish both qualified executables and checksums, and verify fresh
+public downloads. Preserve 0.5.2 and current previews; publication is not yet
+complete.
 
-**Current source cursor, 2026-11-06: DGM-163 and DGM-164 accepted source;
+**Accepted feature cursor, 2026-11-06: DGM-163 and DGM-164 complete;
 compiled catalog preview open.**
 The PO-requested Add diagram/workbook-preservation flow, trailing page-strip
 plus, undoable guarded page removal, direct rename paths, white Select cursor
@@ -107,8 +113,8 @@ MCP/workbook regressions passed, TypeScript/Vite build passed, independent
 browser checks and the bounded repair recheck passed. Documentation is
 reconciled. A separate compiled source preview is open on port 37435 with
 its own profile/workspace; the published app on 37434 remains preserved.
-No new package, tag, publication or external Git delivery is claimed for
-this source-only follow-up.
+The subsequent DGM-165 release authorization above covers packaging and
+external delivery of this accepted feature batch.
 
 The PO subsequently requested the exact File menu groups: New Workbook,
 Load Workbook, Save Workbook, Save Workbook As; then Add New Page and
@@ -139,12 +145,11 @@ compiled-browser final review. See [DGM-164 evidence](verification/DGM-164.md).
 
 The compiled browser preview is open at `http://127.0.0.1:4178/`; existing
 source/release windows on 37435/37434 and their drafts remain untouched.
-Documentation is consolidated. **Exact next action:** no further approved
-feature work remains in this source follow-up; retain this accepted candidate
-for PO use/review. No new package, tag, external Git delivery or publication
-has been performed or inferred for DGM-163/164.
+Documentation is consolidated. No further approved feature work remains;
+the exact continuation is the DGM-165 distribution cursor above, not another
+implementation or source-verification sweep.
 
-**Current release cursor, 2026-11-06:** the complete 0.5.2 implementation and
+**Previous release cursor, 2026-11-06:** the complete 0.5.2 implementation and
 consolidated repair batch are finished. Source tests passed 6,064/6,064,
 desktop tests 115/115, and typecheck/build/staging passed. Independent
 current-input wheel/drag, PDF pagination/content, ZIP and VSDX structural

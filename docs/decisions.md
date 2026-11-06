@@ -801,3 +801,23 @@ No schema, dependency, security, cloud-deployment or release change is implied.
 Who: PO via the menu request, retained-group choice, Azure-only/24-entry
 choices and replacement-picker choice. Contract: [DGM-164](specs/DGM-164.md);
 evidence: [source verification](verification/DGM-164.md).
+
+## 2026-11-06: Publish The Qualified Workbook And Architecture Catalog Release
+
+Context: the PO explicitly requested "compile and publish latest" after the
+workbook UI and researched catalog were accepted.
+
+Decision: publish distinct version 0.5.3 using the existing unsigned Windows
+ARM64/x64 portable targets. Retain all older releases and open profiles.
+Use direct fast-forward source delivery, a new annotated tag and stable/latest
+GitHub publication; no PR, force push or old-tag replacement.
+
+Consequences: one release owner completed both builds; one independent verifier
+qualified exact package/stage/source identity and actual GUI/MCP/output
+behavior. Build base plus dirty-input manifests are bound to committed product
+source `8f8e3de`, not misrepresented as a clean old-commit build. Native Visio,
+native chooser, unsigned and emulated-x64 limits remain disclosed. Public
+downloads must match the qualified byte counts and hashes before closeout.
+
+Who: PO via the explicit release request; scope
+[DGM-165](specs/DGM-165.md), evidence [DGM-165](verification/DGM-165.md).

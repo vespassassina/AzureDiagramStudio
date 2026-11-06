@@ -1,6 +1,16 @@
 ﻿# Azure Diagram Studio: Short Manual
 
-**Windows0.5.1:** the stable/latest release adds diagram background presets,
+**Windows 0.5.3:** the qualified portable packages include the workbook/page
+controls and 35-starter architecture catalog described in the current
+sections below. File groups workbook operations separately from Add New Page
+and Add Diagram. Add Diagram appends to the current workbook; it does not
+replace existing pages. See [DGM-165](verification/DGM-165.md) for exact
+package identity, runtime evidence and limitations. The executables are
+unsigned; x64 was qualified under ARM64 emulation, not native x64 hardware.
+Native Visio and native OS chooser interaction remain unverified.
+Existing local installations, open previews and drafts are not replaced.
+
+**Historical Windows0.5.1:** that release adds diagram background presets,
 named swatches and an in-app RGB mixer to the menu, Help, workspace,
 Favorites, export and compact-layout features described below.
 [DGM-147](specs/DGM-147.md) records accepted exact-portable qualification on
@@ -15,7 +25,7 @@ The historical source MCP PNG4000ms timeout remains a
 [known unresolved qualification limit](verification/DGM-143.md), not a fixed
 issue or an authorized deadline increase.
 
-This manual describes the [Windows0.5.1 release](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.5.1), including conventional menus, the eleven-step Help guide, persistent Favorites, guided starters, Markdown sidebar, local MCP and background/RGB controls. The [DGM-147 verification report](verification/DGM-147.md) identifies exact source `3dc7579db438f7c0780ebab03f8f29b6e79daec4`, both tested portables and verification limits. Earlier releases and local packages remain unchanged historical artifacts. Stable publication is not general platform or human certification.
+The historical [Windows0.5.1 release](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.5.1) introduced conventional menus, the eleven-step Help guide, persistent Favorites, guided starters, Markdown sidebar, local MCP and background/RGB controls. The [DGM-147 verification report](verification/DGM-147.md) identifies its exact source `3dc7579db438f7c0780ebab03f8f29b6e79daec4`, both tested portables and verification limits. Earlier releases and local packages remain unchanged historical artifacts. Current package claims are bounded by DGM-165; stable publication is not general platform or human certification.
 
 ## Experimental connector segment adjustments (disabled by default)
 
