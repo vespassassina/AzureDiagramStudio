@@ -262,7 +262,7 @@ test('should_package_both_unsigned_portable_targets_with_exact_identity_and_allo
   assert.equal(config.forceCodeSigning, false)
   assert.equal(config.publish, null)
   assert.equal(config.portable.buildUniversalInstaller, false)
-  assert.deepEqual(config.files, ['dist/**', 'electron/*.mjs', 'electron/preload.cjs', 'package.json', '!node_modules/**'])
+  assert.deepEqual(config.files, ['dist/**', 'electron/*.mjs', 'electron/preload.cjs', 'electron/print-preload.cjs', 'electron/headless-preload.cjs', 'package.json', '!node_modules/**'])
   assert.equal(config.directories.app, '.desktop-stage')
 })
 
@@ -298,7 +298,7 @@ test('should_choose_blank_at_each_new_diagram_site_when_the_current_chooser_open
 test('should_use_current_exact_export_names_in_the_export_dialog_when_downloading', async () => {
   const source = await readFile(new URL('../../scripts/verify-desktop.mjs', import.meta.url), 'utf8')
   const dialog = await readFile(new URL('../../src/editor/ExportDialog.tsx', import.meta.url), 'utf8')
-  assert.match(dialog, /<h2 id=\{`\$\{id\}-title`\}>Export diagram<\/h2>/)
+  assert.ok(dialog.includes("<h2 id={`${id}-title`}>{props.workbook ? 'Export workbook or page' : 'Export diagram'}</h2>"))
   assert.ok(dialog.includes("aria-label={action.format === 'svg' ? 'Export SVG' : `Export PNG ${action.scale}x`}"))
   const control = "page.getByRole('dialog', { name: 'Export diagram', exact: true }).getByRole('button', { name: format === 'svg' ? 'Export SVG' : 'Export PNG 1x', exact: true })"
   assert.equal(source.split(control).length - 1, 3)

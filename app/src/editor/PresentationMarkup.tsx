@@ -10,6 +10,8 @@ const colors = { Red: '#ff0000', Blue: '#0000ff', Green: '#008000', Yellow: '#ff
 type Point = { x: number; y: number }
 type Shape = { id: number; kind: 'freehand' | 'rectangle' | 'ellipse' | 'arrow'; color: string; points: Point[] }
 type InkHistory = { past: Shape[][]; present: Shape[]; future: Shape[][] }
+/** Opaque page-local temporary ink; owned by the editor per page and cleared on Exit. */
+export type PresentationInk = InkHistory
 type Gesture = { pointerId: number; target: SVGSVGElement; shape: Shape }
 
 function MarkupButton({ label, active, disabled, onClick, children }: { label: string; active?: boolean; disabled?: boolean; onClick(): void; children: ReactNode }) {
@@ -61,22 +63,25 @@ function inkShape(shape: Shape, zoom: number, preview = false) {
   return <path {...common} d={`M ${start.x} ${start.y} L ${end.x} ${end.y} M ${first.x} ${first.y} L ${end.x} ${end.y} L ${second.x} ${second.y}`} />
 }
 
-export function PresentationMarkup() {
+// DGM-151B: ink is page-local. The editor keys this component by page ID and
+// lifts each page's ink history so returning to a page during the same
+// presentation shows its ink again; nothing is persisted or added to history.
+export function PresentationMarkup({ initialInk, onInkChange }: { initialInk?: PresentationInk; onInkChange?(ink: PresentationInk): void } = {}) {
   const { screenToFlowPosition } = useReactFlow()
   const viewport = useViewport()
   const [drawing, setDrawing] = useState(false)
   const [color, setColor] = useState<keyof typeof colors>('Red')
-  const [history, setHistory] = useState<InkHistory>({ past: [], present: [], future: [] })
+  const [history, setHistory] = useState<InkHistory>(() => initialInk ?? { past: [], present: [], future: [] })
   const historyRef = useRef(history)
   const [preview, setPreview] = useState<Shape | null>(null)
   const gesture = useRef<Gesture | null>(null)
-  const nextId = useRef(0)
+  const nextId = useRef(Math.max(0, ...[initialInk?.present ?? [], ...(initialInk?.past ?? []), ...(initialInk?.future ?? [])].flat().map(shape => shape.id + 1)))
   const canvas = useRef<SVGSVGElement>(null)
   const toolbar = useRef<HTMLDivElement>(null)
   const mounted = useRef(true)
   const [bottom, setBottom] = useState(78)
 
-  function updateHistory(next: InkHistory) { historyRef.current = next; setHistory(next) }
+  function updateHistory(next: InkHistory) { historyRef.current = next; setHistory(next); onInkChange?.(next) }
   function commit(shapes: Shape[]) {
     const current = historyRef.current
     updateHistory({ past: [...current.past, current.present], present: shapes, future: [] })

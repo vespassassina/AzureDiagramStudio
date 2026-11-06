@@ -4,14 +4,16 @@ import { access, lstat, mkdir, open, realpath, rename, rm, stat } from 'node:fs/
 import { createHash, randomUUID } from 'node:crypto'
 import { trustedSender } from './mcp-bridge.mjs'
 
-const formats = { json: 'application/json', svg: 'image/svg+xml', png: 'image/png', zip: 'application/zip', md: 'text/markdown' }
+const formats = { json: 'application/json', svg: 'image/svg+xml', png: 'image/png', zip: 'application/zip', md: 'text/markdown', pdf: 'application/pdf', vsdx: 'application/vnd.ms-visio.drawing' }
 const MAX_BYTES = 64 * 1024 * 1024
 const validRoot = value => typeof value === 'string' && value.length <= 4096 && !/[\0-\x1f]/.test(value) && path.isAbsolute(value)
 const exact = (value, keys) => value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === keys.length && keys.every(key => Object.hasOwn(value, key))
+const reservedName = /^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\.|$)/i
+const validDiagramFilename = value => typeof value === 'string' && value.length <= 180 && !/[\\/:*?"<>|\0-\x1f]/.test(value) && !/^\.+$/.test(value) && /\.json$/i.test(value) && !reservedName.test(value)
 
 // Write a sibling exclusively, flush it, then replace the preference in one
 // rename. A failed operation never changes the active preference.
-async function atomicWrite(file, bytes) {
+export async function atomicWrite(file, bytes) {
   await mkdir(path.dirname(file), { recursive: true })
   const pending = `${file}.${randomUUID()}.pending`
   let handle
@@ -25,10 +27,11 @@ async function atomicWrite(file, bytes) {
 }
 const atomicPreference = (file, value) => atomicWrite(file, JSON.stringify(value) + '\n')
 
-export function createWorkspaceSettings({ profile, documents, dialog, window, persist = atomicPreference }) {
+export function createWorkspaceSettings({ profile, documents, dialog, window, persist = atomicPreference, recent }) {
   const file = path.join(profile, 'workspace-settings.json')
   const defaultRoot = path.join(documents, 'AzureDiagramStudio')
   let busy = false
+  const knownDefaultFiles = new Set()
   async function read() {
     let handle
     try {
@@ -73,6 +76,85 @@ export function createWorkspaceSettings({ profile, documents, dialog, window, pe
     await persist(file, { version: 1, root: null })
     return { root: defaultRoot, isDefault: true }
   })
+  async function rootForSave(active) {
+    const preference = await read()
+    checkActive(active)
+    if (preference.isDefault) {
+      await usable(documents)
+      await mkdir(preference.root, { recursive: true })
+    }
+    await usable(preference.root)
+    const root = await realpath(preference.root)
+    const details = await lstat(root)
+    if (!details.isDirectory() || details.isSymbolicLink()) throw new Error('Workspace root was redirected.')
+    return root
+  }
+  function validateDiagramRequest(request) {
+    if (!exact(request, ['filename', 'mimeType', 'bytes'])) throw new Error('Invalid diagram save arguments.')
+    if (!validDiagramFilename(request.filename)) throw new Error('Unsafe diagram filename.')
+    if (request.mimeType !== 'application/json') throw new Error('Invalid diagram save type.')
+    if (!(request.bytes instanceof Uint8Array) || request.bytes.byteLength < 1 || request.bytes.byteLength > 64 * 1024 * 1024) throw new Error('Invalid diagram byte bounds.')
+  }
+  async function recordJson(destination) {
+    if (!recent) return { saved: true }
+    try { await recent.record(destination); return { saved: true } }
+    catch (error) { return { saved: true, recentError: `File saved, but Recent diagrams could not be updated: ${error.message}` } }
+  }
+
+  // Pseudocode:
+  //   1. validate a basename-only JSON request and resolve the configured root
+  //   2. reject redirected paths; prompt only for an unrelated pre-existing name
+  //   3. atomically replace the root file, then record the exact original path
+  // The trusted main process remembers files it wrote, so repeat Save needs no
+  // extra prompt while a collision with an unrelated root file stays explicit.
+  const saveDiagram = (request, active = () => true) => exclusive(async () => {
+    validateDiagramRequest(request)
+    checkActive(active)
+    const root = await rootForSave(active)
+    const destination = path.join(root, request.filename)
+    if (path.dirname(destination) !== root) throw new Error('Diagram destination escaped the workspace root.')
+    let exists = false
+    try {
+      const details = await lstat(destination)
+      if (!details.isFile() || details.isSymbolicLink()) throw new Error('Diagram destination is not a regular file.')
+      exists = true
+    } catch (error) { if (error.code !== 'ENOENT') throw error }
+    if (exists && !knownDefaultFiles.has(destination)) {
+      const choice = await dialog.showMessageBox(window, { type: 'warning', buttons: ['Overwrite', 'Cancel'], defaultId: 1, cancelId: 1, title: 'Replace existing diagram?', message: `${request.filename} already exists in the configured workspace.`, detail: 'Choose Overwrite only if this is the diagram you intend to replace.' })
+      checkActive(active)
+      if (choice.response !== 0) return { saved: false }
+    }
+    checkActive(active)
+    await atomicWrite(destination, request.bytes)
+    checkActive(active)
+    knownDefaultFiles.add(destination)
+    return { ...(await recordJson(destination)), filename: request.filename }
+  })
+  const saveDiagramAs = (request, active = () => true) => exclusive(async () => {
+    validateDiagramRequest(request)
+    checkActive(active)
+    const result = await dialog.showSaveDialog(window, { title: 'Save diagram as', defaultPath: request.filename, filters: [{ name: 'Diagram JSON', extensions: ['json'] }], properties: ['showOverwriteConfirmation'] })
+    checkActive(active)
+    if (result.canceled) return { saved: false }
+    if (!validRoot(result.filePath) || !validDiagramFilename(path.basename(result.filePath))) throw new Error('No valid diagram destination was selected.')
+    const details = await lstat(path.dirname(result.filePath))
+    if (!details.isDirectory() || details.isSymbolicLink()) throw new Error('Diagram destination directory was redirected.')
+    try {
+      const destination = await lstat(result.filePath)
+      if (!destination.isFile() || destination.isSymbolicLink()) throw new Error('Diagram destination is not a regular file.')
+    } catch (error) { if (error.code !== 'ENOENT') throw error }
+    checkActive(active)
+    await atomicWrite(result.filePath, request.bytes)
+    checkActive(active)
+    return { ...(await recordJson(result.filePath)), filename: path.basename(result.filePath) }
+  })
+  async function markKnownDiagram(source) {
+    if (typeof source !== 'string' || !path.isAbsolute(source)) return
+    const root = await rootForSave(() => true)
+    const resolved = await realpath(source)
+    const details = await lstat(resolved)
+    if (details.isFile() && !details.isSymbolicLink() && path.dirname(resolved) === root && validDiagramFilename(path.basename(resolved))) knownDefaultFiles.add(resolved)
+  }
 
   // Validate before touching disk; derive a fixed hash-only child from identity,
   // never from title/path. Resolve and reject redirected children. Only the
@@ -82,7 +164,7 @@ export function createWorkspaceSettings({ profile, documents, dialog, window, pe
     if (!exact(request, ['documentId', 'filename', 'mimeType', 'bytes'])) throw new Error('Invalid export arguments.')
     const { documentId, filename, mimeType, bytes } = request
     if (typeof documentId !== 'string' || !/^[a-zA-Z0-9_.:-]{1,128}$/.test(documentId) || ['__proto__', 'prototype', 'constructor'].includes(documentId)) throw new Error('Invalid document identity.')
-    if (typeof filename !== 'string' || !/^[a-zA-Z0-9_-][a-zA-Z0-9_.-]{0,100}\.(json|svg|png|zip|md)$/.test(filename) ||
+    if (typeof filename !== 'string' || !/^[a-zA-Z0-9_-][a-zA-Z0-9_.-]{0,100}\.(json|svg|png|zip|md|pdf|vsdx)$/.test(filename) ||
       /^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\.|$)/i.test(filename)) throw new Error('Unsafe export filename.')
     const extension = path.extname(filename).slice(1)
     if (typeof mimeType !== 'string' || mimeType.length > 100 || formats[extension] !== mimeType.split(';')[0]) throw new Error('Invalid export type.')
@@ -118,13 +200,16 @@ export function createWorkspaceSettings({ profile, documents, dialog, window, pe
     } catch (error) { if (error.code !== 'ENOENT') throw error }
     checkActive(active)
     await atomicWrite(result.filePath, bytes)
-    return true
+    if (extension !== 'json' || !recent) return true
+    try { await recent.record(result.filePath) }
+    catch (error) { return { saved: true, recentError: `File saved, but Recent diagrams could not be updated: ${error.message}` } }
+    return { saved: true }
   })
-  return { read, choose, reset, save }
+  return { read, choose, reset, save, saveDiagram, saveDiagramAs, markKnownDiagram }
 }
 
 export function registerWorkspaceBridge({ ipcMain, window, settings }) {
-  for (const [operation, count] of [['read', 0], ['choose', 0], ['reset', 0], ['save', 1]]) {
+  for (const [operation, count] of [['read', 0], ['choose', 0], ['reset', 0], ['save', 1], ['saveDiagram', 1], ['saveDiagramAs', 1]]) {
     ipcMain.handle(`workspace:${operation}`, (event, ...args) => {
       if (!trustedSender(window, event)) throw new Error('Untrusted workspace bridge sender.')
       if (args.length !== count) throw new Error('Invalid workspace arguments.')

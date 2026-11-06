@@ -14,4 +14,13 @@ export default defineConfig({
       ],
     },
   },
+  build: {
+    rollupOptions: {
+      input: {
+        app: fileURLToPath(new URL('./index.html', import.meta.url)),
+        headless: fileURLToPath(new URL('./headless.html', import.meta.url)),
+        print: fileURLToPath(new URL('./print.html', import.meta.url)),
+      },
+    },
+  },
 })

@@ -10,7 +10,7 @@ async function fixture(t, options = {}) {
   const root = await mkdtemp(path.join(parent, 'owned-'))
   const documents = path.join(root, 'OS Documents')
   await mkdir(documents)
-  let chosen, destination, cancelSave = false
+  let chosen, destination, cancelSave = false, overwrite = true
   const calls = []
   const dialog = {
     showOpenDialog: async () => ({ canceled: !chosen, filePaths: chosen ? [chosen] : [] }),
@@ -18,9 +18,10 @@ async function fixture(t, options = {}) {
       calls.push(options)
       return { canceled: cancelSave, filePath: destination ?? options.defaultPath }
     },
+    showMessageBox: async () => ({ response: overwrite ? 0 : 1 }),
   }
   const settings = createWorkspaceSettings({ profile: path.join(root, 'profile'), documents, dialog, ...options })
-  return { root, documents, settings, calls, choose: value => { chosen = value }, override: value => { destination = value }, cancel: () => { cancelSave = true } }
+  return { root, documents, settings, calls, choose: value => { chosen = value }, override: value => { destination = value }, cancel: () => { cancelSave = true }, declineOverwrite: () => { overwrite = false } }
 }
 const request = (documentId = 'same-title-1', filename = 'Diagram.json') => ({ documentId, filename, mimeType: 'application/json', bytes: new Uint8Array([123, 125]) })
 
@@ -134,4 +135,55 @@ test('should_reject_unregistered_subframe_stale_and_extra_IPC_arguments', () => 
   assert.throws(() => read({ sender: contents, senderFrame: frame }, '/arbitrary'), /arguments/)
   contents.mainFrame = { ...frame }
   assert.throws(() => read({ sender: contents, senderFrame: frame }), /Untrusted/)
+})
+
+test('should_save_current_diagram_name_directly_under_configured_root_without_picker_DGM159', async t => {
+  const f = await fixture(t)
+  const request = { filename: 'Diagram name 世界.json', mimeType: 'application/json', bytes: new Uint8Array([123, 125]) }
+  const saved = await f.settings.saveDiagram(request)
+  const destination = path.join(f.documents, 'AzureDiagramStudio', request.filename)
+  assert.equal(saved.saved, true)
+  assert.equal(saved.filename, request.filename)
+  assert.equal(await readFile(destination, 'utf8'), '{}')
+  assert.equal(f.calls.length, 0)
+  await f.settings.saveDiagram({ ...request, bytes: new Uint8Array([123, 34, 118, 34, 58, 50, 125]) })
+  assert.equal(await readFile(destination, 'utf8'), '{"v":2}')
+})
+
+test('should_preserve_external_save_as_and_require_explicit_root_copy_DGM159', async t => {
+  const f = await fixture(t)
+  const external = path.join(f.root, 'outside', 'chosen name.json')
+  await mkdir(path.dirname(external), { recursive: true })
+  f.override(external)
+  const request = { filename: 'Suggested.json', mimeType: 'application/json', bytes: new Uint8Array([123, 125]) }
+  const saved = await f.settings.saveDiagramAs(request)
+  assert.equal(saved.saved, true)
+  assert.equal(saved.filename, 'chosen name.json')
+  assert.equal(await readFile(external, 'utf8'), '{}')
+  await f.settings.saveDiagram({ ...request, filename: saved.filename })
+  assert.equal(await readFile(external, 'utf8'), '{}')
+  assert.equal(await readFile(path.join(f.documents, 'AzureDiagramStudio', saved.filename), 'utf8'), '{}')
+})
+
+test('should_preserve_unrelated_root_collision_when_overwrite_is_declined_DGM159', async t => {
+  const f = await fixture(t)
+  const root = path.join(f.documents, 'AzureDiagramStudio')
+  await mkdir(root, { recursive: true })
+  const destination = path.join(root, 'Unrelated.json')
+  await writeFile(destination, '{"keep":true}')
+  f.declineOverwrite()
+  const result = await f.settings.saveDiagram({ filename: 'Unrelated.json', mimeType: 'application/json', bytes: new Uint8Array([123, 125]) })
+  assert.equal(result.saved, false)
+  assert.equal(await readFile(destination, 'utf8'), '{"keep":true}')
+})
+
+test('should_atomically_replace_unrelated_root_collision_only_after_explicit_overwrite_DGM159', async t => {
+  const f = await fixture(t)
+  const root = path.join(f.documents, 'AzureDiagramStudio')
+  await mkdir(root, { recursive: true })
+  const destination = path.join(root, 'Replace.json')
+  await writeFile(destination, '{"old":true}')
+  const result = await f.settings.saveDiagram({ filename: 'Replace.json', mimeType: 'application/json', bytes: new Uint8Array([123, 34, 110, 101, 119, 34, 58, 116, 114, 117, 101, 125]) })
+  assert.equal(result.saved, true)
+  assert.equal(await readFile(destination, 'utf8'), '{"new":true}')
 })

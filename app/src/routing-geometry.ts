@@ -53,7 +53,7 @@ export function preferredSide(from: FixedNode, to: FixedNode): Exclude<Connectio
 // Choose a perimeter point and a strictly outward stub. An explicit side is
 // never replaced. Auto sides may try another face if the preferred face is
 // trapped; a narrow positive corridor gets a correspondingly short stub.
-export function makePort(node: FixedNode, preferred: ConnectionSide, peer: FixedNode, rank: number, count: number, blocked: Box[], context: string): Port {
+export function makePort(node: FixedNode, preferred: ConnectionSide, peer: FixedNode, rank: number, count: number, blocked: Box[], context: string, exactOffset?: number): Port {
   const primary = preferred === 'auto' ? preferredSide(node, peer) : preferred
   const choices = preferred === 'auto' ? [primary, ...sides.filter(side => side !== primary)] : [primary]
   for (const side of choices) {
@@ -66,7 +66,7 @@ export function makePort(node: FixedNode, preferred: ConnectionSide, peer: Fixed
     const peerAhead = ((peer.box.left + peer.box.right - box.left - box.right) * vector.x + (peer.box.top + peer.box.bottom - box.top - box.bottom) * vector.y) / 2
     const anchor = peerAcross < 0 || !peerAcross && peerAhead <= 0 ? low + 12 : peerAcross > 0 ? high - 12 : (low + high) / 2
     const offset = anchor === low + 12 ? rank * step : anchor === high - 12 ? -(count - 1 - rank) * step : (rank - (count - 1) / 2) * step
-    const middle = Math.max(low, Math.min(high, anchor + offset))
+    const middle = exactOffset === undefined ? Math.max(low, Math.min(high, anchor + offset)) : (horizontal ? box.top : box.left) + (horizontal ? box.bottom - box.top : box.right - box.left) * exactOffset
     const point = { x: horizontal ? side === 'left' ? box.left : box.right : middle, y: horizontal ? middle : side === 'top' ? box.top : box.bottom }
     let distance = 16
     for (const obstacle of blocked) {

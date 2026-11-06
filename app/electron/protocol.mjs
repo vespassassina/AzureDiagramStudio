@@ -26,11 +26,13 @@ function resourceName(address) {
   const segments = pathname.slice(1).split('/')
   if (pathname !== '/' && segments.some(segment => !segment || segment === '.' || segment === '..' || !/^[a-zA-Z0-9_. -]+$/.test(segment) || /[. ]$/.test(segment) || /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(segment))) return null
   if (pathname === '/' || pathname === '/index.html' || /^\/workspace(?:\/[a-zA-Z0-9_-]+)*$/.test(pathname)) return 'index.html'
+  if (pathname === '/headless.html') return 'headless.html'
+  if (pathname === '/print.html') return 'print.html'
   return pathname.slice(1)
 }
 
 function allowedResource(name) {
-  return name === 'index.html' || name === 'favicon.svg' || name === 'favicon.ico' || ['THIRD-PARTY-NOTICES.md', 'VENDOR-NOTICES.md', 'MICROSOFT-APP-NOTICES.md'].includes(name) || /^(?:assets|branding|licenses)\//.test(name)
+  return name === 'index.html' || name === 'headless.html' || name === 'print.html' || name === 'favicon.svg' || name === 'favicon.ico' || ['THIRD-PARTY-NOTICES.md', 'VENDOR-NOTICES.md', 'MICROSOFT-APP-NOTICES.md'].includes(name) || /^(?:assets|branding|licenses)\//.test(name)
 }
 
 // Resolve and compare real paths before reading; junctions and symbolic links may

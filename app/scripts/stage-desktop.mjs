@@ -1,4 +1,4 @@
-import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+﻿import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 
@@ -10,6 +10,6 @@ await mkdir(path.join(stage, 'electron'), { recursive: true })
 await cp(path.join(root, 'dist'), path.join(stage, 'dist'), { recursive: true })
 await mkdir(path.join(stage, 'dist', 'licenses'), { recursive: true })
 await cp(path.join(root, 'node_modules', 'dompurify', 'LICENSE'), path.join(stage, 'dist', 'licenses', 'DOMPurify-LICENSE.txt'))
-for (const name of ['main.mjs', 'policy.mjs', 'protocol.mjs', 'security.mjs', 'mcp.mjs', 'mcp-bridge.mjs', 'mcp-schema.mjs', 'workspace.mjs', 'preload.cjs']) await cp(path.join(root, 'electron', name), path.join(stage, 'electron', name))
+for (const name of ['main.mjs', 'policy.mjs', 'protocol.mjs', 'security.mjs', 'mcp.mjs', 'mcp-port-settings.mjs', 'mcp-bridge.mjs', 'mcp-schema.mjs', 'workspace.mjs', 'recent.mjs', 'pdf.mjs', 'headless-cli.mjs', 'headless-mcp.mjs', 'headless-profile-cleanup.mjs', 'preload.cjs', 'print-preload.cjs', 'headless-preload.cjs']) await cp(path.join(root, 'electron', name), path.join(stage, 'electron', name))
 await writeFile(path.join(stage, 'package.json'), JSON.stringify({ name: 'azure-diagram-studio', version: metadata.version, private: true, description: 'Offline architecture diagram editor', author: 'Azure Diagram Studio', type: 'module', main: 'electron/main.mjs' }, null, 2) + '\n')
-console.log('Desktop staging contains compiled assets, eight main modules and the sandboxed preload; no npm dependencies or source tests.')
+console.log('Desktop staging contains compiled assets, fourteen main modules and the three sandboxed preloads; no npm dependencies or source tests.')

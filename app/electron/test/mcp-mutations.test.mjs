@@ -88,10 +88,10 @@ test('should_keep_default_arrangement_active_until_the_native_layout_deadline_an
 })
 
 test('should_expose_only_fixed_sandbox_preload_operations_and_dispose_mutation_listeners', async () => {
-  let exposed, workspace
+  let exposed, workspace, recent, pdf
   const invocations = [], listeners = new Map()
   const electron = {
-    contextBridge: { exposeInMainWorld: (name, value) => { if (name === 'desktopWorkspace') workspace = value; else { assert.equal(name, 'desktopMcp'); exposed = value } } },
+    contextBridge: { exposeInMainWorld: (name, value) => { if (name === 'desktopWorkspace') workspace = value; else if (name === 'desktopRecent') recent = value; else if (name === 'desktopPdf') pdf = value; else { assert.equal(name, 'desktopMcp'); exposed = value } } },
     ipcRenderer: {
       invoke: (...args) => { invocations.push(args); return Promise.resolve(true) },
       on: (name, callback) => listeners.set(name, callback),
@@ -99,14 +99,23 @@ test('should_expose_only_fixed_sandbox_preload_operations_and_dispose_mutation_l
     },
   }
   runInNewContext(await readFile(new URL('../preload.cjs', import.meta.url), 'utf8'), { require: name => { assert.equal(name, 'electron'); return electron } })
-  assert.deepEqual(Object.keys(exposed), ['status', 'copyAddress', 'copyToken', 'publishSnapshot', 'onMutation', 'mutationActive', 'completeMutation'])
+  assert.deepEqual(Object.keys(exposed), ['status', 'readPort', 'savePort', 'copyAddress', 'publishSnapshot', 'onMutation', 'mutationActive', 'completeMutation'])
   assert.equal(Object.isFrozen(exposed), true)
-  assert.deepEqual(Object.keys(workspace), ['read', 'choose', 'reset', 'save'])
+  assert.deepEqual(Object.keys(workspace), ['read', 'choose', 'reset', 'save', 'saveDiagram', 'saveDiagramAs'])
   assert.equal(Object.isFrozen(workspace), true)
-  await workspace.read(); await workspace.choose(); await workspace.reset(); await workspace.save({ bounded: true })
-  assert.deepEqual(invocations.splice(0), [['workspace:read'], ['workspace:choose'], ['workspace:reset'], ['workspace:save', { bounded: true }]])
-  await exposed.copyToken()
-  assert.deepEqual(invocations, [['mcp:copy-token']])
+  assert.deepEqual(Object.keys(recent), ['list', 'choose', 'read', 'promote', 'readChosen', 'acceptChosen'])
+  assert.equal(Object.isFrozen(recent), true)
+  // DGM-151C: the PDF bridge takes one structured job; no HTML, URL or path operation.
+  assert.deepEqual(Object.keys(pdf), ['render'])
+  assert.equal(Object.isFrozen(pdf), true)
+  await pdf.render({ bounded: true })
+  assert.deepEqual(invocations.splice(0), [['pdf:render', { bounded: true }]])
+  await workspace.read(); await workspace.choose(); await workspace.reset(); await workspace.save({ bounded: true }); await workspace.saveDiagram({ bounded: true }); await workspace.saveDiagramAs({ bounded: true })
+  assert.deepEqual(invocations.splice(0), [['workspace:read'], ['workspace:choose'], ['workspace:reset'], ['workspace:save', { bounded: true }], ['workspace:saveDiagram', { bounded: true }], ['workspace:saveDiagramAs', { bounded: true }]])
+  await recent.list(); await recent.choose(); await recent.read('registered'); await recent.promote('registered'); await recent.readChosen('chosen'); await recent.acceptChosen('chosen')
+  assert.deepEqual(invocations.splice(0), [['recent:list'], ['recent:choose'], ['recent:read', 'registered'], ['recent:promote', 'registered'], ['recent:read-chosen', 'chosen'], ['recent:accept-chosen', 'chosen']])
+  await exposed.readPort(); await exposed.savePort(49321); await exposed.copyAddress()
+  assert.deepEqual(invocations, [['mcp:read-port'], ['mcp:save-port', 49321], ['mcp:copy-address']])
   let received, canceled
   const dispose = exposed.onMutation(value => { received = value }, id => { canceled = id })
   listeners.get('mcp:mutation')({}, { id: 'correlated' })
@@ -117,11 +126,11 @@ test('should_expose_only_fixed_sandbox_preload_operations_and_dispose_mutation_l
   assert.equal(listeners.size, 0)
 })
 
-test('should_stage_exact_nine_shell_files_including_workspace_and_preload_without_source_or_dependencies', async () => {
+test('should_stage_exact_recent_bridge_shell_files_without_source_or_dependencies', async () => {
   const source = await readFile(new URL('../../scripts/stage-desktop.mjs', import.meta.url), 'utf8')
   const names = /for \(const name of (\[[^\n]+\])\)/.exec(source)?.[1]
   assert.ok(names)
   const files = runInNewContext(names)
-  assert.deepEqual([...files], ['main.mjs', 'policy.mjs', 'protocol.mjs', 'security.mjs', 'mcp.mjs', 'mcp-bridge.mjs', 'mcp-schema.mjs', 'workspace.mjs', 'preload.cjs'])
+  assert.deepEqual([...files], ['main.mjs', 'policy.mjs', 'protocol.mjs', 'security.mjs', 'mcp.mjs', 'mcp-port-settings.mjs', 'mcp-bridge.mjs', 'mcp-schema.mjs', 'workspace.mjs', 'recent.mjs', 'pdf.mjs', 'headless-cli.mjs', 'headless-mcp.mjs', 'headless-profile-cleanup.mjs', 'preload.cjs', 'print-preload.cjs', 'headless-preload.cjs'])
   assert.match(source, /no npm dependencies or source tests/)
 })

@@ -1,6 +1,6 @@
 # Diagrammer Roadmap and Delegation Plan
 
-Updated: 2026-11-02. Status: DGM-147 STABLE/LATEST0.5.1 PUBLISHED / INDEPENDENT PUBLIC DOWNLOADS VERIFIED / NOT INSTALLED. INSTALLED0.5.0, OLDER RELEASES/TAGS AND KNOWN PNG LIMIT REMAIN PRESERVED.
+Updated: 2026-11-04. Status: DGM-147 STABLE/LATEST0.5.1 PUBLISHED / INDEPENDENT PUBLIC DOWNLOADS VERIFIED / NOT INSTALLED. INSTALLED0.5.0, OLDER RELEASES/TAGS AND KNOWN PNG LIMIT REMAIN PRESERVED.
 
 ## Current Execution Policy
 
@@ -88,6 +88,1037 @@ evidence. This scoped [decision](decisions.md#2026-10-19-replace-formal-particip
 supersedes earlier participant-trial stops, not technical safety requirements.
 
 ## Execution Queue
+
+**Current release cursor, 2026-11-06:** the complete 0.5.2 implementation and
+consolidated repair batch are finished. Source tests passed 6,064/6,064,
+desktop tests 115/115, and typecheck/build/staging passed. Independent
+current-input wheel/drag, PDF pagination/content, ZIP and VSDX structural
+checks passed with no confirmed product defects. The historical grid browser
+test retains a superseded `move`-command oracle and is not reported as green.
+
+Both final portable candidates have been built in
+`app/test-results/releases/0.5.2/final-20261106/`; exact packaged runtime
+qualification is active before commit/merge/push/tag/publication.
+The PO approved publishing with native Visio interoperability explicitly
+unverified. Preserve the earlier Desktop test app and profile.
+No tag, upload or public release is yet claimed. Older diagnostic cursors
+below are historical, not instructions to restart per-feature verification.
+
+**Current delivery decision, 2026-11-06:** the PO requested completing the
+whole scope before publication, declined an incomplete 0.5.2 prerelease, and
+approved the existing launcher as the supported headless CLI/stdio MCP entry
+point instead of requiring direct Electron executable framing. This changes
+the entry-point contract, not a claim of runtime acceptance or permission to
+weaken cleanup, token, validation, file or sandbox guards.
+
+Finish the remaining approved workbook, tabs, scoped export/PDF and native
+Visio implementation plus the consolidated Recent/legend repairs before any
+new verification phase. Consolidated verification, compile/run, commit,
+merge/push, tag and executable publication follow the completed scope.
+No tag or release has been created. Preserve the running Desktop test build.
+
+**Current PO execution override, 2026-11-05:** finish implementation before
+testing and verification, then compile and run. The PO confirmed this cadence
+across repositories and requested less waste and delivery of usable features.
+The historical DGM-157 verification cursor below is paused, not the next
+action. No further legend diagnostics, per-feature test rounds or repeated
+artifact sweeps precede completion of the current approved implementation.
+
+**DGM-158 + DGM-159 implementation handoff, 2026-11-05:** the combined
+starter-preview/replacement-safeguard and Save/Save As/Load/default-workspace
+workflow source batch is implementation-ready for one consolidated validation.
+Targeted native IO, session replacement/current-filename and editor interaction
+regressions are authored but intentionally unrun under the PO cadence. The next
+owner runs that consolidated validation, then compiles/runs a fresh candidate
+without replacing the user's running test executable or profile.
+DGM-150's architecture decision and dependent workbook/PDF/Visio remain
+genuine blockers; they do not authorize silently narrowing their contracts.
+
+**Current source-acceptance cursor,2026-11-05:** DGM-153 source/browser and
+DGM-154 source acceptance remain complete. The independent DGM-155 verifier
+rebound to the resize-hit-repair receipt (7/7 source inputs and39/39 build
+assets matched), independently passed typecheck/build, completed the
+trusted-resize recheck and runnable existing-diagram source matrix. DGM-155
+**existing-diagram source qualification is accepted**; this is not full
+cross-workbook or portable/native acceptance. The broad independent focused
+run remains 843/853: ten tests timed out at the unchanged5-second limit, and
+must not be reported as a pass. Targeted endpoint, lifecycle, resize, guard,
+DGM-153/154, MCP snapshot and output checks passed; the exact per-criterion
+dispositions and first failures are in
+[DGM-155 verification](verification/DGM-155.md) and retained records under
+`app/test-results/dgm155/independent/`.
+
+DGM-150 remains at its documented launcher/bootstrap/cleanup architecture
+gate; no headless repair or live CLI/Desktop qualification was performed.
+DGM-151 workbook and DGM-152 PDF/Visio remain dependent/pending. DGM-148
+manual segments remain default-off. No Desktop/profile/prohibited-port,
+package, Git, deployment or publication work was done by this verifier.
+
+**Active DGM-157 verification cursor,2026-11-05:** the independent legend
+meaning run verified current UI/scene output through save/reload, then the
+640x480 `withinViewport` assertion failed. A bounded follow-up used the exact
+revision-15 fixture and current post-revert production preview; all 2,502
+source inputs matched the prior binding, all 39 current build artifacts were
+hashed, and each served entry/asset matched dist bytes. No rebuild or source
+change was needed.
+
+The narrow result is now classified as a **scrollable-viewport oracle issue**,
+not evidence of unreachable content or a legend paint/order defect. At
+1280x720 the configured meaning was at y=574.594 and visible. At 640x480 before
+opening Page styles it was at y=499.594–510.922, below the window edge by
+30.922px; `.workspace` was a native scroll container (`clientHeight=328`,
+`scrollHeight=832`, range 0–504). The normal Page styles open/Cancel path
+returned focus to the Page styles button and left `.workspace.scrollTop=816`
+(the measured maximum after the Properties dock opened), placing the meaning at
+y=-316.406–-305.078. The legend stayed inside its own box; `.workspace` was
+the first effective clipping ancestor. A native AX snapshot retained the
+“Reduced service capacity.” StaticText as `ignored:false`. No wheel was sent
+because no visible legend hit point existed; the legend had no keyboard tab
+stop. The narrow CSS explicitly implements a scrollable dock. Exact bounds,
+clip/scroll metrics, focus path, AX result, screenshots, source/build hashes,
+and retained first failures are in
+`app/test-results/dgm157/independent/run-20261105-2227-responsive-legend-diagnostic/`;
+the previous assertion failure remains preserved in
+`app/test-results/dgm157/independent/run-20261105-2215/`.
+
+DGM-157 remains **not accepted**. No current-input MCP, Present, used-removal
+replacement/Unset, read-only/ownership, or final DGM-153/154/155/156 matrix was
+run in this diagnostic.
+
+**Exact next action:** owner
+`55dbbf79-31c4-4938-a464-4688a6974942` revises only the narrow-viewport test
+oracle to account for `.workspace` scroll reachability and the normal
+focus-return state; do not make a speculative production CSS/order change.
+The same verifier independently checks that scoped correction before
+resuming the remaining original matrix. DGM-150 headless, DGM-151 workbook,
+and DGM-152 PDF/Visio/native/package cells remain dependent/pending and
+unaccepted. No Desktop/profile, prohibited-port, dependency/package, Git,
+delivery or release action occurred.
+
+**DGM-157 prior independent stop (historical, superseded),2026-11-05:** at test time after
+status-invariants-repair1, all 8/8 owner-declared source/document inputs and
+68/68 retained owner artifacts matched exact paths, sizes and hashes. The six
+production source inputs remain bound; the two documentation inputs have
+since been updated to record this result, with their new hashes in
+`app/test-results/dgm157/independent/run-20261105-1840/post-documentation-binding.csv`.
+The independent status-only entity/connection/batch source suite passed 5/5.
+The real HTTP MCP/session/broker integration passed 20/20 cases, including
+geometry/anchor/route preservation, the target-specific `web-edge` SVG with
+all five box paint fields, used-state legend name/meaning, JSON export, PNG
+snapshot signature, stale-output rejection, remap/Unset, atomicity and
+undo/redo. It stopped at the first new UI product failure: removing the used
+default `synthetic` style and clicking Apply silently unset every assigned
+entity. The Page styles dialog exposed no explicit replacement/Unset mapping;
+the revision changed from 1 to 2 and no entity retained `status: "synthetic"`.
+DGM-157 remains **not accepted**. Exact run logs, exits, screenshots, hashes
+and bindings are in [DGM-157 verification](verification/DGM-157.md) and
+`app/test-results/dgm157/independent/run-20261105-1840/`.
+
+The independent browser also verified that a draft did not change persisted
+IndexedDB state, outside-pointer input kept the dialog open, and Escape
+cancelled and returned focus. Remaining UI assignment/CRUD/remap/history/
+guard, decoded-PNG/Markdown/save-reload, default/equal-paint/manual-legend,
+and DGM-153/154/155/156 checks were not reached after the first product
+failure. Text entities remain a distinct kind: only `textColor` is specified
+by the current tests; no full box-paint guarantee is claimed for them.
+Exact next action: owner `55dbbf79-31c4-4938-a464-4688a6974942` repairs Page
+styles removal to require an explicit replacement or explicit Unset mapping
+before a used state can be removed, without changing the approved contract.
+Then the same verifier resumes at the used-state UI removal check and
+continues the remaining runnable matrix. Do not start a new feature or claim
+unrun checks. DGM-150 headless, DGM-151 workbook and DGM-152 PDF/Visio/native
+remain blocked/dependent and unaccepted; no Desktop/profile, prohibited-port,
+package, Git, delivery or release work was performed.
+
+**DGM-157 verification cursor after used-removal-repair1 (superseded),2026-11-05:** after
+used-removal-repair1, all 7/7 owner-declared source/document inputs and
+69/69 listed owner artifacts matched exact paths, sizes and hashes at test
+time. The earlier independent status-invariants suite (5/5) and
+real-server MCP integration (20/20) remain reusable for unchanged document,
+scene and MCP bridge sources. The live UI showed the selected connection
+`azure-web-app-flow-1` with canonical Unset; selecting the available `live`
+state left both the control and canonical document unchanged at revision 1.
+This is the first new coherent product failure. The focused result and exact
+source/artifact bindings are in
+`app/test-results/dgm157/independent/run-20261105-1906/`. Its process exit
+also records a later screenshot-path harness error, classified separately
+after the unchanged-state observation.
+
+Verification stopped before independently rechecking the owner's used-state
+removal repair. Exact next action: owner
+`55dbbf79-31c4-4938-a464-4688a6974942` repairs UI connection-status assignment
+without changing the approved contract; the same verifier resumes at this
+mutation, then performs used-`synthetic` no-choice/remap/Unset/UndoRedo checks
+before the remaining runnable matrix. Component UI update and previous MCP
+creation evidence do not qualify connection assignment. Remaining entity-kind
+creation/update, UI CRUD/guards/responsiveness, image/Markdown/save-reload and
+DGM-153/154/155/156 checks remain unrun, not passed. DGM-150 headless, DGM-151
+workbook and DGM-152 PDF/Visio/native remain blocked/dependent and unaccepted.
+No Desktop/profile, prohibited-port, package, Git, delivery or release work
+was performed.
+
+**DGM-157 cursor after connection-status-ui-repair1 (superseded),2026-11-05:** after
+connection-status-ui-repair1, all 6/6 owner-declared source/document inputs
+and 64/64 listed artifacts matched. Independent renderer/MCP snapshot
+reference-validation parity passed 12/12 cases, including omitted-v2
+legacy-default IDs and explicit-empty behavior. In the actual UI, the selected
+`azure-web-app-flow-1` connection changed from Unset to `live` and persisted
+at revision 2/schemaVersion 2 with no explicit registry; entity geometry,
+connection membership, anchors, offsets and route points remained unchanged
+(valid routeRevision metadata was restamped to revision 2).
+
+The verifier then clicked the enabled Undo button. It did not observe the
+expected next revision with the edge returned to Unset in the bounded,
+document-ID-bound check. This is the first coherent new product failure;
+verification stopped. Exact scripts, first/oracle classifications, result,
+logs, exits and hashes are retained under
+`app/test-results/dgm157/independent/run-20261105-1936/`. The latest
+connection-status repair is not independently accepted for history behavior.
+Exact next action: owner `55dbbf79-31c4-4938-a464-4688a6974942` investigates
+connection status Undo, then the same verifier resumes at this one-edit
+Undo/Redo check before the used-`synthetic` removal and remaining runnable
+matrix. UI defaults beyond `live`, custom assignment/clear, used removal,
+remaining output/legend/save-reload and DGM-153/154/155/156 checks remain
+unrun, not passed. Current canonical MCP operations have not been rerun after
+the latest repair; earlier unchanged-bridge evidence and the new 12-case
+validator parity check do not replace them. DGM-150/151/152 and native/package
+cells remain dependent/unaccepted. No Desktop/profile, prohibited-port,
+package/dependency, Git, delivery or release action occurred.
+
+**Resize-hit repair owner result (historical),2026-11-05:** the owner fixed the
+overlapped connector/resize hit target by clipping only the selected editable
+boundary/rectangle/text handle boxes (5 CSS px at current zoom); painter order
+and unrelated hit areas were unchanged. The owner's RED/GREEN records and
+full-suite result are in `app/test-results/dgm155/resize-hit-repair/`.
+Independent record `26` then confirmed a trusted resize at the exact center,
+one revision with anchors kept, and exact toolbar Undo/Redo; record `27`
+verified the clip/hit-state matrix. The prior File-menu-focus Ctrl+Z
+observation is classified in the verification report: canvas-focused
+Ctrl+Z/Ctrl+Y and toolbar history work. Historical STOP/NOT-ACCEPTED language
+above this cursor is superseded by the current DGM-155 source-qualification
+disposition.
+
+**DGM-156 pre-repair independent finding, 2026-11-05 (historical):** the
+actual Lines path painted black after Blue was selected. The owner repaired
+the shared CSS-variable resolution; that paint defect is now independently
+verified as fixed. Keep the original failure JSON in the verification report
+as historical evidence.
+
+**DGM-156 owner renderer repair, 2026-11-05:** the actual Lines failure was
+reproduced as a source-browser RED: the Dots circle computed Blue while the
+Lines path computed the Automatic `--grid-dot` value. The repair makes that
+existing CSS variable resolve to explicit `grid.color` when present, preserving
+the exact Automatic contrast-aware value otherwise. Owner evidence is retained
+in `app/test-results/dgm156/owner/`: the actual computed-paint regression,
+the original actual-app matrix (44/44), focused domain/Editor/Help/shared
+output/MCP checks (723/723), typecheck, and build all pass. The independent
+verification passed the repaired Dots/Lines paint and shared outputs. Its
+first Present-state observation was later traced to a color/style-only test
+wait accepting an earlier Blue snapshot before a delayed Red save; the exact
+revision-bound follow-up below did not reproduce a product reversion.
+
+**DGM-156 independent source result, 2026-11-05:** final current-source
+typecheck/build passed, and the actual-app matrix passed 128/128 checks for
+palette, Editor paint, state guards/history, reload/theme/background, keyboard,
+layout, Present and decoded shared outputs. Revision/document-bound
+Blue→Red→Blue testing verified persisted and immediate Present entry; both
+painted the latest accepted Blue with monotonic writes and no extra Present
+command. Current Markdown grid-on/off and canonical MCP mutation/output also
+passed. The focused aggregate test command is **not fully green**: 723 passed,
+with one unrelated DGM-127 startup-picker test exceeding its unchanged
+5-second timeout. DGM-156 source-behavior criteria are independently verified;
+this is not package/desktop or cross-workbook acceptance. See
+[DGM-156 verification](verification/DGM-156.md).
+
+**DGM-156 final input check and lane handoff, 2026-11-05:** the complete
+128-check matrix's six declared inputs match current byte hashes.
+`EditorSurface.tsx` is 191,290 bytes (SHA-256
+`D04EF8D42FBB77DC53640CA8ECFEC0E6E9A850841ED70DA4AD46B913DB021040`);
+`session.ts` is 28,761 bytes (SHA-256
+`88B2E74D6BADE2B620FA8E326E76323EA11178CFE9FBA6AC0D4153D136C9C46F`).
+The active source contains the verified Lines `--grid-dot` binding and no
+cycle1 speculative grid-save/emit guards or cycle2 instrumentation. The
+owner's first failed Present observer trace and the independent failed
+candidate remain preserved; only the observer was corrected, not a production
+assertion. The independent verifier released the serial source/build/runtime
+lane. Do not start a next feature here. DGM-150 headless and DGM-151/152
+workbook/PDF/ZIP cells remain dependent/pending; no CLI, Desktop, package or
+release acceptance is inferred.
+
+**Orchestrator continuation:** the preceding no-next-feature restriction was
+the verifier's bounded handoff, not a new PO queue stop. DGM-156
+existing-diagram source behavior is accepted with the aggregate timeout and
+dependent-format limitations above retained. The next independent ready task
+is approved [DGM-157](specs/DGM-157.md), using the concrete registry in
+[RFD005](rfd/005-exact-anchors-and-grid-style.md). The DGM157 implementer owns
+the serial source/build/runtime lane: plan acceptance tests, retain executed
+RED/GREEN, implement the existing-diagram registry/popover/shared
+command/legend/output/MCP paths, then hand back for independent verification.
+Workbook, unavailable formats and headless entry remain pending dependencies,
+not inferred passes. Preserve all accepted interaction and grid behavior.
+No packaging, Desktop replacement, push or publication occurs at this stage.
+
+**DGM-157 owner handoff,2026-11-05:** the approved existing-diagram source
+slice is ready for independent verification. The owner retained RED/GREEN,
+focused and typecheck/build evidence under `app/test-results/dgm157/owner/`;
+the exact record is [DGM-157 verification](verification/DGM-157.md). The next
+action is independent verification of the guarded Page styles UI, state-token
+MCP atomic configure/remap/assign path, and decoded shared outputs. DGM-150
+headless, DGM-151 workbook and DGM-152 PDF/Visio remain dependent/unrun; no
+Desktop, package, Git or release conclusion is inferred from this source handoff.
+
+**DGM-157 repair1 handoff,2026-11-05:** independent verification stopped at
+DGM157-UI-01 because seven approved page-style paint editors were missing.
+The bounded repair restores all approved box/connector paint controls, samples,
+draft validation and Escape focus return, and repairs the one-brace DGM-156
+MCP-output test parser failure. Evidence is retained under
+`app/test-results/dgm157/owner/repair1-*`; this is not acceptance. The exact
+next action is independent verifier `2494afbc-b407-47c9-b287-b3e5b8a7276f`
+resuming the previously unrun DGM-157 matrix. Dependent DGM-150/151/152 cells
+remain unrun; no Desktop/package/Git/release result is inferred.
+
+**DGM-157 MCP-boundary-repair1 handoff,2026-11-05:** DGM157-MCP-01 rejected
+valid v2 state-style snapshots and JSON output at the main-process exact-shape
+boundary. The bounded repair validates the approved registry and resolved
+entity/connection references without relaxing output, broker or transport
+guards. Retained RED/GREEN/node/source/typecheck/build receipts are under
+`app/test-results/dgm157/owner/mcp-boundary-repair1/`. This remains unaccepted:
+independent verifier `2494afbc-b407-47c9-b287-b3e5b8a7276f` resumes at
+DGM157-MCP-01, then the remaining unrun DGM-157 matrix.
+
+**DGM-157 boundary-box-paint-repair1 handoff,2026-11-05:** canonical MCP
+assignment correctly persisted a custom state on a boundary but shared SVG
+rendering used the boundary base paint. The bounded renderer repair applies
+only configured box overrides across entity kinds while preserving omitted
+base paint and legacy behavior. RED/GREEN, actual canonical MCP output and
+current manifests are retained under
+`app/test-results/dgm157/owner/boundary-paint-repair1/`. This remains
+unaccepted; independent verifier `2494afbc-b407-47c9-b287-b3e5b8a7276f`
+resumes the unrun DGM-157 criteria.
+
+**DGM-157 status-invariants-repair1 handoff,2026-11-05:** entity
+status-only updates incorrectly invoked text/ancestor growth and invalidated
+authored routes. The canonical command now recognizes only label/subtitle
+edits as geometry-affecting; state and other appearance-only edits preserve
+geometry and routes while restamping the route revision. Owner RED/GREEN,
+actual MCP target-boundary paint output, live Page styles proof, and final
+manifests are under
+`app/test-results/dgm157/owner/status-invariants-repair1/`. The retained
+older raw-shorthand renderer fixture failure is documented in DGM-157
+verification and is not represented as a pass. This remains unaccepted;
+independent verifier `2494afbc-b407-47c9-b287-b3e5b8a7276f` resumes exact
+status invariants, boundary SVG, and the remaining runnable matrix.
+
+**DGM-157 used-removal-repair1 handoff,2026-11-05:** Page styles previously
+silently unset users when removing a used state. The dialog now requires an
+explicit remaining-style replacement or Unset selection per removed used ID,
+shows affected entities/connections, and submits the approved atomic remap
+contract. It also exposes configured state choices for connection updates.
+Retained RED/GREEN, browser interaction output, focused tests, build, and
+manifests are under
+`app/test-results/dgm157/owner/used-removal-repair1/`. This remains
+unaccepted; verifier `2494afbc-b407-47c9-b287-b3e5b8a7276f` resumes used
+removal and the remaining matrix.
+
+**DGM-157 connection-status-ui-repair1 handoff,2026-11-05:** selected
+connection status updates reached canonical validation but v2 omitted-registry
+validation incorrectly rejected legacy default IDs, leaving the UI unchanged.
+The shared validator now resolves the four defaults when the registry is
+absent. Current UI proof commits the selected edge and repeats the combined
+entity/connection used-removal flow. Evidence is under
+`app/test-results/dgm157/owner/connection-status-ui-repair1/`. This remains
+unaccepted; verifier `2494afbc-b407-47c9-b287-b3e5b8a7276f` resumes the exact
+flow and remaining criteria.
+
+**DGM-157 independent MCP-boundary repair1 stop,2026-11-05:** the direct v2
+bridge matrix and initial real HTTP MCP operations passed, but a real
+`export_diagram` SVG omitted the configured box fill/stroke for assigned
+boundary entity `web-edge` while applying the custom connector stroke and
+legend. The exact sequence, raw SVG, diagnostic and hashes are retained in
+`app/test-results/dgm157/independent/run-20261105-1758/` and
+[DGM-157 verification](verification/DGM-157.md). This is a new product failure,
+not acceptance. Exact next action: owner
+`55dbbf79-31c4-4938-a464-4688a6974942` investigates the scene boundary paint
+path; the same verifier resumes at the real MCP SVG assertion. Remaining UI,
+real output/history and DGM-153/154/155/156 checks remain unrun. DGM-150/151/152
+and native/package cells remain dependent/unaccepted; no Desktop, profile,
+restricted-port, Git or release action occurred.
+
+**DGM-157 initial independent source stop,2026-11-05 (superseded by repair1
+recheck):** the real source UI initially omitted seven approved paint editors.
+The exact sequence, screenshot/hash and original matrix are retained in
+[DGM-157 verification](verification/DGM-157.md), with browser evidence under
+`app/test-results/dgm157/independent/run-20261105-1730/`. Repair1 later fixed
+this UI gap; retain this failure as historical evidence, not the current
+blocker.
+
+**DGM-157 independent repair1 stop,2026-11-05:** the repaired Page styles UI
+and tested actual exports passed the bounded recheck. The first new product
+failure is the shared MCP bridge exact-key boundary rejecting a custom v2
+`stateStyles` snapshot and JSON export (`Invalid document snapshot` / false).
+Evidence, hashes, exact command and matrix are recorded in
+[DGM-157 verification](verification/DGM-157.md) and
+`app/test-results/dgm157/independent/run-20261105-1742/`. The source slice
+remains **not accepted**. Exact next action: retained owner
+`55dbbf79-31c4-4938-a464-4688a6974942` repairs the existing main-process v2
+shape validation with focused RED/GREEN and a fresh input manifest; the same
+verifier resumes at this boundary. Do not start another feature. DGM-150/151/152
+remain blocked/dependent; no package, Desktop, Git or release work occurred.
+
+**Latest final-delivery authority,2026-11-04:** [DGM-162](specs/DGM-162.md).
+PO requested "finish, compile and deploy, then open" and "finally when done
+push all and publish binaries", and explicitly selected Windows ARM64+x64.
+Finish/verify the approved remaining source queue, compile and qualify both
+exact portables, deploy/open the completed local build, then push the milestone
+source/docs and publish0.5.2 assets/checksums with public-download verification.
+This supersedes earlier Desktop-only/no-Git/no-publication restrictions only
+for this final milestone. Preserve old releases and the user's running test
+instance/work/profile; no force-push, existing tag replacement, installer,
+Mac/runtime/dependency/signing/CI change or false acceptance is authorized.
+
+**Latest PO override,2026-11-04:** "i don't care, compile and run NOW",
+repeated, authorizes immediate current-source local0.5.2 as an explicitly
+unverified test build. ARM64 compile/package/Desktop copy/open are now complete:
+visible responsive0.5.2 process155400, no-token MCP on saved test-profile
+port37432. Use Desktop **Azure Diagram Studio 0.5.2 Test** shortcut for the
+isolated persistent profile. Exact EXE/stage/manifests/delivery receipt are
+frozen at `app/test-results/releases/0.5.2/immediate-20261104`.
+Independent DGM-161 verification was canceled; no source acceptance or
+completed segment gate is implied. Preserve the known boundary no-op defect.
+PO then said "after compiling and running keep working on finishing all the
+leftovers": resume approved repairs and independent verification after launch.
+No GitHub release, installation or closing another app is inferred.
+Preserve the running test instance, Desktop candidate and frozen artifact;
+no automatic replacement/relaunch while the user is trying it.
+The PO subsequently confirmed "pefect. now finish the rest". Continue the
+approved source queue: current boundary repair, prepared default-off segment
+gate, independent boundary/MCP acceptance, then headless/workbook/export and
+the remaining approved editing/File/style work. The immediate Desktop launch
+is complete; another qualified Desktop delivery is not a prerequisite for
+resuming independent source features. The canceled MCP verifier had no
+completed turns. Narrow DGM-161 packaged-runtime cells passed against the
+immutable delivered candidate in owned profiles; the lane is handed back and
+the evidence is in [DGM-161 verification](verification/DGM-161.md). This
+does not qualify the whole build or accept DGM-153.
+DGM-153 owner handed back repair3:487 focused editor checks/typecheck/build
+and actual isolated no-op/cancel/full-child-exit pass. The reported retained
+membership case was a fixture coordinate issue; accepted full-exit persisted
+detachment. Latest resize intent uses fixed screen-space gesture deltas and
+captured global release. Full independent matrix remains pending; a sequential
+hidden-control issue is not yet classified as fixture or product behavior.
+The source-only default-off segment gate now has retained behavioral RED,
+451 GREEN editor checks,191 connector/routing/boundary checks and typecheck/
+build; no package/version/Desktop replacement.
+The latest independent boundary run passed no-op/Escape, then stopped on an
+admitted child-drag displacement failure: intended absolute left604 beyond
+original parent right600, actual canonical left585.5556 still overlapping,
+parent retained/expanded. Root cause is not established; do not assume a pure
+membership-classifier error. Full matrix remains unrun after that failure.
+The narrow guide/docs follow-up is complete with retained RED,464 guide/
+segment checks and typecheck/build; default Help no longer promises hidden
+segment controls, and README/manual mark the feature experimental/off.
+The child-drop repair owner now reports exact intended604 persisted604.00004,
+detachment/unchanged parent and Undo/Redo, no-op/Escape,638 focused checks and
+typecheck/build passing. Pointer start/release capture and threshold0 need
+independent click/multi-root/pan/zoom preservation, not only the isolated exit.
+Independent recheck passed exact604 exit/Undo/Redo, no-op/Escape and plain node/
+border clicks at actual100%normal. It then reproduced a coordinate regression
+under trusted React Flow auto-pan: camera translation changed-2769.0023px,
+release-world x3396.9286 was required, but canonical x627.1009 persisted.
+Coordinate attempt2/`repair5` now has owner GREEN:39 pure coordinate checks,
+threshold/typecheck/build and actual changing-camera drop/history plus static
+exit/Undo/Redo/no-op/Escape/click guards. Respective start/release transforms
+preserve grab offset without disabling auto-pan.
+Independent repair5 recheck passed auto-pan, exact604, no-op/cancel and all32
+ordinary resize gestures at normal/fitted zoom. It then found a distinct
+minimum-clamp release defect: trusted top-edge399.8808px inward showed600x292
+preview but IDB/MCP remained600x360/revision1.
+**DGM-150 independent verification update,2026-11-04:** repair1 startup and
+bounded lifecycle checks passed through both the source runner and direct
+Electron dispatch; the prepared CLI/MCP contract passed **9/9**, and
+independent typecheck/build passed. The owner’s direct-edit cancellation
+repair was independently verified at1440x900,720x450,390x844; the affected
+DGM-153 zero-distance click/double-click, auto-pan, drag and resize checks also
+passed. The grid browser rerun reached a snapped persisted child position
+(absolute192,256) with no page errors, but its test adapter records only a
+generic `boundary-operation` while the assertion requires `positions[0].id`.
+This is an evidenced harness/oracle mismatch, not a product failure; later
+grid undo/group/resize assertions remain unrun. The isolated importer test
+passed21/21, but the original full-suite timeout remains unresolved.
+Verification then found a coherent DGM-150 CLI defect: a real source-runner
+invocation `validate FILE --not-a-real-option` returned valid JSON, exit0 and
+empty stderr rather than rejecting an unsupported option. The source/build
+paths for this probe matched the retained DGM-150 input manifest 5/5.
+DGM-150 remains unaccepted; no product changes were made by the verifier.
+The retained headless implementer completed unsupported-option repair attempt1:
+owner malformed-grammar RED/GREEN, source contract **10/10**, direct Electron
+exit-2 probe, typecheck, and build are retained under
+`app/test-results/dgm150/repair2`. **Current serial owner:** independent
+verifier `1b155500-4e28-4e3c-b486-7176a4a54786`; the implementer is idle.
+Resume independent DGM-150 acceptance at criterion 2 and then continue the
+remaining matrix; do not start a new feature.
+No package, Desktop/user-profile, port, Git, or publication work was performed.
+See [DGM-150 verification](verification/DGM-150.md) and
+`app/test-results/dgm150/independent-repair1` for the exact evidence and
+remaining acceptance cells. At that point in the DGM-150 history no
+DGM-154 selection behavior had yet been authorized; the later PO-directed
+DGM-154 source follow-up below supersedes that status.
+**DGM-150 independent continuation2,2026-11-04:** option-validation repair2
+was independently rechecked: prepared contract **10/10**, source/direct
+grammar, actual CLI outputs, MCP concurrency/crash handling, and adapted
+grid/DGM-153 browser checks passed for their exercised cases. Current
+2,517-path source/build identity matched; retained direct-edit and DGM-153
+evidence inputs matched14/14 and2,452/2,452. The isolated importer rerun
+passed21/21, but the original full-suite importer timeout is still
+unclassified; the old grid optimized-React failure was not reproduced in the
+serial run, and the original grid oracle was corrected only in a temporary
+observer copy.
+The first current product defect is direct-Electron MCP lifecycle: the
+Electron main process/renderer exits cleanly with no visible top-level window
+or listener, but its exact disposable profile remains after exit. The source
+runner removes its own profile; that does not prove direct-entry cleanup.
+The verifier stopped at criterion6 and did not audit the guide. Evidence and
+the complete disposition are in [DGM-150 verification](verification/DGM-150.md)
+and `app/test-results/dgm150/independent-continuation2`.
+The retained headless implementer completed application-owned direct-entry
+profile disposal, cycle2 of the same startup/profile-lifecycle defect. Owner
+direct EOF, normal, and error probes passed without wrapper cleanup; the
+prepared contract remained **10/10** and typecheck/build passed, with evidence
+under `app/test-results/dgm150/repair3`. **Current serial owner:** independent
+verifier `1b155500-4e28-4e3c-b486-7176a4a54786`; the implementer is idle.
+Next is a direct-entry MCP EOF/profile cleanup rerun before any harness
+deletion,including bounded cleanup-helper exit and exact-path safeguards.
+Only then resume guide
+audit and importer-timeout classification. DGM-150 is not accepted; no
+package, Desktop/user-profile, protected-port, Git, or publication work
+occurred. Do not start the next feature.
+
+**Independent continuation3,2026-11-04:** repair3's direct-Electron EOF
+cleanup was independently reproduced after an MCP initialize handshake. The
+exact newly created headless profile was observed before EOF, then disappeared
+without verifier deletion; the Electron process exited0 and no matching
+application/helper process remained. However raw direct-Electron stdout began
+with an empty CRLF before its JSON-RPC response. The source runner filters that
+bootstrap line; direct entry therefore fails the strict stdio framing cell.
+The verifier stopped at this first coherent acceptance failure. The fresh
+2,477-file manifest matches2,475 paths from the previous identity; the
+headless CLI entrypoint changed and the cleanup helper is new, so prior CLI,
+render and MCP results remain historical rather than current input-matched
+proof. Current evidence and the full criterion disposition are in
+[`DGM-150 verification`](verification/DGM-150.md) and
+`app/test-results/dgm150/independent-continuation3`.
+**DGM-150 architecture gate:** owner raw `electron.exe --version` also emits
+the leading CRLF before app JavaScript. App-local framing changes cannot meet
+the strict direct-entry contract. Detached cleanup additionally cannot forward
+a failure to an exited parent. Helper path validation passed; observable
+cleanup failure remains unresolved. A launcher-only contract or a new
+bootstrap/cleanup architecture requires genuine PO approval; neither is
+authorized here. Preserve all passes/failures and batch this decision at the
+handoff. DGM-150 and its dependent workbook foundation remain blocked,not
+accepted. Headless owner/verifier are idle; no more speculative repair loops.
+After a decision,resume current-input CLI/render/MCP,helper error forwarding,
+GUI/profile/guide,native interrupt and importer classification cells.
+
+**DGM-154 independent first-pass finding,2026-11-04 (historical):** the source behavior passed
+real painted-label select-then-edit checks for component, boundary, rectangle,
+text and connection titles; selection kept the closed Sidebar closed, open
+Properties followed a keyboard selection without taking focus, Markdown view
+and draft survived selection, and component-body/connection-line double-click
+did not rename. Independent typecheck/build passed, and the unchanged
+editor/guide suite passed466/466 on retry. Verification stopped at the first
+coherent failure: a real right-click on a painted item title opened the
+**Canvas actions** menu without an **Edit label** entry, although the spec,
+Help and manual promise it. Evidence and full criterion disposition:
+[`DGM-154 verification`](verification/DGM-154.md) and
+`app/test-results/dgm154/independent/`.
+**DGM-154 repair attempt1 source handoff,2026-11-04 (historical):** restored the explicit
+**Edit label** Canvas-actions entry for entity and connection contexts through
+the established inline-edit path. Focused tests cover entity, connection,
+empty-label, Enter/history, Escape/no-history, and read-only guards; a
+production bundle exercised real painted entity and connection title
+right-clicks, input focus, Escape and Enter. The editor/guide suite passed
+469/469, typecheck and build passed. Evidence is retained in
+`app/test-results/dgm154/repair1/`. This was a source handoff, not acceptance. Preserve the initial default-timeout
+failure and harness setup failures alongside their passing reruns.
+**DGM-154 independent repair1 recheck,2026-11-04:** the real production-browser
+matrix passed 36/36 checks, including actual painted-title and empty/unpainted
+context-menu targets, Enter/Escape history behavior, first-selection/no-rename
+then selected-title edit across component, boundary, rectangle, note and
+connection, Sidebar/panel/draft intent, modified selection, drag/resize,
+tool-mode and endpoint protections, and narrow/short/theme cases. Read-only,
+Present and modal guards passed. Editor/guide tests passed 469/469; typecheck
+and Vite production build passed. Evidence, exact criterion dispositions and
+source-only qualification are in
+[`DGM-154 verification`](verification/DGM-154.md) and
+`app/test-results/dgm154/independent/`.
+
+**DGM-154 completion continuation,2026-11-04:** the verifier retained all
+36/36 repair1 browser passes and the 469/469 editor/guide, typecheck, and build
+evidence, then built the current source into an isolated Vite production
+directory. The first new source-browser case passed Enter commit/focus and
+exact Undo/Redo. It then found a coherent criterion-2 defect: the component
+remained the sole selected node after that history round-trip, and
+`elementFromPoint` hit the actual painted title text, but the next discrete
+title click did not open the editor. One additional discrete title click did.
+This is not a harness or device limitation; verification stopped at this first
+coherent failure, without production changes.
+Full trace/input hashes/build inventory:
+`app/test-results/dgm154/independent/completion/dgm154-completion-browser-2026-11-04T20-41-29-254Z.json`
+(exit 1).
+The current-input integrated DGM-153 run passed top-clamp, zero-distance and
+Escape no-op, auto-pan geometry, child membership/exit, fresh-after-history,
+and multi-root membership/history cases (1 resize and 15 membership cases;
+exit 0):
+`app/test-results/dgm154/independent/completion/dgm154-completion-dgm153-integration-2026-11-04T20-28-35-278Z.json`.
+No default-off DGM-148 segment editing was enabled. The physical IME,
+pointer/touch, and scaling cells remain unavailable in headless; they are
+separate platform limits, not the reason verification stopped. Runnable blur,
+invalid-label, synthetic composition, document-replacement, exhaustive
+double-click and remaining tool-operation cells are **UNRUN after the
+criterion-2 failure**. The complete disposition is in
+[`DGM-154 verification`](verification/DGM-154.md).
+No verifier production changes were made. Browser/server processes are closed.
+**DGM-154 selected-title-after-history repair source handoff,2026-11-04:**
+history actions now request a one-time cancellation reset only after their
+replacement document has stabilized and no active move/route/boundary gesture
+remains. This keeps the pointer-admission identity and revision checks intact,
+so a pointer admitted before Undo/Redo still cannot edit a replaced document,
+while the first fresh painted-title click after an Enter/Undo/Redo round trip
+opens inline edit. Focused history/identity and DGM-153 pending-gesture tests
+passed; the production-browser test exercised first-click editing after
+Undo/Redo across its narrow/short viewports, and initial first-title selection
+remains covered. Editor/guide tests passed 471/471; typecheck and source build
+passed. Evidence and final input hashes are retained in
+`app/test-results/dgm154/repair2-history/`. This is a source handoff—not
+acceptance—for verifier `5e74a349-0a98-4193-9cf9-ccb0fb4c2dd5` to continue the
+unrun source cells. That verifier now owns the serial source/build/runtime
+lane; the implementer is idle. First recheck the exact history/title-click
+failure and first-selection/active-gesture guards, then complete the remaining
+runnable original criteria with current input identities.
+Do not start another feature or perform packaging,
+Desktop/profile, Git, deployment, or publication work.
+
+**DGM-154 independent source acceptance,2026-11-04:** current repair2-source
+verification passed all runnable approved criteria: the current production
+browser matrices passed 36/36, 8/8 and 11/11; the strict initial-selection/
+post-Undo/Redo title-admission check passed 2/2; the editor/guide suite passed
+471/471; typecheck/build passed; and the current-input DGM-153 integration
+matrix passed one resize case and 15 membership cases. The final criterion
+disposition, input/build identities, full reports and retained harness
+failures are in [DGM-154 verification](verification/DGM-154.md) and
+`app/test-results/dgm154/independent/repair2-recheck/`. Physical IME,
+pointer/touch-device and operating-system scaling cells remain blocked by
+unavailable hardware; no runnable source cell remains unrun. This accepts the
+approved source scope only—not Electron, portable/native, Desktop, package,
+or release qualification. The verifier made no production changes and closed
+its owned browser/preview helpers.
+
+**DGM-155 independent source verification,2026-11-04:** owner inputs and
+builds matched their retained hashes; the independent focused suite passed
+643/643, Help passed13/13, and an independent typecheck/build passed with
+byte-identical output. A real selected-edge pointer gesture did not reach its
+visible endpoint: the overlapping React Flow node connector port received the
+pointerdown, a 2,601-point endpoint-region hit scan admitted zero endpoint
+targets, and the canonical readback remained schema v1/revision0 with the
+original connection. This is a product interaction failure, not a harness
+failure. See [DGM-155 verification](verification/DGM-155.md) and the evidence
+manifest. Remaining runtime/output matrix stopped at this first defect.
+
+The implementer handed back hit-layer repair1:controls now occupy selected
+node layers above connector ports,offsets round deterministically,and edge
+selection survives endpoint commit. Owner built-source trusted-pointer proof
+passed both ends/nonmidpoint other-item attachment; typecheck passed.
+**DGM-155 repair1 independent recheck,2026-11-04:** the current owner source
+hashes matched; the independent TypeScript/Vite build passed. Trusted source
+same-item and target other-item gestures each advanced one revision and their
+rendered endpoints matched canonical v2 geometry within0.000016 CSS pixels.
+The first expanded source cross-item gesture targeted visible item `d` with
+trusted pointer input but saved source `b` instead, advancing revision3→4.
+This is a product interaction failure, not a harness mismatch. Retain the
+first failing input/canonical trace and current build identities under
+`app/test-results/dgm155/independent/`; the rest of the matrix stopped at this
+first coherent defect. **Current serial owner:** DGM-155 implementer
+`d024de75-3f0f-480e-a170-731bf73b04de` executes cross-item commit repair
+attempt1 against the exact independent fixture; verifier
+`19abbcd2-c43c-4767-b177-d3b0d51bbfee` is idle.
+Owner reports a release-lifecycle/capture fix and exact copied-fixture
+cross-item source/target browser proof plus typecheck passing,but the focused
+suite still requires its post-final-jsdom-guard rerun. This is an incomplete
+handoff,not independent-ready acceptance. The owner retains the lane to
+finish final focused checks,production build,current byte identities and
+matching actual browser proof before independent continuation.
+That final controlled-Editor regression still failed:no target-endpoint
+command in the unchanged both-end nonmidpoint test after document-level
+release changes. Earlier browser/build proof predates the final adjustment
+and is not final-source acceptance. The owner now executes cycle2 of the
+same cross-item/lifecycle defect,first distinguishing actual lifecycle bugs
+from evidenced controlled-test ordering. Preserve assertions and failures;
+targeted GREEN,full focused checks/build and final matching browser proof
+remain required. The verifier stays idle; per-defect limits still apply.
+Cycle2 still failed the unchanged target-endpoint assertion. A narrow
+read-only review traced live-preview endpoint ownership moving the control
+from the original item to its new target mid-drag,unmounting the captured DOM
+node before its pointerup. Source-side same-item movement keeps its node,
+explaining the asymmetric test result. This is a static causal diagnosis;
+the production pointer-capture cancellation race is not yet demonstrated.
+The owner now executes final cycle3,verifying the trace and preserving the
+gesture's control host identity until completion/cancel,with unchanged
+behavior assertions and actual final-source browser proof. A failed third
+cycle blocks this defect; do not restart its budget.
+**DGM-155 historical disposition at that queue stage:** cycle3 did not produce final validation.
+Host pinning exposed a render/ref dereference race; the owner's local
+snapshot correction has no final targeted GREEN/full suite/build/browser
+proof. DGM-155 is blocked and its last source edits remain unqualified.
+Both owner and verifier are idle. Preserve all artifacts; no new automatic
+repair or release-ready claim is authorized after the three-cycle budget.
+Batch the PO disposition with the genuine DGM-150 architecture decision.
+
+**DGM-156 initial source handoff,2026-11-05 (historical, superseded):** 12 swatches plus Automatic,page-local
+RFD005 color validation,MCP and shared outputs are implemented. Owner245
+focused checks and real browser SVG/PNG decoding passed; evidence is under
+`app/test-results/dgm156`. Typecheck/build fail on unqualified DGM-155
+EditorSurface errors at lines159/1753,and the combined Editor suite reaches
+a null endpoint-gesture dereference. These are not accepted grid UI evidence.
+Independent grid editor/Present/history/keyboard/reload/output qualification
+cannot proceed against a compiling current app until that source blocker is
+dispositioned. DGM-156 owner was idle at that point; this blocker was later
+resolved by the DGM-155 recovery and current-source verification above.
+**PO disposition,2026-11-05:** approved one escalated DGM-155 recovery pass
+to restore compilation and complete connector validation; see
+[decision](decisions.md#2026-11-05-one-escalated-connector-recovery-pass).
+**Serial owner at that stage:** retained independent DGM-155 verifier
+`19abbcd2-c43c-4767-b177-d3b0d51bbfee` rebinds to the completed escalated
+handoff and repeats actual connector lifecycle/geometry/output checks.
+The escalated implementer and earlier DGM-155/156 actors are idle.
+The next action at that stage was independent source acceptance,then grid UI continuation;retain and
+classify suite timeout/grid-observer evidence rather than assuming baseline.
+The ledger records attempt4 with explicit renewed
+authority,not a reset. No acceptance or publication waiver is implied.
+The separate DGM-150 architecture and workbook/PDF/Visio gates remain open.
+**Escalated pass result,2026-11-05 (historical):** owner handoff complete,NOT accepted.
+Root causes were the live-preview endpoint host unmounting the captured
+control,and React Flow's Escape deselect committing the preview. Both are
+fixed with RED→GREEN tests;the DGM-156 metadata no-op was canonicalized for
+DGM110. Typecheck/build pass. Non-browser files pass serially (load timeouts
+pass on serial rerun). The production-browser exact lifecycle/export matrix
+passes. The only source-browser failure is the documented DGM-150 grid
+observer. Evidence: `app/test-results/dgm155/escalated-recovery/receipt.json`.
+**Next action at that stage:** the independent DGM-155 verifier rebinds to the
+receipt identities and repeats the matrix; then DGM-156 grid UI/build
+qualification resumes. The owner lane is released.
+Preserve accepted DGM-153/154 behavior, the
+default-off DGM-148 gate and DGM-161 protections. Do not modify the blocked
+DGM-150 bootstrap, claim workbook/PDF/Visio qualification, or begin
+packaging/Desktop/Git/deployment/publication work. After DGM-155 acceptance,
+the DGM-150 architecture gate still applies before headless/workbook
+continuation.
+
+Owner repair6 retained a pure clamp fix (40 checks and typecheck pass), but
+its production runner stopped at the previously classified invalid480-wide
+fixture growing to content minimum544. This is not established recurrence of
+the resolved no-op defect. Owner continues the same clamp attempt using the
+independently validated600-wide baseline, with the original failure retained;
+actual minimum-clamp production acceptance remains pending.
+Owner then handed back40 passing valid-baseline production resize cases,
+including top clamp to `(120,168,600,292)` with anchored bottom/fixed children,
+history/persistence and valid no-op/Escape;40 pure checks/typecheck/build pass.
+Current identities are in `app/test-results/dgm153/repair6/repair6-source-build-hashes.json`.
+A later owner child-exit expected604/actual640.6666 remains unclassified,
+not repaired or accepted. Independent verification checks actual camera and
+hit admission before classifying it; full acceptance remains pending.
+Independent repair6 source/browser qualification subsequently **PASSED**:
+41 resize cases,15 membership cases,7 selection/hit-target cases,9 guard/
+cancellation cases,real auto-pan,reload/history/MCP,JSON/SVG/PNG exports,
+normal connectors/default-off segments and242 compatibility checks.
+See [current evidence](verification/DGM-153.md); historical failures above
+remain preserved. Source/browser DGM-153 is complete; packaged/native and
+final release acceptance are separate gates. The verifier closed its helpers.
+Per-defect limits still apply; DGM-148's exhausted authority remains blocked.
+
+**PO-directed MCP amendment,2026-11-04:** [DGM-161](specs/DGM-161.md)
+removes desktop MCP access-token authentication while retaining loopback-only
+binding and browser/rebinding/request/session protections. PO explicitly chose
+a persisted configurable port applied after restart, with no silent fallback
+when occupied. The independent packaged-runtime cells now pass on the frozen
+test candidate; the evidence is limited to that candidate and does not qualify
+the whole build. Preserve diagram state tokens and the old running app/profile;
+no remote access.
+Retained implementer `f2cb8648-9a9e-4160-91f5-b42fe39718bb` handed back
+implemented source, meaningful401 RED,38 renderer/native100 checks and
+typecheck/build/stage. The independent runtime report verifies actual
+two-start/collision behavior and records complete path/size/hash identities;
+it does not reconstruct truncated owner receipts or infer pre-edit contents.
+DGM-161 is independent of the outstanding boundary child-exit defect.
+DGM-153 repair2 owner may continue the separately scoped repair; do not infer
+its acceptance from DGM-161. DGM-160 still requires its own segment gate,
+version, package, and exact-portable qualification.
+
+**PO-directed delivery cutoff,2026-11-04:** [DGM-160](specs/DGM-160.md)
+is now the next deliverable: a desktop-only0.5.2 ARM64 test executable with
+verified Recent/boundary changes and unfinished segment editing excluded.
+PO explicitly chose this over waiting for the whole queue. Complete current
+DGM-153 repair/qualification, the newly requested DGM-161 MCP change, then
+the narrow gate/version/local packaging
+and exact-portable verification, then Desktop copy and launch as subsequently
+requested ("ok, build deploy and open"), using an isolated test profile and
+verifying the new instance is responsive. No GitHub publication,
+Git delivery or installation is authorized. All remaining features stay queued;
+headless source execution waits until this requested Desktop delivery closes.
+Retained DGM-160 implementer `95d39730-66e7-4879-9a88-567c6b9f79ea` has
+prepared an unexecuted segment-gate test outside normal discovery; no source,
+version or packaging work is released yet. After DGM-153 qualification, reuse
+that actor for executed RED, narrow gate/version and ARM64-only packaging.
+Do not use stale standalone desktop selectors or git HEAD as dirty-build proof.
+
+**Current delivery cursor,2026-11-04:** DGM-149 source technical acceptance is
+complete. DGM-153 implementer `0c551ffc-f468-4da8-8eb8-ce0a8a2a53ce`
+completed source changes with retained RED,645 unit checks/typecheck/build and
+partial owner browser evidence. Independent verifier
+`f9f1e1ef-f39e-41a4-b416-9caac55c1f5b` reproduced a production-App failure:
+a real right-edge drag visually resized480 to516 but MCP-backed document/
+revision readback and publication did not change. The owner later traced an
+internal history revision2 with publication stopped by the window-error handler;
+the independent failure remains, but stale MCP readback alone does not establish
+that internal history or IndexedDB failed to commit. Source is NOT ACCEPTED.
+Retained implementer `0c551ffc-f468-4da8-8eb8-ce0a8a2a53ce` has now handed
+back repair1:308 focused App/session/boundary checks, typecheck/build and the
+actual production right-edge/child-exit regression are reported passing under
+`app/test-results/dgm153/repair1`. The earlier running-tests-only handoff was
+incomplete; final logs and attempt5 JSON now exist. Independent verifier
+`f9f1e1ef-f39e-41a4-b416-9caac55c1f5b` passed the real right-edge commit,
+matching IDB/MCP, fixed children, Undo/Redo and a fresh gesture, then reproduced
+a new defect twice: out24 CSS pixels and exactly back to the original pointer
+commits width544/revision2 rather than zero history. Verification stopped at
+that coherent defect; remaining matrix is not run. Helpers closed/lane clear.
+Repair2 owner later reported 635 focused checks/build and the return-to-origin
+regression passing, but the next production child-exit case failed with
+`parentId` retained. DGM-161's narrow packaged-runtime verification then passed
+and released the serial lane back to DGM-153. DGM-153 remains unaccepted; the
+next action is repair3 focused on distinguishing a genuine accepted/full-outside
+drop from a fixture hit/camera mistake, then rerun the production exit case
+before resuming the remaining matrix.
+Owner's duplicate-React combined browser fixture failure stays recorded, not
+counted as a pass or a reproduced product bug. DGM-150 retained implementer
+`6956bd6d-496d-4736-805c-63c44f4a70b2` may only prepare executable test
+artifacts outside normal discovery while waiting: no commands/production edits.
+Its corrected draft is prepared; actual RED/execution has not started.
+After DGM-153 passes independent verification, follow the new DGM-160
+Desktop delivery cutoff first, then release the lane to the retained
+headless implementer for actual RED and implementation. Preserve all prior
+failures and source/package distinctions. No repeated per-task PO stop.
+
+**Additional PO request,2026-11-04:** [DGM-159](specs/DGM-159.md),
+File Save / Save As / Load labels without JSON in the command names.
+PO explicitly chose Save always writes configured default folder/current
+filename, even after external Load/Save As; Save As picks any location.
+Prefer diagram/workbook title for suggested initial file/new-workspace names.
+An existing configured workspace stays authoritative: Save writes there
+without another workspace picker or creating a per-diagram workspace.
+Recent accelerates the same guarded original-file Load. Keep collisions,
+atomic writes, full-workbook backups, typing and native path safety honest.
+This intentionally changes future Save defaults without moving/deleting prior
+export folders or silently writing an external original.
+
+**Additional PO request,2026-11-04:** [DGM-158](specs/DGM-158.md),
+make New diagram thumbnails genuinely larger/readable and suppress replacement
+confirmation for proven current JSON backups or an unchanged template. PO
+explicitly selected Save JSON, not autosave-only "Saved on this device".
+Keep backup reporting honest, protect modified templates/workbooks and preserve
+existing direct-choice/Blank/keyboard behavior. Source follow-up appended.
+
+**Additional PO request,2026-11-04:** [DGM-157](specs/DGM-157.md),
+advanced page-scoped functional state styles for boxes/connectors/colors:
+add/edit/remove names, meanings and paint definitions in a page popover,
+available to MCP/agents and shared legend/rendering. Current fixed statuses
+are defaults, not immutable global states. Include this versioned registry in
+RFD005's now-approved batched format/public contract; no arbitrary CSS/code or
+automatic remapping of used styles.
+
+**Additional PO request,2026-11-04:** [DGM-156](specs/DGM-156.md),
+grid-color swatches:3 greys, white, black, red, green, yellow, blue, orange,
+purple and brown. Recommend per-diagram/page persistence, matching Grid scope,
+plus Automatic to preserve current default. Shared editor/Present/export and
+CLI/MCP must agree. [RFD005](rfd/005-exact-anchors-and-grid-style.md) batches
+the exact-anchor/grid-color format approval: preserve old Diagram v1, use v2
+only for new saved fields, accept mixed supported page versions in workbooks,
+no automatic migration and no free connector endpoints. The PO subsequently
+approved RFD005 including its bounded64-entry state registry. Implementation
+is authorized within that exact contract. **Initial DGM-156 implementation
+handoff,2026-11-05 (historical, superseded):** the DGM-155 compile/runtime
+blocker described at that time was subsequently repaired and independently
+qualified. Final DGM-156 current-source behavior verification is recorded in
+the current execution cursor above and
+[DGM-156 verification](verification/DGM-156.md); workbook/CLI/package gates
+remain separate.
+
+**Additional PO request,2026-11-04:** [DGM-155](specs/DGM-155.md),
+drag connector ends to exact border points or another item's border, retaining
+relative attachment when that item moves/resizes. PO explicitly corrected the
+earlier detach-only Delete choice: "when you press CANC delete the connector
+completely". Canc/Delete on an edge/endpoint removes the whole connection;
+do not add free/dangling endpoints. Preserve input typing and one-step Undo.
+Exact attachment persistence follows the subsequently approved RFD005 v2
+offset/side contract, coordinated with workbook/headless surfaces. Implement
+that bounded contract, not arbitrary fields; no installed capability claim.
+
+**Additional PO request,2026-11-04:** [DGM-154](specs/DGM-154.md),
+canvas item selection must not auto-open rename or a closed sidebar. Already
+open Properties follow selection; preserve panel intent and Markdown drafts.
+A later click specifically on the sole selected item's title/label starts
+rename; body/icon/line double-click is not a competing rename entry point.
+Preserve F2/context editing and multi-select/drag/resize/connection guards.
+Capture pre-click selection so React Flow's callbacks cannot rename on the
+first click. Approved source follow-up appended; no installed change inferred.
+
+**Additional PO request,2026-11-04:** [DGM-153](specs/DGM-153.md),
+drag-to-enter/leave boundary membership and direct hand resizing by dragging
+boundary borders/corners. PO chose expansion only for an item's current
+parent; foreign overlap does not adopt or grow. Decide membership on release
+against pre-gesture bounds so a growing parent cannot trap its escaping child.
+Full exit detaches; full containment adopts; partial current-parent overlap
+retains membership and expands only that parent. Border resize preserves child
+absolute positions and clamps to contents, with undoable origin/size changes.
+Approved source follow-up appended to existing queue; no reprioritization of
+the current Recent/headless/workbook/Visio work or installed change is inferred.
+It can proceed as independent ready work if an earlier platform cell is blocked,
+with shared source/build/terminal work still serial.
+
+**Additional PO requests,2026-11-04:** [DGM-151](specs/DGM-151.md),
+multi-page workbooks with titled drag-sortable Excel-like bottom tabs, visible
+in Present, workbook Markdown plus independent page Markdown, and per-page/
+whole-workbook exports. PO chose a single workbook JSON containing full diagram
+pages and explicitly requested combined multi-page PDF. [DGM-152](specs/DGM-152.md)
+adds the requested Visio export, proposed as native editable macro-free .vsdx,
+not renamed artwork, with one Visio page per exported diagram.
+[RFD004](rfd/004-workbooks-and-interoperable-exports.md) records the schema,
+history/isolation, PDF, interoperability and additive CLI/MCP proposals.
+The PO approved the detailed backward-compatible workbook/PDF/VSDX scope,
+including100 pages/64MiB and additive page-aware CLI/MCP contracts:
+"Approve the workbook, PDF and native Visio export scope (Recommended)".
+Freeze the small workbook slice contracts before assignment; do not silently
+alter the currently approved DGM-150 single-diagram implementation.
+Queue stays serial with the named independent-ready DGM-153 exception above:
+DGM-149 acceptance -> in-flight DGM-153 -> approved DGM-150 -> approved
+workbook slices -> Visio integration, with guide updates per feature.
+
+**Additional PO request,2026-11-04:** [DGM-150](specs/DGM-150.md),
+headless direct CLI and CLI-launched MCP for local AI tools, guide coverage,
+lowest usage friction. [RFD003](rfd/003-headless-local-automation.md) proposes
+one executable, explicit-file commands and stdio MCP backed by a dedicated
+never-visible sandboxed shared rendering worker. New public/privileged contracts
+were approved by the PO: "Approve the low-friction CLI and stdio MCP interface
+(Recommended)". Source implementation is queued; no dependencies, packaging, global
+configuration, release/install or GUI-profile changes are authorized.
+DGM-149 repair1 independent verification is **PASS** for the approved
+source-only scope and is technically accepted under the approved continuation
+policy. Targeted renderer (3), native
+filesystem/IPC (9), build/stage and source/runtime/dist hash checks passed.
+Production-dist browser evidence verifies stale-read ownership, exactly-once
+accepted reopen promotion, Escape/Close focus, browser-only Open/download
+fallback, the guide limitation, reload recovery, and keyboard/MCP guards. The
+final UI continuation stayed on the same admitted writable page; the earlier
+fresh-context chooser obstruction did not recur there. Original RED and
+intermediate observer/harness failures remain preserved. See
+[`DGM-149 verification`](verification/DGM-149.md) and
+`app/test-results/dgm149/independent-repair1`. No packaged/native-OS-dialog
+claim is inferred. Next: complete the already-started independent DGM-153
+TDD slice and its verification, then start DGM-150. DGM-153 test authoring began
+while the Recent browser fixture was blocked; finish it to GREEN before the
+next feature baseline rather than leave intentional RED tests in the tree.
+This bounded ready-work exception does not change feature contracts or waive
+any technical acceptance gate. No further per-task PO approval is needed.
+Preserve blocked DGM-148
+partial source and all evidence. No packaging, installation, Git delivery or
+release state is authorized.
+
+**Latest PO priority,2026-11-04:** [DGM-149](specs/DGM-149.md), File ->
+Recent diagrams: last20 successfully opened/saved JSON originals, profile-local
+history, newest first, retained across restart. PO chose originals rather than
+snapshots and explicitly approved the narrow native file-access bridge extension
+for user-selected/saved JSON only, with no arbitrary-path/MCP access.
+Current cursor: independent verification is **PASS** for the approved
+source-only scope and is technically accepted. The initial verifier run's three
+pre-repair defects remain documented. The final same-context production-dist
+continuation verified Escape/Close focus return, browser-only explanation and
+File → Open JSON/download fallbacks, guide coverage, reload recovery with
+exclusive document ownership and persisted editability, and keyboard/MCP
+guards. Targeted renderer (3), native filesystem/IPC (9), build/stage and hash
+evidence remain green. Evidence: [`DGM-149 verification`](verification/DGM-149.md)
+and `app/test-results/dgm149/independent-repair1`. No packaged/native-OS-dialog
+claim is inferred. Next: DGM-153 implementation/independent verification already
+in flight, then DGM-150 and the remaining approved serial queue. Final PO
+product acceptance and packaging/install decisions remain separate.
+Preserve blocked DGM-148 partial source and all evidence.
+No packaging, installation, Git delivery or release state is authorized.
+
+**Latest PO priority,2026-11-02:** [DGM-148](specs/DGM-148.md), connector
+segment dragging only (no bend-point editor). PO approved saved adjustments
+and reset on geometry changes. Source-only: no new persisted fields, MCP tools,
+dependencies, package/release/install or Git delivery. Current cursor:
+initial implementation605 focused tests/typecheck/build pass, but independent
+production-browser review is NOT ACCEPTED. The route hit stroke covers the
+visible handle center; only narrow edge slivers accepted pointer input.
+Retain first failures and partial drag/history/JSON/reset evidence in
+[DGM-148 verification](verification/DGM-148.md).
+Repair1 owner225af135 completed actual hit targets, endpoint approaches/clamping,
+single-selected-edge handles, grab-offset/no-op semantics, typed completion
+and cancellation/guard regression coverage. First RED has3 expected failures;
+608 focused tests/typecheck/production build and owner center/interior hit
+smoke pass. Evidence: `app/test-results/dgm148/repair1`; original failures stay.
+Independent post-repair verifier95c333c7 confirmed center-hit/route fixes,
+pointer history/no-op, keyboard Escape/Enter, snap/pan/zoom, JSON/autosave reload,
+Present and actual SVG/PNG1x/2x/ZIP output. Full acceptance remains pending:
+fit-scale handles shrink to10px narrow/13.4px short, and a retained
+desktop-to-narrow resize/Fit path left the handle offscreen.
+Repair2 implemented a24CSS-pixel minimum actual target, with owner fitted
+desktop/narrow/short measurements and retained RED/GREEN/typecheck/build.
+Independent repair2 verification confirms target sizing, Shift/blur, route
+appearance/reset/Undo, background/order and pointer-cancel/lost-capture controls.
+Measured Fit fails because below-canvas docks are subtracted as side overlays
+and selected chrome leaves top168 > bottom148 in a340px canvas.
+Subsequent pointer gestures also fail after Undo: the shared cancellation flag
+stays set and segment admission does not establish a fresh gesture.
+Repair3 source/build is ready: fresh segment admission retires obsolete
+cancellation; Undo/Redo retire route gestures; Fit subtracts only an actually
+overlapping library; narrow dock canvas reserves520px for chrome plus a real
+scene band without closing panels. Typecheck/build pass. Owner focused run
+found the expected340-to520 CSS assertion drift; updated exact expectation
+has not yet been rerun. No new repair3 unit RED log was retained; do not invent
+one or confuse this with the existing pre-fix independent browser failures.
+Final independent verification95c333c7 passed609 focused tests, repaired
+resize/Fit and fresh gestures after history, actual saved outputs, layout/reset
+Undo/Redo and isolated endpoint reconnection. Source remains NOT ACCEPTED:
+Present commits a live segment preview rather than cancelling; Shift-clicking
+a second connector clears both selections. Keyboard-visible focus also needs
+evidence. Source/test-only guards are not live IME/ownership certification.
+All verifier previews are stopped; evidence is under
+`app/test-results/dgm148/independent-repair3` and the verification report.
+Three automatic repair cycles were exhausted; the PO explicitly authorized
+one additional bounded pass: "Fix the remaining defects and verify".
+Repair4 is limited to Present cancellation for segment gestures, reliable
+multi-edge selection and keyboard-visible-focus verification.
+Repair4 owner225af135 completed segment-specific Present cancellation and
+single-authority edge selection; focused611 tests/typecheck/production build
+pass. The test mock now models React Flow select-change-before-click callbacks.
+No valid new pre-edit RED exists: production edits preceded regressions; this
+process violation is recorded, not reconstructed. Owner browser checks were
+not run. Final independent repair4 evidence remains NOT ACCEPTED:
+pointer cancellation prevents Present activation ("Edit has not yet been
+accepted"); keyboard route preview commits on blur before Present;
+Shift-click selects only the second edge. Control multi-selection works on
+Win32. Real Tab-visible focus passes both themes at greater than5:1 contrast,
+and isolated endpoint reconnection passes.
+All owned previews/browser helpers are stopped; evidence and exact hashes are
+under `app/test-results/dgm148/independent-repair4`.
+BLOCKED after the explicitly authorized extra pass. Next: PO decision on a
+further scoped correction to mode-entry/blur ordering and modifier selection.
+Do not install, publish, commit or claim accepted; preserve partial source and
+all first failures. No further automatic implementation is authorized.
+No criterion relaxation, automatic further pass, Git delivery or
+installed0.5.1 mutation.
+The installed0.5.1 portable was separately authorized and installed after
+DGM-147 publication; its EXE hash and Start shortcut were read back, with
+0.5.0 and profiles preserved. This source task does not change installed bytes.
 
 **Latest PO priority,2026-11-02:** [DGM-147](specs/DGM-147.md),
 "package, compile and distribute0.5.1". Release accepted DGM-146 with the

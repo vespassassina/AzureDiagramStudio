@@ -5,6 +5,7 @@ import { isSelectableIcon, selectionLibrary } from '../catalog/presentation.ts'
 import { effectiveGrid, gridParentOrigin, snapLocalPoint, snapPoint } from '../grid.ts'
 import type { Grid } from '../model.ts'
 import { applyCommand } from '../document/index.ts'
+import { applyBoundaryResize } from '../document/commands.ts'
 
 export type Tool = 'select' | 'pan' | 'component' | 'connector' | 'boundary' | 'text' | 'rectangle'
 export type LibraryItem = { icon: string; label: string; subtitle: string; color: string }
@@ -157,6 +158,12 @@ export function movePositions(document: Diagram, moved: { id: string; position: 
   })
 }
 
+/** Reconstruct the intended release position from pre- and post-pan world pointer coordinates. */
+export function dragReleasePositions(document: Diagram, roots: { id: string; x: number; y: number }[], start: Point, end: Point) {
+  const delta = { x: end.x - start.x, y: end.y - start.y }
+  return movePositions(document, roots.map(root => ({ id: root.id, position: { x: root.x + delta.x, y: root.y + delta.y } })))
+}
+
 export function nudgeCommand(document: Diagram, ids: string[], key: string, shift: boolean): DocumentCommand | null {
   const delta: Record<string, Point> = { ArrowLeft: { x: -1, y: 0 }, ArrowRight: { x: 1, y: 0 }, ArrowUp: { x: 0, y: -1 }, ArrowDown: { x: 0, y: 1 } }
   if (!delta[key]) return null
@@ -192,6 +199,49 @@ export function resizeCommand(document: Diagram, entity: Entity, geometry: Point
   return { type: 'resize', id: entity.id, width: Math.max(minimum.width, opposite.x - origin.x - entity.x), height: Math.max(minimum.height, opposite.y - origin.y - entity.y) }
 }
 
+export function boundaryResizeGestureGeometry(initial: Point & { width: number; height: number }, direction: Point, start: Point, end: Point) {
+  const delta = { x: end.x - start.x, y: end.y - start.y }
+  const left = direction.x < 0 ? initial.x + delta.x : initial.x
+  const top = direction.y < 0 ? initial.y + delta.y : initial.y
+  return {
+    x: left,
+    y: top,
+    width: initial.width + (direction.x === 0 ? 0 : direction.x * delta.x),
+    height: initial.height + (direction.y === 0 ? 0 : direction.y * delta.y),
+  }
+}
+
+/** Clamp a pointer-derived resize while keeping the edge opposite each handle fixed. */
+export function clampBoundaryResizeGeometry(initial: Point & { width: number; height: number }, direction: Point, geometry: Point & { width: number; height: number }, minimum: { width: number; height: number }) {
+  const right = initial.x + initial.width
+  const bottom = initial.y + initial.height
+  const width = Math.max(minimum.width, geometry.width)
+  const height = Math.max(minimum.height, geometry.height)
+  return {
+    x: direction.x < 0 && geometry.width < minimum.width ? right - width : geometry.x,
+    y: direction.y < 0 && geometry.height < minimum.height ? bottom - height : geometry.y,
+    width,
+    height,
+  }
+}
+
+export function boundaryResizeOperation(document: Diagram, entity: Entity, geometry: Point & { width: number; height: number }) {
+  if (entity.x === geometry.x && entity.y === geometry.y && entity.width === geometry.width && entity.height === geometry.height) return (source: Diagram) => source
+  const origin = gridParentOrigin(document, entity.parentId)
+  const leftTop = snapPoint({ x: origin.x + geometry.x, y: origin.y + geometry.y }, document.grid)
+  const opposite = snapPoint({ x: origin.x + geometry.x + geometry.width, y: origin.y + geometry.y + geometry.height }, document.grid)
+  const minimum = minimumSize(document, entity)
+  const width = Math.max(minimum.width, opposite.x - leftTop.x)
+  const height = Math.max(minimum.height, opposite.y - leftTop.y)
+  return (source: Diagram) => applyBoundaryResize(source, {
+    id: entity.id,
+    x: leftTop.x - origin.x,
+    y: leftTop.y - origin.y,
+    width,
+    height,
+  })
+}
+
 export function parentChoices(document: Diagram, ids: string[]): Entity[] {
   const roots = selectionRoots(document, ids)
   const contained = new Set(document.entities.filter(entity => ids.includes(entity.id) || ancestors(document, entity.id).some(parent => ids.includes(parent))).map(entity => entity.id))
@@ -215,6 +265,7 @@ export function previewDocument(document: Diagram, command: DocumentCommand): Di
   let draft = document
   if (command.type === 'metadata') draft = { ...document, ...command.patch }
   if (command.type === 'updateConnection') draft = { ...document, connections: document.connections.map(connection => connection.id === command.id ? { ...connection, ...command.patch } : connection) }
+  if (command.type === 'adjustRoute') draft = { ...document, connections: document.connections.map(connection => connection.id === command.id ? { ...connection, points: command.points, labelPosition: command.labelPosition, routeRevision: document.revision } : connection) }
   if (command.type === 'updateEntity') draft = { ...document, entities: document.entities.map(entity => {
     if (entity.id !== command.id) return entity
     const updated = { ...entity, ...command.patch }
@@ -225,7 +276,7 @@ export function previewDocument(document: Diagram, command: DocumentCommand): Di
     return point ? { ...entity, x: point.x, y: point.y } : entity
   }) }
   if (command.type === 'resize') draft = { ...document, entities: document.entities.map(entity => entity.id === command.id ? { ...entity, width: command.width, height: command.height } : entity) }
-  return invalidateRoutes(draft)
+  return command.type === 'adjustRoute' ? draft : invalidateRoutes(draft)
 }
 
 export function canConnect(document: Diagram, from: string | null, to: string | null): boolean {
@@ -237,4 +288,34 @@ export function sideAtPoint(document: Diagram, id: string, point: Point): Exclud
   const absolute = absolutePosition(document, id)
   const distances = { left: Math.abs(point.x - absolute.x), right: Math.abs(point.x - absolute.x - entity.width), top: Math.abs(point.y - absolute.y), bottom: Math.abs(point.y - absolute.y - entity.height) }
   return (Object.keys(distances) as Exclude<ConnectionSide, 'auto'>[]).sort((before, after) => distances[before] - distances[after])[0]
+}
+
+export type BorderAnchor = { id: string; side: Exclude<ConnectionSide, 'auto'>; offset: number }
+
+/** Project a canvas point to the nearest eligible border within a zoom-scaled hit radius. */
+export function borderAnchorAtPoint(document: Diagram, point: Point, radius: number): BorderAnchor | null {
+  if (!Number.isFinite(point.x) || !Number.isFinite(point.y) || !Number.isFinite(radius) || radius <= 0) return null
+  let winner: (BorderAnchor & { distance: number; index: number }) | null = null
+  for (const [index, entity] of document.entities.entries()) {
+    if (entity.kind !== 'component' && entity.kind !== 'boundary') continue
+    const absolute = absolutePosition(document, entity.id)
+    const distances: Record<Exclude<ConnectionSide, 'auto'>, number> = {
+      left: Math.abs(point.x - absolute.x),
+      right: Math.abs(point.x - absolute.x - entity.width),
+      top: Math.abs(point.y - absolute.y),
+      bottom: Math.abs(point.y - absolute.y - entity.height),
+    }
+    const side = (Object.keys(distances) as Exclude<ConnectionSide, 'auto'>[]).sort((left, right) => distances[left] - distances[right])[0]
+    const projected = side === 'left' || side === 'right'
+      ? Math.min(1, Math.max(0, (point.y - absolute.y) / entity.height))
+      : Math.min(1, Math.max(0, (point.x - absolute.x) / entity.width))
+    const onSpan = side === 'left' || side === 'right'
+      ? point.y >= absolute.y - radius && point.y <= absolute.y + entity.height + radius
+      : point.x >= absolute.x - radius && point.x <= absolute.x + entity.width + radius
+    if (!onSpan || distances[side] > radius) continue
+    // Persist a stable normalized coordinate rather than camera/device floating-point noise.
+    const candidate = { id: entity.id, side, offset: Math.round(projected * 1_000_000) / 1_000_000, distance: distances[side], index }
+    if (!winner || candidate.distance < winner.distance || candidate.distance === winner.distance && candidate.index < winner.index) winner = candidate
+  }
+  return winner && { id: winner.id, side: winner.side, offset: winner.offset }
 }

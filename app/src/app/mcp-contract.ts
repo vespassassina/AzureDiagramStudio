@@ -18,4 +18,15 @@ export type McpOutputContent = { type: 'image'; mimeType: string; data: string; 
 }
 export type McpOutput = { content: [McpOutputContent, { type: 'text'; text: string }] }
 export type McpOutputResult = { ok: true; output: McpOutput } | { ok: false; message: string }
-export type McpRequest = { id: string; deadline: number; operation: McpOperation | McpOutputOperation }
+/** DGM-151D workbook tools. Tokens are opaque: one per root, one per page. */
+export type McpWorkbookEditCommand = import('../workbook-api.ts').WorkbookEditCommand
+export type McpWorkbookOperation =
+  | { name: 'get_workbook'; arguments: Record<string, never> }
+  | { name: 'edit_workbook'; arguments: { stateToken: string; commands: McpWorkbookEditCommand[] } }
+  | { name: 'export_workbook'; arguments: { stateToken: string; scope: 'page'; pageId: string; format: 'json' | 'svg' | 'png' | 'markdown' | 'pdf' | 'vsdx' } | { stateToken: string; scope: 'workbook'; format: 'json' | 'zip' | 'pdf' | 'vsdx' } }
+export type McpWorkbookState = {
+  kind: 'diagram' | 'workbook'; id: string; title: string; description?: string; revision: number
+  activePageId: string; stateToken: string; pages: { id: string; title: string; stateToken: string }[]
+}
+export type McpWorkbookResult = { ok: true; value: McpWorkbookState } | { ok: true; output: McpOutput } | { ok: false; message: string }
+export type McpRequest = { id: string; deadline: number; operation: McpOperation | McpOutputOperation | McpWorkbookOperation }

@@ -119,6 +119,21 @@ test('should_keep_saved_description_when_invalid_writes_fail_DGM122', async () =
   storage.close()
 })
 
+test('should_round_trip_workbook_root_and_reject_invalid_union_input_DGM151A', async () => {
+  const fake = new FakeIndexedDb()
+  vi.stubGlobal('indexedDB', fake)
+  const storage = createStorage()
+  const workbook = { kind: 'workbook' as const, schemaVersion: 1 as const, id: 'book', title: 'Program', description: '# Notes', revision: 4, pages: [createDocument('page-one'), createDocument('page-two')] }
+  await storage.save(workbook)
+  assert.deepEqual(await storage.load(), workbook)
+  const duplicate = { ...workbook, pages: [workbook.pages[0], workbook.pages[0]] }
+  await assert.rejects(storage.save(duplicate), /invalid/i)
+  assert.deepEqual(await storage.load(), workbook)
+  fake.snapshot = { ...workbook, schemaVersion: 9 }
+  await assert.rejects(storage.load(), /invalid/i)
+  storage.close()
+})
+
 test('should_round_trip_latest_snapshot_when_indexeddb_transactions_complete', async () => {
   const fake = new FakeIndexedDb()
   vi.stubGlobal('indexedDB', fake)

@@ -357,3 +357,55 @@ Evidence: [DGM-146 original and repair1 review](verification/DGM-146.md).
   Preserve that local commit without publishing or destructive rollback and
   record the boundary violation. Local commit existence is not PO delivery,
   release or installed-package approval.
+
+## 2026-11-02: DGM-148 Interaction Evidence And Repair Boundaries
+
+Evidence: [DGM-148 retained failures and repair4 result](verification/DGM-148.md).
+The feature remains unaccepted; these lessons are observations, not closure.
+
+- A gesture's full lifecycle includes cancellation, Undo/Redo, a fresh press,
+  blur and mode entry. Isolated first-drag or direct-callback tests missed the
+  sticky cancellation flag and blur-before-Present ordering. Test sequences
+  through the real browser and preserve existing node-move draft policies.
+- Measure hit targets in CSS pixels after zoom, not SVG scene units. Fit
+  calculations must match the actual responsive dock/overlay layout and reserve
+  usable space for current chrome; a fresh narrow startup does not qualify a
+  desktop-to-narrow transition.
+- Controlled React Flow selection and click callbacks can both run for one
+  input. Test their actual order and platform modifier behavior, not a mock
+  invoking only one handler or assuming Shift equals Control.
+- Repair3/4 lacked new pre-edit unit RED evidence and some owner handoffs
+  omitted required execution. Record those process gaps honestly; do not
+  reconstruct passing history. A compiled patch and broad green count do not
+  replace the failing real interaction. Keep repair limits explicit and stop
+  when the authorized extra pass still fails.
+
+## 2026-11-04: Recent Browser Fixture And Continuation
+
+Evidence: [DGM-149](verification/DGM-149.md), frozen repair1 manifest and final
+single-context continuation. Source technical acceptance is complete.
+
+- Establish actual ownership with the exclusive lock, a real accepted edit and
+  IndexedDB readback, not a visible chooser or save label. Keep the same proven
+  context through related interactions; repeated fresh-context chooser setup
+  prevented observations that passed on the admitted page. Preserve failed
+  harness attempts without calling them product defects or product passes.
+- Apply the current continuation policy at handoff. A verifier may report
+  technical PASS and platform limitations, but must not restore superseded
+  per-task PO approval stops. Keep release/product acceptance separate from
+  approved source implementation and independent ready-work continuation.
+
+## 2026-11-04: Boundary Preview Is Not A Persisted Edit
+
+Evidence: [DGM-153 production-App failure](verification/DGM-153.md).
+Root-cause repair is pending; this is not a completion claim.
+
+- Isolated Editor pointer callbacks passed while the actual App/session kept
+  canonical width/revision and MCP snapshot unchanged after a visible resize.
+  Qualify private gesture gateways through the real application with canonical
+  history, persistence and automation readback; a visual preview or supplied
+  fixture callback cannot establish the user outcome.
+- Missing required execution is pending verification work, not an external
+  blocker. The first independent pass replayed the isolated harness; the
+  subsequent real-App attempt found the defect. Demand an actual recorded
+  fixture/tool failure before classifying a qualification cell as blocked.

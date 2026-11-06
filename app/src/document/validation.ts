@@ -1,8 +1,8 @@
 import { isColorKey, isIconKey } from '../catalog.ts'
 import { validateCustomIcon } from '../custom-icons/contract.ts'
-import { isHexColor } from '../render/contrast.ts'
+import { fullHex, isHexColor } from '../render/contrast.ts'
 import type { Result, ValidationIssue } from '../contracts.ts'
-import type { Connection, Diagram, Entity, LegendEntry, Point } from '../model.ts'
+import type { Connection, Diagram, Entity, LegendEntry, Point, StatePaint, StateStyle } from '../model.ts'
 
 export const MAX_BYTES = 5 * 1024 * 1024
 export const isStableId = (value: unknown): value is string => typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/.test(value) && !['__proto__', 'prototype', 'constructor'].includes(value)
@@ -14,13 +14,14 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /** Count raw JSON bytes before discarding unknown fields; descriptors avoid executing getters or toJSON hooks. */
-export function inspectJson(input: unknown): ValidationIssue | undefined {
+export function inspectJson(input: unknown, limit = MAX_BYTES): ValidationIssue | undefined {
   let bytes = 0
   let pendingLength = 0
   const pending: string[] = []
   const ancestors = new Set<object>()
   const encoder = new TextEncoder()
-  const oversized = (): ValidationIssue | undefined => bytes > MAX_BYTES ? { path: '$', message: 'JSON exceeds the 5 MiB limit' } : undefined
+  const limitMessage = `JSON exceeds the ${Math.round(limit / (1024 * 1024))} MiB limit`
+  const oversized = (): ValidationIssue | undefined => bytes > limit ? { path: '$', message: limitMessage } : undefined
   const flush = () => {
     bytes += encoder.encode(pending.join('')).byteLength
     pending.length = 0
@@ -30,7 +31,7 @@ export function inspectJson(input: unknown): ValidationIssue | undefined {
   const count = (text: string) => {
     pending.push(text)
     pendingLength += text.length
-    if (bytes + pendingLength > MAX_BYTES) return { path: '$', message: 'JSON exceeds the 5 MiB limit' }
+    if (bytes + pendingLength > limit) return { path: '$', message: limitMessage }
     return pendingLength >= 16 * 1024 ? flush() : undefined
   }
   const walk = (value: unknown, depth: number): ValidationIssue | undefined => {
@@ -114,7 +115,39 @@ class Reader {
     const input = this.record(value, path)
     return { x: this.number(input.x, `${path}.x`), y: this.number(input.y, `${path}.y`) }
   }
-  entity(value: unknown, path: string): Entity {
+  statePaint(value: unknown, path: string, connector = false): StatePaint | undefined {
+    if (value === undefined) return undefined
+    const input = this.record(value, path)
+    const allowed = connector ? ['stroke', 'textColor', 'strokeWidth', 'lineStyle'] : ['fill', 'stroke', 'textColor', 'strokeWidth', 'lineStyle']
+    for (const key of Object.keys(input)) if (!allowed.includes(key)) this.issue(`${path}.${key}`, 'Unsupported state paint field')
+    const paint: StatePaint = {}
+    for (const key of ['fill', 'stroke', 'textColor'] as const) {
+      if (input[key] === undefined) continue
+      if (!isHexColor(input[key])) this.issue(`${path}.${key}`, 'Expected an opaque #RGB or #RRGGBB color')
+      else paint[key] = fullHex(input[key] as string).toLowerCase()
+    }
+    if (input.strokeWidth !== undefined) {
+      if (typeof input.strokeWidth !== 'number' || !Number.isFinite(input.strokeWidth) || input.strokeWidth < .5 || input.strokeWidth > 12) this.issue(`${path}.strokeWidth`, 'Expected a finite stroke width between 0.5 and 12')
+      else paint.strokeWidth = input.strokeWidth
+    }
+    if (input.lineStyle !== undefined) paint.lineStyle = this.token(input.lineStyle, `${path}.lineStyle`, ['solid', 'dashed', 'dotted'] as const)
+    return paint
+  }
+  stateStyles(value: unknown): StateStyle[] {
+    const styles = this.array(value, 'stateStyles', 64).map((entry, index) => {
+      const path = `stateStyles[${index}]`, input = this.record(entry, path)
+      for (const key of Object.keys(input)) if (!['id', 'name', 'meaning', 'box', 'connector'].includes(key)) this.issue(`${path}.${key}`, 'Unsupported state style field')
+      const id = typeof input.id === 'string' && /^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(input.id) ? input.id : (this.issue(`${path}.id`, 'Expected a state style ID matching [A-Za-z][A-Za-z0-9_-]{0,63}'), '')
+      const name = this.text(input.name, `${path}.name`, 80)
+      if (!name || name.trim() !== name) this.issue(`${path}.name`, 'Expected a nonempty trimmed name')
+      const meaning = this.text(input.meaning, `${path}.meaning`, 1000)
+      return { id, name, meaning, ...(input.box === undefined ? {} : { box: this.statePaint(input.box, `${path}.box`) }), ...(input.connector === undefined ? {} : { connector: this.statePaint(input.connector, `${path}.connector`, true) }) }
+    })
+    const ids = new Set<string>()
+    for (const [index, style] of styles.entries()) { if (ids.has(style.id)) this.issue(`stateStyles[${index}].id`, 'Duplicate state style ID'); ids.add(style.id) }
+    return styles
+  }
+  entity(value: unknown, path: string, schemaVersion: 1 | 2, stateIds: Set<string>): Entity {
     const input = this.record(value, path)
     const kind = this.token(input.kind, `${path}.kind`, ['component', 'boundary', 'text', 'rectangle'])
     const entity: Entity = {
@@ -132,7 +165,11 @@ class Reader {
       if (typeof input.icon === 'string' && isIconKey(input.icon)) entity.icon = input.icon
       else this.issue(`${path}.icon`, 'Expected an allowlisted icon registry key, not an asset path')
     }
-    if (input.status !== undefined) entity.status = this.token(input.status, `${path}.status`, ['live', 'planned', 'not-connected', 'synthetic'] as const)
+    if (input.status !== undefined) {
+      if (schemaVersion === 1) entity.status = this.token(input.status, `${path}.status`, ['live', 'planned', 'not-connected', 'synthetic'] as const)
+      else if (typeof input.status !== 'string' || !stateIds.has(input.status)) this.issue(`${path}.status`, 'Expected a configured page state style ID')
+      else entity.status = input.status
+    }
     if (input.customIcon !== undefined) {
       const custom = validateCustomIcon(input.customIcon)
       if (kind !== 'component') this.issue(`${path}.customIcon`, 'Only components can contain a custom icon')
@@ -141,7 +178,7 @@ class Reader {
     }
     return entity
   }
-  connection(value: unknown, path: string, revision: number): Connection {
+  connection(value: unknown, path: string, revision: number, schemaVersion: 1 | 2, stateIds: Set<string>): Connection {
     const input = this.record(value, path)
     const connection: Connection = {
       id: this.id(input.id, `${path}.id`), from: this.id(input.from, `${path}.from`), to: this.id(input.to, `${path}.to`),
@@ -150,6 +187,12 @@ class Reader {
       arrow: this.token(input.arrow, `${path}.arrow`, ['forward', 'both', 'none']),
     }
     for (const key of ['sourceSide', 'targetSide'] as const) if (input[key] !== undefined) connection[key] = this.token(input[key], `${path}.${key}`, ['auto', 'top', 'right', 'bottom', 'left'] as const)
+    for (const key of ['sourceOffset', 'targetOffset'] as const) {
+      if (input[key] === undefined) continue
+      const offset = input[key]
+      if (typeof offset !== 'number' || !Number.isFinite(offset) || offset < 0 || offset > 1) this.issue(`${path}.${key}`, 'Expected a finite normalized offset between 0 and 1')
+      else connection[key] = offset
+    }
     if (input.points !== undefined) {
       const points = this.array(input.points, `${path}.points`, 10000)
       if (points.length < 2) this.issue(`${path}.points`, 'A route requires at least two points')
@@ -158,6 +201,11 @@ class Reader {
       if (connection.routeRevision > revision) this.issue(`${path}.routeRevision`, 'Saved route revision cannot be newer than the document revision')
     } else if (input.routeRevision !== undefined || input.labelPosition !== undefined) this.issue(`${path}.points`, 'Route revision and label position require route points')
     if (input.labelPosition !== undefined) connection.labelPosition = this.point(input.labelPosition, `${path}.labelPosition`)
+    if (input.status !== undefined) {
+      if (schemaVersion !== 2) this.issue(`${path}.status`, 'Connection state requires schemaVersion 2')
+      else if (typeof input.status !== 'string' || !stateIds.has(input.status)) this.issue(`${path}.status`, 'Expected a configured page state style ID')
+      else connection.status = input.status
+    }
     return connection
   }
   legend(value: unknown): LegendEntry[] {
@@ -175,16 +223,21 @@ export function validateDocument(input: unknown): Result<Diagram> {
   if (unsafe) return { ok: false, errors: [unsafe] }
   const reader = new Reader()
   const source = reader.record(input, '$')
-  if (source.schemaVersion !== 1) reader.issue('schemaVersion', 'Only schemaVersion 1 is supported; no implicit migrations')
+  if (source.schemaVersion !== 1 && source.schemaVersion !== 2) reader.issue('schemaVersion', 'Expected schemaVersion 1 or 2')
+  const schemaVersion = source.schemaVersion === 2 ? 2 : 1
   const revision = reader.revision(source.revision, 'revision')
+  const stateStyles = source.stateStyles === undefined ? undefined : reader.stateStyles(source.stateStyles)
+  if (source.stateStyles !== undefined && schemaVersion !== 2) reader.issue('stateStyles', 'State styles require schemaVersion 2')
+  const stateIds = new Set(stateStyles?.map(style => style.id) ?? ['live', 'planned', 'not-connected', 'synthetic'])
   const diagram: Diagram = {
-    schemaVersion: 1, id: reader.id(source.id, 'id'), title: reader.text(source.title, 'title', 120),
+    schemaVersion, id: reader.id(source.id, 'id'), title: reader.text(source.title, 'title', 120),
     subtitle: reader.text(source.subtitle, 'subtitle', 200), synthetic: reader.boolean(source.synthetic, 'synthetic'),
     legendVisible: reader.boolean(source.legendVisible, 'legendVisible'), legend: reader.legend(source.legend), revision,
     direction: reader.token(source.direction, 'direction', ['RIGHT', 'DOWN']),
-    entities: reader.array(source.entities, 'entities', 100).map((entity, index) => reader.entity(entity, `entities[${index}]`)),
-    connections: reader.array(source.connections, 'connections', 150).map((connection, index) => reader.connection(connection, `connections[${index}]`, revision)),
+    entities: reader.array(source.entities, 'entities', 100).map((entity, index) => reader.entity(entity, `entities[${index}]`, schemaVersion, stateIds)),
+    connections: reader.array(source.connections, 'connections', 150).map((connection, index) => reader.connection(connection, `connections[${index}]`, revision, schemaVersion, stateIds)),
   }
+  if (stateStyles !== undefined) diagram.stateStyles = stateStyles
   if (source.description !== undefined) diagram.description = reader.text(source.description, 'description', 20000)
   if (source.backgroundColor !== undefined) {
     if (isHexColor(source.backgroundColor) || source.backgroundColor === 'transparent') diagram.backgroundColor = source.backgroundColor
@@ -199,8 +252,22 @@ export function validateDocument(input: unknown): Result<Diagram> {
       spacing: typeof spacing === 'number' ? spacing : 8, snap: reader.boolean(grid.snap, 'grid.snap'),
       present: reader.boolean(grid.present, 'grid.present'), export: reader.boolean(grid.export, 'grid.export'),
     }
+    if (grid.color !== undefined) {
+      if (!isHexColor(grid.color)) reader.issue('grid.color', 'Expected an opaque #RGB or #RRGGBB color')
+      else if (schemaVersion !== 2) reader.issue('grid.color', 'Explicit grid color requires schemaVersion 2')
+      else diagram.grid.color = fullHex(grid.color).toLowerCase()
+    }
   }
   validateGraph(diagram, reader)
+  for (const [index, connection] of diagram.connections.entries()) {
+    for (const endpoint of ['source', 'target'] as const) {
+      const offset = connection[`${endpoint}Offset` as const]
+      const side = connection[`${endpoint}Side` as const]
+      if (offset === undefined) continue
+      if (schemaVersion !== 2) reader.issue(`connections[${index}].${endpoint}Offset`, 'Exact connector offsets require schemaVersion 2')
+      if (!side || side === 'auto') reader.issue(`connections[${index}].${endpoint}Side`, 'Exact connector offsets require an explicit non-auto side')
+    }
+  }
   if (!reader.errors.length && new TextEncoder().encode(JSON.stringify(diagram)).byteLength > MAX_BYTES) reader.issue('$', 'Document exceeds the 5 MiB limit')
   return reader.errors.length ? { ok: false, errors: reader.errors } : { ok: true, value: diagram }
 }

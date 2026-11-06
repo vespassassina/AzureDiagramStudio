@@ -145,6 +145,19 @@ describe('DGM117 guide geometry', () => {
     expect(text).toMatch(/eleven/i)
     expect(text).not.toMatch(/sample/i)
   })
+  it('should_describe_default_connector_and_boundary_actions_without_disabled_segment_editing_DGM160', () => {
+    const root = createRef<HTMLDivElement>()
+    render(<><div ref={root} /><HelpGuide root={root} onReveal={vi.fn()} onClose={vi.fn()} /></>)
+    const guide = screen.getByRole('dialog', { name: 'UI guide' })
+    for (let index = 0; index < 4; index++) fireEvent.click(within(guide).getByRole('button', { name: 'Next' }))
+    expect(within(guide).getByRole('heading', { name: 'Connect and annotate' })).toBeTruthy()
+    const text = guide.querySelector('.help-guide-content p')!.textContent!
+    expect(text).toMatch(/drag endpoint handles/i)
+    expect(text).toMatch(/Reset to automatic routing/i)
+    expect(text).toMatch(/Drag any boundary edge or corner directly to resize it/i)
+    expect(text).not.toMatch(/segment handles/i)
+    expect(text).not.toMatch(/focused segment/i)
+  })
   it('should_state_that_Escape_cancels_active_ink_or_resize_before_exiting_Present_DGM126', () => {
     const root = createRef<HTMLDivElement>()
     render(<><div ref={root} /><HelpGuide root={root} onReveal={vi.fn()} onClose={vi.fn()} /></>)

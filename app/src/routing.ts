@@ -23,7 +23,8 @@ function planPorts(diagram: Diagram, nodes: Map<string, FixedNode>): Plan[] {
     const rank = ranks.get(key) ?? 0
     ranks.set(key, rank + 1)
     const blocked = obstacles(edge, nodes).filter(item => item.id !== node.entity.id || node.entity.kind === 'boundary').map(item => item.box)
-    ports.set(`${edge.id}:${endpoint}`, makePort(node, requested, peer, rank, counts.get(key)!, blocked, edge.id))
+    const exactOffset = endpoint === 'from' ? edge.sourceOffset : edge.targetOffset
+    ports.set(`${edge.id}:${endpoint}`, makePort(node, requested, peer, rank, counts.get(key)!, blocked, edge.id, exactOffset))
   }
   return diagram.connections.map(edge => ({ edge, from: ports.get(`${edge.id}:from`)!, to: ports.get(`${edge.id}:to`)!, blocked: obstacles(edge, nodes) }))
 }

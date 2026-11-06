@@ -31,7 +31,7 @@ async function settled(page: Page) {
 }
 
 async function importFixture(page: Page, source = fixture, diagnostics?: { pageErrors: string[]; dialogMessages: string[] }) {
-  const open = await fileCommand(page, 'Open JSON')
+  const open = await fileCommand(page, 'Load')
   const [chooser] = await Promise.all([page.waitForEvent('filechooser'), open.click()])
   await chooser.setFiles({ name: 'direct.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(source)) })
   try {
@@ -66,7 +66,7 @@ async function importFixture(page: Page, source = fixture, diagnostics?: { pageE
 }
 
 async function canonical(page: Page) {
-  const save = await fileCommand(page, 'Save JSON')
+  const save = await fileCommand(page, 'Save')
   const [download] = await Promise.all([page.waitForEvent('download'), save.click()])
   return JSON.parse(await readFile((await download.path())!, 'utf8')) as typeof fixture & { revision: number }
 }
@@ -96,6 +96,19 @@ test('should_verify_DGM108_production_Flow_labels_IME_history_commands_readonly_
       await editableApp(page, true)
       await importFixture(page, fixture, { pageErrors: errors, dialogMessages })
       const before = await canonical(page)
+      const paintedTitle = page.locator('.react-flow__node[data-id="child"] [data-dgm-label="entity"] text').first()
+      await paintedTitle.click()
+      expect(await page.getByRole('textbox', { name: 'Inline component label', exact: true }).count()).toBe(0)
+      expect(await page.getByLabel('Sidebar', { exact: true }).getAttribute('aria-expanded')).toBe('false')
+      await paintedTitle.click()
+      const titleInput = page.getByRole('textbox', { name: 'Inline component label', exact: true })
+      await titleInput.waitFor()
+      await titleInput.press('Escape')
+      await paintedTitle.click({ button: 'right' })
+      await page.getByRole('menu').getByRole('menuitem', { name: 'Edit label', exact: true }).click()
+      await titleInput.waitFor()
+      expect(await titleInput.evaluate(element => document.activeElement === element)).toBe(true)
+      await titleInput.press('Escape')
       const node = await select(page, 'child')
       await node.press('F2')
       const input = page.getByRole('textbox', { name: 'Inline component label', exact: true })
@@ -122,14 +135,21 @@ test('should_verify_DGM108_production_Flow_labels_IME_history_commands_readonly_
       await page.getByLabel('Undo', { exact: true }).click()
       const undone = await canonical(page)
       expect(undone.entities).toEqual(before.entities); expect(undone.connections).toEqual(before.connections)
+      await page.getByLabel('Redo', { exact: true }).click()
+      const redone = await canonical(page)
+      expect(redone.entities.find(entity => entity.id === 'child')!.label).toBe('Renamed child')
+      await paintedTitle.click()
+      await titleInput.waitFor()
+      expect(await titleInput.evaluate(element => document.activeElement === element)).toBe(true)
+      await titleInput.press('Escape')
       await writeFile(resolve(output, `flow-${viewport.width}.json`), JSON.stringify(await page.locator('.react-flow__node').evaluateAll(elements => elements.map(element => ({ id: element.getAttribute('data-id'), style: element.getAttribute('style'), bounds: element.getBoundingClientRect().toJSON() }))), null, 2))
       await page.screenshot({ path: resolve(output, `inline-ready-${viewport.width}.png`) })
       const nodeBounds = (await node.boundingBox())!
       const hit = await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('.react-flow__node')?.getAttribute('data-id'), { x: nodeBounds.x + nodeBounds.width / 2, y: nodeBounds.y + nodeBounds.height / 2 })
       expect(hit).toBe('child')
       await page.mouse.dblclick(nodeBounds.x + nodeBounds.width / 2, nodeBounds.y + nodeBounds.height / 2)
-      await input.fill('Cancelled'); await input.press('Escape')
-      expect((await canonical(page)).revision).toBe(undone.revision)
+      expect(await input.count()).toBe(0)
+      expect((await canonical(page)).revision).toBe(redone.revision)
       const edge = page.locator('.react-flow__edge[data-id="link"]')
       await edge.focus(); await edge.press('Enter'); await edge.press('F2')
       const edgeInput = page.getByRole('textbox', { name: 'Inline connection label', exact: true })
@@ -144,8 +164,11 @@ test('should_verify_DGM108_production_Flow_labels_IME_history_commands_readonly_
       await edgeInput.press('Escape')
       if (await page.getByLabel('Close properties', { exact: true }).isVisible()) await page.getByLabel('Close properties', { exact: true }).click()
       const labelBounds = (await edge.locator('text').boundingBox())!
-      await page.mouse.dblclick(labelBounds.x + labelBounds.width / 2, labelBounds.y + labelBounds.height / 2)
-      await edgeInput.waitFor(); await edgeInput.fill('New edge'); await edgeInput.press('Enter')
+      await page.mouse.click(labelBounds.x + labelBounds.width / 2, labelBounds.y + labelBounds.height / 2, { button: 'right' })
+      await page.getByRole('menu').getByRole('menuitem', { name: 'Edit label', exact: true }).click()
+      await edgeInput.waitFor()
+      expect(await edgeInput.evaluate(element => document.activeElement === element)).toBe(true)
+      await edgeInput.fill('New edge'); await edgeInput.press('Enter')
       expect((await canonical(page)).connections[0].label).toBe('New edge')
       const note = await select(page, 'note')
       await page.getByLabel('Fit selection', { exact: true }).click()
@@ -156,7 +179,7 @@ test('should_verify_DGM108_production_Flow_labels_IME_history_commands_readonly_
       const noteBounds = (await note.locator('svg text').boundingBox())!
       const noteHit = await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('.react-flow__node')?.getAttribute('data-id'), { x: noteBounds.x + noteBounds.width / 2, y: noteBounds.y + noteBounds.height / 2 })
       expect(noteHit).toBe('note')
-      await page.mouse.dblclick(noteBounds.x + noteBounds.width / 2, noteBounds.y + noteBounds.height / 2)
+      await page.mouse.click(noteBounds.x + noteBounds.width / 2, noteBounds.y + noteBounds.height / 2)
       await textarea.waitFor()
       await textarea.fill('First line'); await textarea.press('End'); await textarea.press('Enter'); await textarea.press('a')
       expect(await textarea.inputValue()).toBe('First line\na')

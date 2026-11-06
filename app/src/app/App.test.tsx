@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+﻿// @vitest-environment jsdom
 import { StrictMode } from 'react'
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -31,10 +31,54 @@ vi.mock('./browser.ts', () => ({ browserDependencies: {
 afterEach(() => { cleanup(); vi.clearAllMocks(); host.load.mockImplementation(async () => null); host.leases.length = 0; host.realEditor = false })
 
 describe('DGM-040 root integration', () => {
-  it.each(['error', 'resize-notification', 'unhandledrejection', 'pagehide'])('should_keep_fail_closed_mcp_invalidation_for_%s_DGM142', async kind => {
+  it('should_keep_delayed_recent_read_stale_and_promote_only_after_accepted_reopen_DGM149', async () => {
+    host.realEditor = true
+    const reads: ((value: { id: string; name: string; source: string }) => void)[] = []
+    const bridge = {
+      list: vi.fn(async () => [{ id: 'old', name: 'old.json', path: 'C:\\old.json', savedAt: 1 }]),
+      choose: vi.fn(), read: vi.fn(() => new Promise<{ id: string; name: string; source: string }>(resolve => reads.push(resolve))), readChosen: vi.fn(), acceptChosen: vi.fn(), promote: vi.fn(async () => {}),
+    }
+    window.desktopRecent = bridge
+    try {
+      const view = render(<App />)
+      await act(async () => { host.leases.at(-1)!(true) })
+      await act(async () => { host.props!.onRecent?.('old') })
+      const newer = new File([JSON.stringify(createDocument('new', 'Newer accepted'))], 'new.json', { type: 'application/json' })
+      fireEvent.change(view.getByLabelText('Open document file'), { target: { files: [newer] } })
+      await waitFor(() => expect(host.props!.document.title).toBe('Newer accepted'))
+      await act(async () => reads.shift()!({ id: 'old', name: 'old.json', source: JSON.stringify(createDocument('old', 'Older stale')) }))
+      expect(host.props!.document.title).toBe('Newer accepted')
+      expect(bridge.promote).not.toHaveBeenCalled()
+      await act(async () => { host.props!.onRecent?.('old') })
+      await act(async () => reads.shift()!({ id: 'old', name: 'old.json', source: JSON.stringify(createDocument('old', 'Accepted reopen')) }))
+      await waitFor(() => expect(host.props!.document.title).toBe('Accepted reopen'))
+      expect(bridge.promote).toHaveBeenCalledWith('old')
+    } finally { delete window.desktopRecent }
+  })
+  it('should_open_full_workbook_root_from_recent_and_wire_page_navigation_DGM151A', async () => {
+    const book = { kind: 'workbook', schemaVersion: 1, id: 'book', title: 'Program', revision: 2, pages: [createDocument('p1', 'One'), createDocument('p2', 'Two')] }
+    const bridge = {
+      list: vi.fn(async () => []), choose: vi.fn(), readChosen: vi.fn(), acceptChosen: vi.fn(), promote: vi.fn(async () => {}),
+      read: vi.fn(async () => ({ id: 'book', name: 'book.json', source: JSON.stringify(book) })),
+    }
+    window.desktopRecent = bridge
+    try {
+      render(<App />)
+      await act(async () => { host.leases.at(-1)!(true) })
+      await act(async () => { host.props!.onRecent?.('book') })
+      await waitFor(() => expect(host.props!.root).toEqual(book))
+      expect(host.props!.document.title).toBe('One')
+      expect(bridge.promote).toHaveBeenCalledWith('book')
+      await act(async () => { host.props!.onSelectPage?.('p2') })
+      expect(host.props!.activePageId).toBe('p2')
+      expect(host.props!.document.title).toBe('Two')
+      expect(host.props!.canUndo).toBe(false)
+    } finally { delete window.desktopRecent }
+  })
+  it('should_keep_current_mcp_publication_for_the_known_benign_resize_observer_notification_DGM153', async () => {
     const unsubscribe = vi.fn()
     const bridge = {
-      status: vi.fn(), copyAddress: vi.fn(), copyToken: vi.fn(), publishSnapshot: vi.fn(async (_snapshot: string | null) => ({ ok: true as const })),
+      status: vi.fn(), readPort: vi.fn(), savePort: vi.fn(), copyAddress: vi.fn(), publishSnapshot: vi.fn(async (_snapshot: string | null) => ({ ok: true as const })),
       onMutation: vi.fn(() => unsubscribe), mutationActive: vi.fn(async () => true), completeMutation: vi.fn(async () => true),
     }
     window.desktopMcp = bridge
@@ -42,15 +86,48 @@ describe('DGM-040 root integration', () => {
       render(<App />)
       await act(async () => { host.leases.at(-1)!(true) })
       expect(bridge.publishSnapshot.mock.calls.at(-1)?.[0]).not.toBeNull()
-      act(() => window.dispatchEvent(kind === 'error' || kind === 'resize-notification'
-        ? new ErrorEvent('error', { message: kind === 'resize-notification' ? 'ResizeObserver loop completed with undelivered notifications.' : 'Renderer failed' })
-        : new Event(kind)))
+      const count = bridge.publishSnapshot.mock.calls.length
+      const unsubscribeCount = unsubscribe.mock.calls.length
+      act(() => window.dispatchEvent(new ErrorEvent('error', { message: 'ResizeObserver loop completed with undelivered notifications.' })))
+      expect(unsubscribe).toHaveBeenCalledTimes(unsubscribeCount)
+      act(() => host.props!.onCommand({ type: 'metadata', patch: { title: 'MCP remains available' } }))
+      expect(bridge.publishSnapshot).toHaveBeenCalledTimes(count + 1)
+      expect(bridge.publishSnapshot.mock.calls.at(-1)?.[0]).not.toBeNull()
+    } finally { cleanup(); delete window.desktopMcp }
+  })
+  it.each([
+    ['pagehide', () => new Event('pagehide')],
+    ['unhandled rejection', () => new Event('unhandledrejection')],
+    ['unknown no-error event', () => new ErrorEvent('error', { message: 'Unknown browser failure' })],
+    ['real exception', () => new ErrorEvent('error', { message: 'Renderer failed', error: new Error('Renderer failed') })],
+  ])('should_fail_closed_for_mcp_on_%s_DGM153', async (_name, event) => {
+    const unsubscribe = vi.fn()
+    const bridge = {
+      status: vi.fn(), readPort: vi.fn(), savePort: vi.fn(), copyAddress: vi.fn(), publishSnapshot: vi.fn(async (_snapshot: string | null) => ({ ok: true as const })),
+      onMutation: vi.fn(() => unsubscribe), mutationActive: vi.fn(async () => true), completeMutation: vi.fn(async () => true),
+    }
+    window.desktopMcp = bridge
+    try {
+      render(<App />)
+      await act(async () => { host.leases.at(-1)!(true) })
+      act(() => window.dispatchEvent(event()))
       expect(bridge.publishSnapshot).toHaveBeenLastCalledWith(null)
       expect(unsubscribe).toHaveBeenCalledOnce()
-      const count = bridge.publishSnapshot.mock.calls.length
-      act(() => host.props!.onCommand({ type: 'metadata', patch: { title: 'No stale snapshot publication' } }))
-      expect(bridge.publishSnapshot).toHaveBeenCalledTimes(count)
     } finally { cleanup(); delete window.desktopMcp }
+  })
+  it('should_stop_mcp_once_when_the_app_unmounts_DGM153', async () => {
+    const unsubscribe = vi.fn()
+    const bridge = {
+      status: vi.fn(), readPort: vi.fn(), savePort: vi.fn(), copyAddress: vi.fn(), publishSnapshot: vi.fn(async (_snapshot: string | null) => ({ ok: true as const })),
+      onMutation: vi.fn(() => unsubscribe), mutationActive: vi.fn(async () => true), completeMutation: vi.fn(async () => true),
+    }
+    window.desktopMcp = bridge
+    const view = render(<App />)
+    await act(async () => { host.leases.at(-1)!(true) })
+    view.unmount()
+    expect(bridge.publishSnapshot).toHaveBeenLastCalledWith(null)
+    expect(unsubscribe).toHaveBeenCalledOnce()
+    delete window.desktopMcp
   })
   it('should_forward_transient_arrangement_options_from_editor_to_session_DGM137', async () => {
     host.load.mockImplementation(async () => sampleDiagram())
@@ -83,7 +160,7 @@ describe('DGM-040 root integration', () => {
       expect(host.props!.readOnly).toBe(false)
       if (rejects) expect(view.getByRole('status').textContent).toBe('Browser save failed: QuotaExceededError. Download JSON now; free storage and edit again to retry.')
       fireEvent.click(view.getByRole('menuitem', { name: 'File menu' }))
-      await act(async () => { fireEvent.click(view.getByRole('menuitem', { name: 'Save JSON' })) })
+      await act(async () => { fireEvent.click(view.getByRole('menuitem', { name: 'Save' })) })
       expect(host.download).toHaveBeenCalledOnce()
       expect(host.props!.document).toBe(before)
       expect(host.props!.canUndo).toBe(true)
@@ -91,8 +168,8 @@ describe('DGM-040 root integration', () => {
     } finally { cleanup(); vi.useRealTimers() }
   })
   it.each([
-    ['Open JSON', 'Open document file', 'cancel'],
-    ['Open JSON', 'Open document file', 'empty'],
+    ['Load', 'Open document file', 'cancel'],
+    ['Load', 'Open document file', 'empty'],
     ['Import skill JSON', 'Import skill file', 'cancel'],
     ['Import skill JSON', 'Import skill file', 'empty'],
   ] as const)('should_leave_document_unchanged_when_%s_picker_is_%s_%s_DGM111', async (action, picker, outcome) => {

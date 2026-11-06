@@ -39,6 +39,30 @@ export async function exportPng(diagram: Diagram, scale: 1 | 2, transparent = fa
     if (source) URL.revokeObjectURL(source)
   }
 }
+/**
+ * DGM-152: rasterize one bundled icon data URL (SVG or PNG) to PNG bytes for
+ * offline embedding in Visio packages. Uses the same img/canvas path as PNG export.
+ */
+export async function rasterizeIcon(dataUrl: string, size = 112): Promise<Uint8Array> {
+  if (!/^data:image\/(?:svg\+xml|png)[;,]/.test(dataUrl)) throw new Error('Icon is not an embedded image')
+  const image = new Image()
+  const canvas = document.createElement('canvas')
+  try {
+    image.src = dataUrl
+    await image.decode()
+    canvas.width = size
+    canvas.height = size
+    const context = canvas.getContext('2d')
+    if (!context) throw new Error('Icon canvas is unavailable')
+    context.drawImage(image, 0, 0, size, size)
+    const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(result => result ? resolve(result) : reject(new Error('Icon PNG encoding failed')), 'image/png'))
+    return new Uint8Array(await blob.arrayBuffer())
+  } finally {
+    image.src = ''
+    canvas.width = 0; canvas.height = 0
+  }
+}
+
 export function download(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement('a')

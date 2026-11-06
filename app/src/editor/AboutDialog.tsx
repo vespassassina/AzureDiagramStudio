@@ -23,13 +23,19 @@ export function AboutDialog({ onClose }: { onClose(): void }) {
 }
 
 // Pseudocode: focus Close; on every key, stop propagation; ignore IME keys;
-// Escape closes; Tab cycles among dialog controls; modifier/edit keys are
-// swallowed; focus escaping the dialog is pulled back to Close.
+// Escape closes; allow native editing inside form controls; otherwise swallow
+// modifier/edit keys; Tab cycles dialog controls; reclaim escaped focus.
 export function trapKeyboard(dialog: RefObject<HTMLElement | null>, close: RefObject<HTMLButtonElement | null>, onClose: () => void) {
   close.current?.focus({ preventScroll: true })
   const keydown = (event: globalThis.KeyboardEvent) => {
-    event.stopImmediatePropagation()
     if (event.isComposing || event.keyCode === 229) return
+    const target = event.target
+    const editing = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement || (target instanceof HTMLElement && target.isContentEditable)
+    // Let native fields keep their raw editing state. This includes partial
+    // numeric values, which must remain deletable rather than being handled as
+    // editor shortcuts. Escape remains a modal command and Tab stays trapped.
+    if (editing && event.key !== 'Tab' && event.key !== 'Escape') return
+    event.stopImmediatePropagation()
     if (event.key === 'Escape') { event.preventDefault(); onClose(); return }
     if (event.key !== 'Tab') {
       if (event.ctrlKey || event.metaKey || event.altKey || ['Delete', 'Backspace', 'F2'].includes(event.key)) event.preventDefault()
@@ -103,8 +109,8 @@ function AboutSections() {
     </p>
     <h3>Keep a backup</h3>
     <p>
-      Saved on this device in the bottom status bar means local storage, not a portable backup. Use File → Save JSON
-      to keep an editable copy you can reopen later.
+      Saved on this device in the bottom status bar means local storage, not a portable backup. Use File → Save
+      to write the configured-workspace copy, or Save As to choose another location and filename.
     </p>
   </>
 }

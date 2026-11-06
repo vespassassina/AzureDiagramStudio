@@ -532,3 +532,229 @@ change, not erasure of prior failures or a claim that host variance was fixed.
 Who: Product Owner approves the contract and two-target rebuild; Orchestrator
 specifies the task, implementer changes the broker/tests, independent verifier
 checks the contract and subsequent packaged behavior.
+
+## 2026-11-04: Recent Original Diagram Files
+
+Context: the PO requested a Recent window and selected reopening original JSON
+files, not local snapshots. They explicitly approved narrow desktop access to
+user-chosen/saved JSON, profile-local history and no arbitrary-path/MCP access.
+
+Decision: [DGM-149](specs/DGM-149.md) adds File -> Recent diagrams,20 successful
+opens/saves, native-origin path registration and opaque-id reopening, preserving
+replacement/ownership guards and honest failure feedback.
+
+Consequences: source-only implementation, independent acceptance still required;
+no dependency, migration, Git, package, release or installed-profile change.
+
+Who: Product Owner approves behavior and native bridge scope; Orchestrator
+records contract; implementer/verifier remain separate.
+
+## 2026-11-04: Low-Friction Headless Automation
+
+Context: the PO requested direct CLI commands and CLI-launched MCP for local
+AI agents, guide coverage and the lowest possible usage resistance.
+
+Decision: the PO approved [RFD003](rfd/003-headless-local-automation.md) and
+[DGM-150](specs/DGM-150.md): one CLI, stdio MCP by default, explicit CLI file
+arguments, in-memory MCP edits, and a dedicated never-visible sandboxed shared
+render worker. No GUI/token-copy/port-setup dependency.
+
+Consequences: new scoped public/privileged source contracts are authorized.
+Existing GUI HTTP auth and profile isolation remain. No new dependency,
+packaging, global PATH/agent configuration, publication or installation.
+
+Who: Product Owner selected the recommended scoped interface; Orchestrator
+freezes contract before implementation and independent subprocess verification.
+
+## 2026-11-04: Workbook, PDF And Native Visio Export
+
+Context: the PO requested complete diagram pages in Excel-like bottom tabs,
+separate workbook/page Markdown, Present tabs, drag ordering and scoped exports.
+They selected one workbook JSON and added combined multi-page PDF and Visio.
+
+Decision: the PO approved [RFD004](rfd/004-workbooks-and-interoperable-exports.md),
+[DGM-151](specs/DGM-151.md) and [DGM-152](specs/DGM-152.md): a distinct versioned
+workbook containing full schemaVersion1 pages,1-100 pages/64MiB total with
+existing5MiB page limits, backward compatibility without automatic conversion,
+ordered ZIP/PDF and native editable macro-free VSDX. Add page-aware CLI/MCP
+contracts and guide coverage. Icons may remain embedded images in Visio.
+
+Consequences: freeze/implement/verify small source slices serially after current
+Recent/headless work. Preserve legacy files and blocked connector scope.
+Structural ZIP/XML tests cannot replace real Visio editability; record missing
+target application as a blocked cell. No new dependency, automatic migration,
+package/release/install, global configuration or Git delivery.
+
+Who: Product Owner selected "Approve the workbook, PDF and native Visio export
+scope (Recommended)"; Orchestrator records scope and splits the execution queue.
+
+## 2026-11-04: Exact Anchors, Grid Colors And Functional Style Format Approved
+
+Context: DGM-155/156/157 require durable fields that version1 cannot retain
+safely in older applications. The PO asked to finish the complete queued work.
+
+Decision: approve [RFD005](rfd/005-exact-anchors-and-grid-style.md), including
+normalized endpoint offsets paired with explicit sides, page-local grid color
+and the concrete bounded64-entry stateStyles registry with validated paint
+fields, stable ids/name/meaning and one canonical status reference.
+Diagram v2 is explicit opt-in when using new features; existing v1 files stay
+unchanged otherwise. Workbook v1 accepts supported v1/v2 pages. Older apps
+reject v2 rather than silently erase its settings.
+
+Consequences: DGM-155/156/157 can proceed in the serial implementation queue.
+No automatic data migration, arbitrary CSS/code/path tools, new dependency,
+security relaxation or release/package/install authority is added. Real gesture,
+round-trip, output and independent verification requirements remain unchanged.
+
+Who: PO selected "Approve the backward-compatible v2 format and bounded styles
+(Recommended)"; Orchestrator records the concrete contract approval.
+
+## 2026-11-04: Direct Save To Configured Workspace And Naming
+
+Decision: [DGM-159](specs/DGM-159.md) uses Save/Save As/Load command labels.
+Save always writes the current filename directly into the configured workspace,
+including after external Load/Save As. No repeated folder/setup prompt or new
+per-diagram workspace. Prefer diagram/workbook title for initial filenames and
+explicitly created workspace names; preserve explicit names and existing folders.
+Save As chooses a destination; Recent accelerates the same guarded original Load.
+
+Consequences: preserve collision/atomic-write/backup/async safety and truthful
+browser limitations. No existing files/folders are migrated, moved or deleted.
+This is queued implementation authority, not an installed capability statement.
+
+Who: PO explicitly chose the configured-default-folder Save policy and then
+clarified diagram-based names and reuse of the already configured workspace.
+
+## 2026-11-04: Local 0.5.2 Desktop Test Cutoff
+
+Context: the PO wants to try the completed changes without waiting for the
+entire requested feature queue.
+
+Decision: approve [DGM-160](specs/DGM-160.md): complete/verify Recent and
+boundary changes, exclude unfinished segment editing, build/qualify the local
+unsigned ARM64 portable0.5.2, and copy it to Desktop preserving older files.
+Other features remain queued. This is not a GitHub release, installation,
+profile migration, dependency change or authorization to close the user's app.
+
+Consequences: finish DGM-153 repair first; prioritize narrow feature gating,
+version/staging and exact-executable qualification before starting headless
+production source work. Retain all original source/build failures and hashes.
+
+Who: PO selected "Desktop-only 0.5.2 with verified changes (Recommended)".
+
+The PO subsequently added "ok, build deploy and open": launch the exact
+qualified Desktop copy as well, using the existing isolated-profile switch
+to preserve older running instances and work. No GitHub publication,
+installation, profile migration or closing another app is inferred.
+
+## 2026-11-04: Token-Free Loopback MCP And Stable Port
+
+Context: the PO requested removal of the access token requirement and a
+configurable port that remains stable.
+
+Decision: approve [DGM-161](specs/DGM-161.md), retaining127.0.0.1-only binding,
+browser/Host/request protections and diagram state-token/session guards.
+Remove bearer authentication and token-copy controls; save a validated
+profile-scoped port, default37431, for the next launch. Port conflicts are
+explicit failures, never an automatic random-port fallback. Existing running
+connections stay unchanged until restart.
+
+Consequences: local non-browser processes can read/edit without a credential
+while the app is open. Explain that limit honestly. Configure another stable
+port for separately running profiles rather than closing an older app.
+Implement and independently verify this amendment before DGM-160 local0.5.2
+packaging; no remote exposure, dependencies or headless scope are approved.
+
+Who: PO explicitly selected localhost-only/no token/persistent configurable
+port, then selected apply-after-restart/no-silent-port-change.
+
+## 2026-11-04: Final 0.5.2 Source Push And Windows Binary Publication
+
+Context: after receiving the immediate local test build and requesting
+completion of the remaining work, the PO requested "finish, compile and
+deploy, then open" and "finally when done push all and publish binaries".
+
+Decision: approve [DGM-162](specs/DGM-162.md). Finish and verify the approved
+source queue, compile and qualify final Windows ARM64 and x64 portables,
+deploy/open the completed local build, then push the milestone source/docs
+and publish the new0.5.2 tag/release/binaries/checksums. Use the existing direct
+no-PR Git workflow and verify public downloads against the qualified artifacts.
+
+Consequences: this removes the earlier Desktop-only/no-push/no-publication
+restriction for the final milestone. It does not waive acceptance or permit
+force-push, replacement of old tags/releases, Mac/installer/runtime/dependency/
+signing/CI changes, closing the user's active test app, or silently migrating
+its profile. Preserve all earlier candidates and disclose emulated x64 evidence.
+
+Who: PO explicitly selected ARM64 and x64 matching the existing release.
+
+## 2026-11-05: One Escalated Connector Recovery Pass
+
+Context: DGM-155 exhausted three cross-item endpoint lifecycle repair cycles.
+Its unqualified final edits now block current typecheck/build and DGM-156
+editor verification.
+
+Decision: the PO selected "Approve one escalated recovery pass (Recommended)"
+to restore compilation and complete connector validation. Assign a
+higher-capability implementer one additional bounded recovery pass,then
+independently verify the final source.
+
+Consequences: this explicitly renews authority for one pass on this same
+defect,not a reset of the repair ledger or permission for unlimited retries.
+Preserve all failures,approved interaction/format contracts and unrelated
+source. No relaxed tests,new dependencies,headless bootstrap architecture
+change,package or release action is authorized by this decision.
+
+Who: PO via the explicit recovery approval; recorded by Orchestrator.
+
+## 2026-11-06: Complete Scope Before Release And Launcher Headless Entry
+
+Context: the PO requested commit, merge, push, tag and executable publication.
+The implemented desktop batch still had consolidated repairs and the
+headless entry-point contract blocked dependent workbook and export work.
+
+Decision: the PO selected "Hold publication until the complete scope is
+finished" and "Approve the existing launcher as the supported headless entry
+point (Recommended)", then directed "finish all" with verification last.
+
+Consequences: complete the approved features before consolidated verification
+and release. The existing launcher is the supported CLI/stdio MCP entry;
+direct Electron stdout is not the supported protocol contract. Preserve
+strict launcher protocol output, observable cleanup errors, sandboxing,
+validation, input/output safety and the user's current Desktop app.
+This decision does not certify current code or authorize dependencies,
+data migrations, new public automation fields or unsigned software bypasses.
+
+Who: PO via explicit choices in this conversation; recorded by Orchestrator.
+
+## 2026-11-06: Bounded Workbook Automation Contract
+
+Decision: the PO approved MCP `get_workbook`, `edit_workbook` and
+`export_workbook`, covering create/add/rename/reorder, metadata and explicit
+page edits, with stable page IDs and current state tokens. CLI equivalents
+use explicit page/scope selection. Existing single-diagram commands remain
+compatible; no filesystem or shell tools are added.
+
+Consequences: complete the approved workbook UI, persistence and export work
+in parallel with integrating these bounded operations. Freeze concrete strict
+schemas in DGM-151D using existing command validation and size limits.
+No implicit selection-based misrouting or additional operation categories.
+Verification remains after the complete implementation.
+
+Who: PO via "Approve this workbook automation contract (Recommended)".
+
+## 2026-11-06: Disclose Unverified Native Visio Interoperability
+
+Context: the complete feature implementation and consolidated repair batch
+include PDF generation and structurally editable VSDX output. Visio is not
+installed on the execution host, so native open/edit/glue cannot be certified.
+
+Decision: the PO selected "Publish after final checks, explicitly disclose
+unverified native Visio compatibility (Recommended)".
+
+Consequences: native Visio interoperability remains unverified and must be
+disclosed in release notes and user documentation. Structural VSDX checks do
+not substitute for native application acceptance. Other final source,
+runtime, package and distribution checks remain required.
+
+Who: PO via explicit publication decision in this conversation.

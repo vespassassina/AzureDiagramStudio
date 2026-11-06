@@ -4,10 +4,36 @@
 
 A local architecture editor for Azure, Microsoft Fabric, Microsoft applications and software systems. Draw with architecture glyphs, clearly identified named badges or your own authorized images; describe ownership boundaries, connect components and export without a cloud account. The public source repository is [vespassassina/AzureDiagramStudio](https://github.com/vespassassina/AzureDiagramStudio).
 
+## 0.5.2
+
+The 0.5.2 source includes multi-page workbooks with page tabs, shared history,
+page/workbook Markdown and full-workbook Save/Load. File offers **Save**,
+**Save As** and **Load**: Save uses the configured workspace and current
+filename, including after loading or saving elsewhere. New-diagram previews
+are larger, and replacing an unchanged starter or an up-to-date JSON backup
+does not ask an unnecessary discard question; autosave alone does not waive
+protection for edited work.
+
+Page-local functional states configure box/connector paint, names and meanings
+through Page styles and MCP. Legends and shared outputs use those settings.
+Connector border offsets and grid colors persist per page. Desktop exports
+include ordered workbook artwork ZIPs, PDF and editable VSDX packages;
+browser builds explicitly disable native PDF.
+
+**Limitations:** native Visio open/edit/glue interoperability has not been
+verified because Visio is unavailable on the build host. Embedded icons are
+images, not editable vendor master stencils. JSON remains authoritative.
+Headless CLI/stdio MCP uses the supported launcher; direct Electron startup
+is not a clean-stdout protocol entry. Experimental segment editing stays off.
+Historical version descriptions below do not qualify the new binaries.
+
 - Searchable Azure/Fabric catalogs, 14 Microsoft app entries (5 official architecture glyphs, 7 official product PNGs, and 2 original named badges), and generic software components.
 - A vendor icon set of 17 bundled PNG product icons, including Oracle, SAP, IBM, AWS, Google Cloud, HP and HPE as distinct identities.
 - Custom icon import from SVG, PNG, JPEG, GIF or WebP, embedded as a safe normalized PNG in the editable document.
 - Editable boundaries, annotations, connector labels, statuses and legends.
+- Current source supports advanced page-local functional state styles with
+  validated box/connector paint, meanings, legend propagation and atomic MCP
+  configuration; published binaries are not implied.
 - Explicit ELK Auto-arrange, undo/redo and selection clipboard.
 - Local autosave, editable JSON backups and separate skill-JSON import.
 - Self-contained SVG with native text, embedded icons and font; PNG at 1x or 2x.
@@ -32,6 +58,17 @@ orthogonal connections around components and group headers without moving
 the placed objects. Explicit connection sides are respected. If routing
 cannot complete within its bounds, the whole arrangement fails without
 changing the document or its Undo history.
+
+**Experimental and disabled by default:** source retains manual connector
+segment editing only for its experimental regression fixtures; the normal editor
+does not expose segment handles or segment-arrow controls. It is not a
+user-ready feature and installed0.5.1 does not include it; see
+[DGM-148](docs/verification/DGM-148.md). Existing saved routes, including
+their label positions, remain visible in normal JSON and shared/exported
+artwork. **Reset to automatic routing** in Connection properties clears only
+that connector's saved adjustment. Moving/resizing objects, changing topology
+or attachment sides, and Auto-arrange reset routes to automatic routing;
+style, label, metadata and stacking changes retain them.
 
 ## New Document, About And Help
 
@@ -68,6 +105,16 @@ The historical **0.3.0** downloads retain About, empty startup and the ten-step 
 Historical 0.2.0 executables remain unchanged.
 
 ## Diagram And Markdown Exports (Windows 0.5.0)
+
+## Recent original diagrams (current source only)
+
+In the desktop source build, choose **File → Recent diagrams** to reopen one
+of the last 20 successfully opened or saved JSON originals. Entries are newest
+first and show both file name and path, so same-named files remain distinct.
+The app rereads the original file and reports moved, unreadable, oversized or
+invalid files without replacing current work; normal unsaved-work confirmation
+still applies. Browser builds retain **Open JSON** and downloads but cannot
+retain original-file history. Published 0.5.1 executables are unchanged.
 
 In **Export**, the default-off **Include Markdown** option downloads one ZIP
 with the selected SVG/PNG and its matching UTF-8 description `.md`. Description
@@ -167,17 +214,18 @@ Windows **0.5.0** includes this integration. The older **0.4.0** Git tag remains
 a source milestone, not a published Windows binary release.
 
 The desktop app has a local MCP endpoint that starts automatically while
-Azure Diagram Studio is open. In **Settings**, use **Copy MCP address** and
-**Copy access token** to configure an HTTP-capable MCP client on the same
-computer. The access token changes when the app restarts.
+Azure Diagram Studio is open. In **Settings**, use **Copy MCP address** to
+configure an HTTP-capable MCP client on the same computer. Settings also saves
+an explicit port for the next launch; the current listener never rebinds.
 
 Tools inspect the committed diagram, search the component catalog, list templates
 and read app information, and can create and edit diagrams through the same
 validated session/history/autosave path as the UI. Edits are atomic and undoable;
 stale requests or active user interactions are rejected rather than overwritten.
 Unfinished drafts are not shared or force-committed. There is no shell execution
-or arbitrary file access. The listener binds to loopback only; authenticated
-requests and Host/Origin validation protect against accidental browser access.
+or arbitrary file access. The listener binds to loopback only; Host/Origin
+validation protects against accidental browser access. Localhost is not client
+authentication: any same-machine process can read and edit while the app runs.
 
 See [MCP setup and limits](docs/manual.md#local-mcp-server-new-source).
 Windows0.5.0 MCP also supports **`snapshot_diagram`** (full committed PNG) and

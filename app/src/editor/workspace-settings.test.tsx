@@ -14,6 +14,8 @@ it('should_display_saved_root_cancel_failure_and_reset_truthfully', async () => 
     choose: vi.fn(async () => ({ canceled: true as const })),
     reset: vi.fn(async () => ({ root: 'C:\\owned\\Documents\\AzureDiagramStudio', isDefault: true })),
     save: vi.fn(),
+    saveDiagram: vi.fn(),
+    saveDiagramAs: vi.fn(),
   }
   render(<SettingsDialog onClose={() => {}} />)
   await screen.findByText('C:\\owned\\Documents\\AzureDiagramStudio')

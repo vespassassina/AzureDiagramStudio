@@ -4,10 +4,14 @@ export type { CustomIcon } from './custom-icons/contract.ts'
 export type Point = { x: number; y: number }
 export type Direction = 'RIGHT' | 'DOWN'
 export type Layer = 'foreground' | 'background'
-export type Status = 'live' | 'planned' | 'not-connected' | 'synthetic'
+export type LegacyStatus = 'live' | 'planned' | 'not-connected' | 'synthetic'
+export type Status = LegacyStatus | string
+export type StateLineStyle = 'solid' | 'dashed' | 'dotted'
+export type StatePaint = { fill?: string; stroke?: string; textColor?: string; strokeWidth?: number; lineStyle?: StateLineStyle }
+export type StateStyle = { id: string; name: string; meaning: string; box?: StatePaint; connector?: Omit<StatePaint, 'fill'> }
 export type ConnectionSide = 'auto' | 'top' | 'right' | 'bottom' | 'left'
-export type LegendEntry = { label: string; color: string; dashed?: boolean }
-export type Grid = { visible: boolean; style: 'dots' | 'lines'; spacing: number; snap: boolean; present: boolean; export: boolean }
+export type LegendEntry = { label: string; color: string; dashed?: boolean; meaning?: string }
+export type Grid = { visible: boolean; style: 'dots' | 'lines'; spacing: number; snap: boolean; present: boolean; export: boolean; color?: string }
 export type Entity = {
   id: string
   kind: 'component' | 'boundary' | 'text' | 'rectangle'
@@ -34,18 +38,24 @@ export type Connection = {
   arrow: 'forward' | 'both' | 'none'
   sourceSide?: ConnectionSide
   targetSide?: ConnectionSide
+  /** Normalized position along the explicit source border side (Diagram v2). */
+  sourceOffset?: number
+  /** Normalized position along the explicit target border side (Diagram v2). */
+  targetOffset?: number
   routeRevision?: number
   labelPosition?: Point
   points?: Point[]
+  status?: Status
 }
 export type Diagram = {
-  schemaVersion: 1
+  schemaVersion: 1 | 2
   id: string
   title: string
   subtitle: string
   description?: string
   backgroundColor?: string
   grid?: Grid
+  stateStyles?: StateStyle[]
   synthetic: boolean
   legendVisible: boolean
   legend: LegendEntry[]

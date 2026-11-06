@@ -35,6 +35,19 @@ test('should_capture_selected_subtrees_at_original_absolute_float_coordinates_an
   expect(JSON.stringify(source)).toBe(before)
 })
 
+test('should_render_custom_state_meanings_as_visible_legend_text_without_changing_legacy_entries', () => {
+  const source = {
+    ...documentWith([{ ...component('degraded'), status: 'degraded' }]),
+    legendVisible: true,
+    stateStyles: [{ id: 'degraded', name: 'Service degraded', meaning: 'Reduced service capacity.', box: { stroke: '#112233' }, connector: { stroke: '#445566' } }],
+  }
+  const scene = buildScene(source)
+
+  expect(scene.legendItems).toHaveLength(2)
+  expect(scene.legendItems[0]).toMatchObject({ label: 'Service degraded', meaning: 'Reduced service capacity.' })
+  expect(renderSvg(scene)).toContain('>Reduced service capacity.</text>')
+})
+
 test.each([['wide', 900, 100], ['tall', 100, 900]] as const)('should_expand_padded_%s_bounds_to_exact_16_9_without_stretching', (_name, width, height) => {
   const source = documentWith([{ ...component('shape', -33.25, 19.5), kind: 'rectangle', width, height }])
   const content = buildScene(source), slide = buildExportScene(source, { aspect: '16:9' })

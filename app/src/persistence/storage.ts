@@ -1,6 +1,6 @@
 import type { DocumentStorage } from '../contracts.ts'
-import { validateDocument } from '../document/index.ts'
-import type { Diagram } from '../model.ts'
+import { validateWorkspace } from '../workbook.ts'
+import type { WorkspaceDocument } from '../workbook.ts'
 
 const DATABASE = 'diagrammer-v1'
 const STORE = 'documents'
@@ -71,7 +71,7 @@ export function createStorage(): DocumentStorage {
     return opening
   }
 
-  async function transact(mode: IDBTransactionMode, snapshot?: Diagram): Promise<unknown> {
+  async function transact(mode: IDBTransactionMode, snapshot?: WorkspaceDocument): Promise<unknown> {
     const database = await open()
     if (closed) throw closedError()
     const operation = mode === 'readwrite' ? 'IndexedDB save' : 'IndexedDB load'
@@ -109,13 +109,13 @@ export function createStorage(): DocumentStorage {
     async load() {
       const value = await transact('readonly')
       if (value === undefined) return null
-      const result = validateDocument(value)
+      const result = validateWorkspace(value)
       if (!result.ok) throw new PersistenceError('IndexedDB load', `Saved document is invalid: ${result.errors.map(error => `${error.path}: ${error.message}`).join('; ')}`)
       return result.value
     },
     async save(document) {
       if (closed) throw closedError()
-      const result = validateDocument(document)
+      const result = validateWorkspace(document)
       if (!result.ok) throw new PersistenceError('IndexedDB save', `Document is invalid: ${result.errors.map(error => `${error.path}: ${error.message}`).join('; ')}`)
       await transact('readwrite', result.value)
     },

@@ -77,6 +77,28 @@ test.each([null, [], 'dots', {}, { ...grid115, style: 'off' }, ...[3, 129, 8.5, 
   if (!result.ok) assert.ok(result.errors.some(error => error.path.startsWith('grid')))
 })
 
+test('should_require_v2_for_a_normalized_explicit_grid_color_and_preserve_automatic_omission_DGM156', () => {
+  const legacy = { ...createDocument('grid-color'), grid: { ...grid115, color: '#0070c0' } }
+  const rejected = validateDocument(legacy)
+  assert.equal(rejected.ok, false)
+  if (!rejected.ok) assert.deepEqual(rejected.errors, [{ path: 'grid.color', message: 'Explicit grid color requires schemaVersion 2' }])
+
+  const v2 = { ...legacy, schemaVersion: 2, grid: { ...legacy.grid, color: '#0070c0' } }
+  assert.deepEqual(validateDocument(v2), { ok: true, value: v2 })
+  const shorthand = validateDocument({ ...v2, grid: { ...v2.grid, color: '#ABC' } })
+  assert.deepEqual(shorthand, { ok: true, value: { ...v2, grid: { ...v2.grid, color: '#aabbcc' } } })
+  assert.deepEqual(validateDocument({ ...createDocument('automatic-grid'), schemaVersion: 2, grid: grid115 }), { ok: true, value: { ...createDocument('automatic-grid'), schemaVersion: 2, grid: grid115 } })
+})
+
+test.each(['#abcd', '#ggg', 'transparent', 'url(https://invalid.example)', null])('should_reject_invalid_v2_grid_color_atomically_DGM156_%s', color => {
+  const input = { ...createDocument('invalid-grid-color'), schemaVersion: 2 as const, grid: { ...grid115, color } }
+  const before = JSON.stringify(input)
+  const result = validateDocument(input)
+  assert.equal(result.ok, false)
+  if (!result.ok) assert.ok(result.errors.some(error => error.path === 'grid.color'))
+  assert.equal(JSON.stringify(input), before)
+})
+
 test('should_preserve_background_when_valid_hex_or_transparent_is_reopened_and_omit_it_for_legacy_documents', () => {
   const legacy = createDocument('background')
   assert.deepEqual(parseDocument(JSON.stringify(legacy)), { ok: true, value: legacy })
@@ -147,7 +169,7 @@ test('should_round_trip_exact_geometry_when_canonical_json_is_opened', () => {
 
 test('should_reject_unsafe_fields_when_documents_are_invalid', () => {
   const cases: [string, (document: ReturnType<typeof sampleDiagram>) => void][] = [
-    ['schemaVersion', document => { Object.assign(document, { schemaVersion: 2 }) }],
+    ['schemaVersion', document => { Object.assign(document, { schemaVersion: 3 }) }],
     ['entities[0].id', document => { document.entities[0].id = '__proto__' }],
     ['entities[0].x', document => { document.entities[0].x = Infinity }],
     ['entities[0].width', document => { document.entities[0].width = 0 }],

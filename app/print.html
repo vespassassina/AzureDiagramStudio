@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Azure Diagram Studio print</title>
+    <style>
+      @page { size: A4 landscape; margin: 10mm; }
+      html, body { margin: 0; padding: 0; background: #ffffff; color: #1b2a33; font-family: 'Segoe UI', Arial, sans-serif; }
+      .sheet { box-sizing: border-box; width: 277mm; height: 190mm; display: flex; flex-direction: column; break-after: page; page-break-after: always; overflow: hidden; }
+      .sheet:last-child { break-after: auto; page-break-after: auto; }
+      .sheet header { display: flex; justify-content: space-between; font-size: 9pt; color: #5b6b75; }
+      .sheet h1 { margin: 2mm 0 3mm; font-size: 15pt; font-weight: 600; }
+      .art { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
+      .art img { max-width: 100%; max-height: 100%; object-fit: contain; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    </style>
+  </head>
+  <body><main id="print"></main><script type="module" src="/src/print.ts"></script></body>
+</html>

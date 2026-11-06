@@ -27,6 +27,10 @@ function Harness() {
       try { update(historyCommit(current.current, applyCommand(current.current.present, command))); setMessage(''); setBackupDirty(true) }
       catch (error) { setMessage(error instanceof Error ? error.message : String(error)) }
     }}
+    onBoundaryOperation={operation => {
+      try { update(historyCommit(current.current, operation(current.current.present))); setMessage(''); setBackupDirty(true) }
+      catch (error) { setMessage(error instanceof Error ? error.message : String(error)) }
+    }}
     onPreviewChange={preview => { evidence.current.previews.push(preview) }}
     onUndo={() => update(historyUndo(current.current))} onRedo={() => update(historyRedo(current.current))}
     onNew={() => { evidence.current.actions.push('new'); update({ past: [], present: createDocument('browser-new'), future: [] }) }} onChooseStarter={() => false}

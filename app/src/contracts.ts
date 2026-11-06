@@ -1,4 +1,4 @@
-import type { Connection, Diagram, Direction, Entity, Layer, Point } from './model.ts'
+import type { Connection, Diagram, Direction, Entity, Layer, Point, StateStyle } from './model.ts'
 import type { LayoutResult } from './layout.ts'
 
 export type ValidationIssue = { path: string; message: string }
@@ -13,7 +13,7 @@ export interface DomainError extends Error {
 /** Detached roots use absolute coordinates; retained descendants remain parent-relative. Origin is the minimum absolute selection position. */
 export type ClipboardFragment = { entities: Entity[]; connections: Connection[]; origin: Point }
 export type EntityPatch = Partial<Pick<Entity, 'label' | 'subtitle' | 'color' | 'icon' | 'customIcon' | 'status'>>
-export type ConnectionPatch = Partial<Pick<Connection, 'from' | 'to' | 'label' | 'style' | 'arrow' | 'sourceSide' | 'targetSide'>>
+export type ConnectionPatch = Partial<Pick<Connection, 'from' | 'to' | 'label' | 'style' | 'arrow' | 'sourceSide' | 'targetSide' | 'sourceOffset' | 'targetOffset' | 'status'>>
 export type MetadataPatch = Partial<Pick<Diagram, 'title' | 'subtitle' | 'description' | 'backgroundColor' | 'grid' | 'direction' | 'synthetic' | 'legendVisible' | 'legend'>>
 
 /** All IDs and geometry are supplied by callers; commands never generate IDs. */
@@ -26,12 +26,15 @@ export type DocumentCommand =
   | { type: 'resize'; id: string; width: number; height: number }
   | { type: 'connect'; connection: Connection }
   | { type: 'updateConnection'; id: string; patch: ConnectionPatch }
+  | { type: 'adjustRoute'; id: string; expectedRevision: number; points: Point[]; labelPosition: Point }
+  | { type: 'resetRoute'; id: string; expectedRevision: number }
   | { type: 'insertOnConnection'; connectionId: string; entity: Entity; upstreamId: string; downstreamId: string }
   | { type: 'reparent'; ids: string[]; parentId: string | null }
   | { type: 'group'; ids: string[]; boundary: Entity & { kind: 'boundary' } }
   | { type: 'ungroup'; boundaryIds: string[] }
   | { type: 'paste'; fragment: ClipboardFragment; idMap: Record<string, string>; offset: Point }
   | { type: 'metadata'; patch: MetadataPatch }
+  | { type: 'configureStateStyles'; stateStyles: StateStyle[]; remap?: Record<string, string | null> }
   | { type: 'order'; ids: string[]; layer?: Layer; position?: 'forward' | 'backward' | 'top' | 'bottom' }
   | { type: 'applyLayout'; expectedRevision: number; result: LayoutResult }
 
@@ -46,8 +49,9 @@ export interface DocumentApi {
 }
 
 export interface DocumentStorage {
-  load(): Promise<Diagram | null>
-  save(document: Diagram): Promise<void>
+  /** Persisted root: a legacy Diagram or a validated Workbook (same database/key, no migration). */
+  load(): Promise<import('./workbook.ts').WorkspaceDocument | null>
+  save(document: import('./workbook.ts').WorkspaceDocument): Promise<void>
   close(): void
 }
 export type CreateStorage = () => DocumentStorage
@@ -63,6 +67,17 @@ export type StarterKey = 'web-api' | 'event-driven' | 'fabric' | 'enterprise'
   | 'saas-deployment-stamps' | 'file-claim-check' | 'azure-data-warehouse'
 export type ExportOptions = { format: 'svg' | 'png' | 'markdown'; scale: 1 | 2; transparent: boolean; includeMarkdown?: boolean; selectionIds?: string[]; background?: 'diagram' | 'white'; aspect?: 'content' | '16:9'; includeGrid?: boolean }
 export type ExportSceneOptions = Pick<ExportOptions, 'selectionIds' | 'background' | 'aspect' | 'includeGrid'>
+/** DGM-151C/152 whole-page document exports. Never carries a selection: pages and workbooks export whole. */
+export type DocumentExportOptions =
+  | { scope: 'page'; format: 'json' | 'pdf' | 'vsdx'; background?: 'diagram' | 'white'; includeGrid?: boolean; transparent?: boolean; scale?: 1 | 2 }
+  | { scope: 'workbook'; format: 'json' | 'zip' | 'pdf' | 'vsdx'; imageFormat?: 'svg' | 'png'; background?: 'diagram' | 'white'; includeGrid?: boolean; transparent?: boolean; scale?: 1 | 2 }
+/** DGM-151B editor-side workbook operations; the session supplies IDs and owns history. */
+export type WorkbookUiCommand =
+  | { type: 'newWorkbook' }
+  | { type: 'addPage'; title?: string }
+  | { type: 'renamePage'; pageId: string; title: string }
+  | { type: 'reorderPages'; pageIds: string[] }
+  | { type: 'workbookMetadata'; patch: { title?: string; description?: string } }
 /** Preview is a local draft, or null when finished/cancelled; each call invalidates pending layout. */
 export interface EditorProps {
   document: Diagram
@@ -75,16 +90,24 @@ export interface EditorProps {
   isArranging: boolean
   isExporting: boolean
   onCommand(command: DocumentCommand): void
+  /** Editor-local geometry operation; never serialized or accepted by external command surfaces. */
+  onBoundaryOperation?(operation: (document: Diagram) => Diagram): void
   onUndo(): void
   onRedo(): void
   onNew(): void
   onChooseStarter(key: StarterKey): boolean
   onOpen(): void
+  onSaveAs?(): void
+  onRecent?(id?: string): void
   onImport(): void
   onSaveJson(): void
   onArrange(direction: Direction, options?: import('./layout.ts').LayoutOptions): void
   onExport(options: ExportOptions): void
   onCopyImage?(options: ExportOptions): void
+  /** DGM-151C page/workbook document export (JSON, image ZIP, PDF, Visio). */
+  onExportDocument?(options: DocumentExportOptions): void
+  /** False in the browser build: PDF needs the desktop print host. */
+  pdfAvailable?: boolean
   onPreviewChange(document: Diagram | null): void
   onPresentationChange?(presenting: boolean): void
   /** Internal, session-only: open the New diagram picker once for a fresh workspace (Blank default). */
@@ -93,4 +116,14 @@ export interface EditorProps {
   onStarterOffered?(): void
   /** Desktop-only live interaction guard; registering it does not change editor state. */
   onMcpGuard?(guard: (() => string | null) | null): void
+  /** DGM-151 persisted root; document remains the active page. Absent in plain-diagram harnesses. */
+  root?: import('./workbook.ts').WorkspaceDocument
+  /** Session-only navigation state; never persisted in the root. */
+  activePageId?: string
+  /** Navigation only: no history, revision or dirty-state change. */
+  onSelectPage?(pageId: string): void
+  /** Returns false when the session refused or the user cancelled the operation. */
+  onWorkbookCommand?(command: WorkbookUiCommand): boolean
+  /** Test-fixture seam for retained DGM-148 segment-editing regressions; production stays disabled. */
+  enableExperimentalSegmentEditing?: boolean
 }

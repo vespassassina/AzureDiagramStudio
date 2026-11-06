@@ -6,6 +6,14 @@ Read [the current execution queue](../docs/roadmap.md#execution-queue) and
 supersedes older per-task approval and mandatory sprint-review continuation
 stops for this repository only. Technical acceptance and safety gates remain.
 
+The PO's 2026-11-05 delivery-cadence update supersedes earlier TDD and
+per-feature verification sequencing: plan first, complete the whole approved
+sprint implementation, then run consolidated tests and independent
+verification. Keep one implementer through repairs, reuse unchanged passing
+evidence, and prioritize finished usable features followed by compile/run.
+Do not resume historical per-feature verification cursors before the sprint
+implementation is complete. Safety and public-contract gates still apply.
+
 - Continue approved queue work through implementation, verification, in-scope
   repair and factual documentation without asking for permission at each step.
 - Treat "next" as resume, not a new scope request. Never redo completed features

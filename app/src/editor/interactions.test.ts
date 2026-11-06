@@ -3,7 +3,7 @@ import { absolutePosition, createDocument, entityTextGeometry } from '../model.t
 import type { Entity } from '../model.ts'
 import { allLibraryItems } from '../catalog.ts'
 import { isSelectableIcon, selectionLibrary } from '../catalog/presentation.ts'
-import { addConnectedCommand, alignmentPositions, captureFragment, freshIdMap, libraryItems, makeEntity, minimumSize, movePositions, nudgeCommand, parentChoices, readDrop, resizeCommand } from './interactions.ts'
+import { addConnectedCommand, alignmentPositions, borderAnchorAtPoint, boundaryResizeGestureGeometry, boundaryResizeOperation, captureFragment, clampBoundaryResizeGeometry, dragReleasePositions, freshIdMap, libraryItems, makeEntity, minimumSize, movePositions, nudgeCommand, parentChoices, readDrop, resizeCommand } from './interactions.ts'
 import { effectiveGrid, snapPoint } from '../grid.ts'
 import { applyCommand } from '../document/index.ts'
 
@@ -13,6 +13,54 @@ const other: Entity = { ...child, id: 'other', parentId: null, x: 560 }
 const document = { ...createDocument('test'), entities: [group, child, other], connections: [{ id: 'internal', from: 'group', to: 'child', label: 'Keep', style: 'solid' as const, arrow: 'forward' as const }, { id: 'external', from: 'child', to: 'other', label: 'Omit', style: 'solid' as const, arrow: 'forward' as const }] }
 
 describe('editor interaction commands', () => {
+  it('should_project_nonmidpoint_pointer_positions_to_normalized_component_borders_DGM155', () => {
+    expect(borderAnchorAtPoint(document, { x: 80 + 400 * .73, y: 80 }, 12)).toEqual({ id: 'group', side: 'top', offset: .73 })
+    expect(borderAnchorAtPoint(document, { x: 480, y: 80 + 300 * .19 }, 12)).toEqual({ id: 'group', side: 'right', offset: .19 })
+    expect(borderAnchorAtPoint(document, { x: 300, y: 300 }, 12)).toBeNull()
+  })
+  it('should_preserve_the_exact_pointer_release_delta_for_a_parented_child_DGM153', () => {
+    const parent = { ...group, id: 'parent', x: 200, y: 160, width: 400, height: 320 }
+    const member = { ...child, id: 'member', parentId: 'parent', x: 120, y: 100, width: 160, height: 80 }
+    const source = { ...createDocument('child-release'), grid: { ...effectiveGrid(), snap: false }, entities: [parent, member] }
+
+    const [position] = dragReleasePositions(source, [member], { x: 813.6888888888889, y: 405.5823464626736 }, { x: 1097.688888888889, y: 405.5823464626736 })
+
+    expect(position.id).toBe('member')
+    expect(position.x).toBeCloseTo(404, 10)
+    expect(position.y).toBe(100)
+  })
+  it('should_preserve_the_release_world_point_when_auto_pan_changes_camera_translation_DGM153', () => {
+    const root = { ...child, id: 'root', parentId: null, x: 520, y: 200, width: 160, height: 80 }
+    const source = { ...createDocument('auto-pan-release'), grid: { ...effectiveGrid(), snap: false }, entities: [root] }
+
+    expect(dragReleasePositions(source, [root], { x: 641, y: 240 }, { x: 3517.9285822370384, y: 240 })).toEqual([
+      { id: 'root', x: 3396.9285822370384, y: 200 },
+    ])
+  })
+  it('should_return_original_root_positions_when_a_drag_releases_at_its_start_point_DGM150', () => {
+    const root = { ...child, id: 'root', parentId: null, x: 360, y: 190 }
+    const source = { ...createDocument('direct-edit-cancel'), grid: { ...effectiveGrid(), snap: false }, entities: [root] }
+
+    expect(dragReleasePositions(source, [root], { x: 704.5, y: 378.25 }, { x: 704.5, y: 378.25 })).toEqual([
+      { id: 'root', x: 360, y: 190 },
+    ])
+  })
+
+  it('should_restore_the_exact_start_geometry_when_a_boundary_resize_pointer_returns_to_origin_DGM153', () => {
+    const initial = { x: 120, y: 100, width: 480, height: 360 }
+    const start = { x: 600, y: 460 }
+    const outward = { x: 624, y: 460 }
+    expect(boundaryResizeGestureGeometry(initial, { x: 1, y: 0 }, start, outward)).toEqual({ x: 120, y: 100, width: 504, height: 360 })
+    expect(boundaryResizeGestureGeometry(initial, { x: 1, y: 0 }, start, start)).toEqual(initial)
+    expect(boundaryResizeGestureGeometry(initial, { x: -1, y: -1 }, start, start)).toEqual(initial)
+  })
+  it('should_clamp_top_and_left_pointer_resizes_at_the_content_minimum_without_moving_the_opposite_edge_DGM153', () => {
+    const initial = { x: 120, y: 100, width: 600, height: 360 }
+    const minimum = { width: 292, height: 292 }
+
+    expect(clampBoundaryResizeGeometry(initial, { x: 0, y: -1 }, { x: 120, y: 499.8808, width: 600, height: -39.8808 }, minimum)).toEqual({ x: 120, y: 168, width: 600, height: 292 })
+    expect(clampBoundaryResizeGeometry(initial, { x: -1, y: -1 }, { x: 599, y: 499.8808, width: 121, height: -39.8808 }, minimum)).toEqual({ x: 428, y: 168, width: 292, height: 292 })
+  })
   it('should_align_to_document_order_reference_and_preserve_fractional_distribution_targets_DGM110', () => {
     const source = {
       ...createDocument('alignment'),
@@ -246,6 +294,29 @@ describe('editor interaction commands', () => {
     const command = resizeCommand(source, inner, { x: 25, y: 65, width: 413.5, height: 311.25 })
     expect(command).toMatchObject({ type: 'resize', id: 'inner', width: snap ? 406 : 413.5, height: snap ? 316 : 311.25 })
     expect(resizeCommand(source, inner, { x: 25, y: 65, width: 100, height: 100 })).toMatchObject({ width: 283, height: 182.5 })
+  })
+  it('should_preserve_the_opposite_edges_and_expose_left_top_origins_for_boundary_resize_DGM153', () => {
+    const source = {
+      ...createDocument('left-top-resize'),
+      grid: { ...effectiveGrid(), snap: false },
+      entities: [
+        { ...group, x: 100, y: 100, width: 400, height: 300 },
+        { ...child, x: 50, y: 100 },
+      ],
+    }
+
+    const resized = boundaryResizeOperation(source, source.entities[0], { x: 80, y: 60, width: 420, height: 340 })(source)
+    expect(resized.entities.find(entity => entity.id === 'group')).toMatchObject({ id: 'group', x: 80, y: 60, width: 420, height: 340 })
+    expect(absolutePosition(resized, 'child')).toEqual(absolutePosition(source, 'child'))
+  })
+  it('should_keep_an_undersized_existing_boundary_unchanged_when_resize_returns_to_its_start_geometry_DGM153', () => {
+    const source = {
+      ...createDocument('boundary-noop'),
+      grid: { ...effectiveGrid(), snap: false },
+      entities: [{ ...group, width: 480 }, { ...child, x: 300, width: 220 }],
+    }
+    const boundary = source.entities[0]
+    expect(boundaryResizeOperation(source, boundary, { x: boundary.x, y: boundary.y, width: boundary.width, height: boundary.height })(source)).toBe(source)
   })
   it('should_use_current_canonical_defaults_when_any_selectable_item_is_dropped', () => {
     expect(libraryItems).toEqual(selectionLibrary)

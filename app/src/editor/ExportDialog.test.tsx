@@ -55,3 +55,59 @@ describe('export choices DGM136', () => {
     for (const name of ['Include Markdown', 'Markdown with embedded PNG']) expect((screen.getByRole(name === 'Include Markdown' ? 'checkbox' : 'radio', { name }) as HTMLInputElement).disabled).toBe(true)
   })
 })
+
+describe('workbook output scope DGM151C', () => {
+  function workbookSetup(pdfAvailable: boolean) {
+    const onExport = vi.fn(), onExportDocument = vi.fn(), onClose = vi.fn()
+    function Host() {
+      const [preset, onPreset] = useState<ExportPreset>({})
+      return <ExportDialog document={createDocument('page-one')} selectedIds={[]} preset={preset} onPreset={onPreset} busy={false} onExport={onExport} onClose={onClose} onExportDocument={onExportDocument} pdfAvailable={pdfAvailable} workbook={{ title: 'Program', pageCount: 3 }} />
+    }
+    render(<Host />)
+    return { onExport, onExportDocument, onClose }
+  }
+  it('should_offer_page_and_workbook_outputs_and_hide_selection_for_workbook_scope', () => {
+    const h = workbookSetup(true)
+    expect(screen.getByRole('heading', { name: 'Export workbook or page' })).toBeTruthy()
+    expect((screen.getByRole('radio', { name: 'Current page' }) as HTMLInputElement).checked).toBe(true)
+    expect(screen.getByRole('radio', { name: 'Selection' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('radio', { name: 'Whole workbook (3 pages)' }))
+    expect(screen.queryByRole('radio', { name: 'Selection' })).toBeNull()
+    expect(screen.queryByRole('radio', { name: 'Markdown with embedded PNG' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Export workbook PNG ZIP' }))
+    expect(h.onExportDocument).toHaveBeenCalledExactlyOnceWith({ scope: 'workbook', format: 'zip', imageFormat: 'png' })
+    expect(h.onExport).not.toHaveBeenCalled()
+    expect(h.onClose).toHaveBeenCalledOnce()
+  })
+  it.each([['JSON', 'json'], ['PDF', 'pdf'], ['Visio (.vsdx)', 'vsdx']] as const)('should_send_whole_workbook_%s_without_selection', (label, format) => {
+    const h = workbookSetup(true)
+    fireEvent.click(screen.getByRole('radio', { name: 'Whole workbook (3 pages)' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'Document (JSON / PDF / Visio)' }))
+    fireEvent.click(screen.getByRole('button', { name: `Export workbook ${label}` }))
+    expect(h.onExportDocument).toHaveBeenCalledExactlyOnceWith({ scope: 'workbook', format })
+  })
+  it('should_export_current_page_document_without_selection_scope', () => {
+    const h = workbookSetup(true)
+    fireEvent.click(screen.getByRole('radio', { name: 'Document (JSON / PDF / Visio)' }))
+    expect(screen.queryByRole('radio', { name: 'Selection' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Export page Visio (.vsdx)' }))
+    expect(h.onExportDocument).toHaveBeenCalledExactlyOnceWith({ scope: 'page', format: 'vsdx' })
+  })
+  it('should_disable_pdf_with_explanation_when_pdf_is_unavailable', () => {
+    const h = workbookSetup(false)
+    fireEvent.click(screen.getByRole('radio', { name: 'Document (JSON / PDF / Visio)' }))
+    const pdf = screen.getByRole('button', { name: 'Export page PDF' }) as HTMLButtonElement
+    expect(pdf.disabled).toBe(true)
+    expect(pdf.title).toBe('PDF export needs the desktop app')
+    expect(screen.getByText(/PDF export needs the desktop app\./)).toBeTruthy()
+    fireEvent.click(pdf)
+    expect(h.onExportDocument).not.toHaveBeenCalled()
+    expect((screen.getByRole('button', { name: 'Export page JSON' }) as HTMLButtonElement).disabled).toBe(false)
+  })
+  it('should_keep_legacy_dialog_without_output_or_document_choices', () => {
+    setup()
+    expect(screen.queryByRole('radio', { name: 'Current page' })).toBeNull()
+    expect(screen.queryByRole('radio', { name: 'Document (JSON / PDF / Visio)' })).toBeNull()
+    expect(screen.getByRole('heading', { name: 'Export diagram' })).toBeTruthy()
+  })
+})

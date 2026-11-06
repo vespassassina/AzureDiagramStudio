@@ -5,6 +5,7 @@ import { absolutePosition, createDocument, historyCommit, historyRedo, historyUn
 import type { Diagram, Entity } from '../model.ts'
 import type { DocumentCommand } from '../contracts.ts'
 import { applyCommand, captureSelection } from './index.ts'
+import { applyBoundaryDrop, applyBoundaryResize } from './commands.ts'
 import { validateDocument } from './validation.ts'
 import * as documentValidation from './validation.ts'
 import { buildScene, renderSvg } from '../scene.ts'
@@ -175,6 +176,28 @@ test('should_preserve_transparent_background_through_metadata_history_and_reload
   assert.equal(historyRedo(historyUndo(history)).present.backgroundColor, 'transparent')
 })
 
+test('should_adjust_one_route_atomically_preserve_appearance_edits_and_reset_only_that_route_DGM148', () => {
+  const document = nested()
+  document.connections.push({ ...document.connections[0], id: 'other' })
+  const points = [{ x: 252, y: 108 }, { x: 420, y: 108 }, { x: 420, y: 260 }, { x: 900, y: 260 }, { x: 900, y: 108 }]
+  const adjusted = applyCommand(document, { type: 'adjustRoute', id: 'link', expectedRevision: 0, points, labelPosition: { x: 660, y: 260 } })
+  assert.equal(adjusted.revision, 1)
+  assert.deepEqual(adjusted.connections[0], { ...document.connections[0], points, labelPosition: { x: 660, y: 260 }, routeRevision: 1 })
+  assert.deepEqual(adjusted.connections[1], document.connections[1])
+  const appearance = applyCommand(adjusted, { type: 'updateConnection', id: 'link', patch: { label: 'Manual', style: 'dashed', arrow: 'both' } })
+  assert.equal(appearance.connections[0].routeRevision, 2)
+  assert.deepEqual(appearance.connections[0].points, points)
+  assert.deepEqual(parseDocument(JSON.stringify(appearance)), { ok: true, value: appearance })
+  const history = historyCommit({ past: [], present: adjusted, future: [] }, appearance)
+  assert.deepEqual(historyUndo(history).present, adjusted)
+  const reset = applyCommand(appearance, { type: 'resetRoute', id: 'link', expectedRevision: 2 })
+  assert.equal(reset.revision, 3)
+  assert.equal(reset.connections[0].points, undefined)
+  assert.equal(reset.connections[1].points, undefined)
+  rejects(appearance, { type: 'adjustRoute', id: 'link', expectedRevision: 1, points, labelPosition: { x: 660, y: 260 } }, 'stale-layout')
+  rejects(document, { type: 'adjustRoute', id: 'link', expectedRevision: 0, points: [{ x: 0, y: 0 }, { x: 4, y: 5 }], labelPosition: { x: 1, y: 1 } }, 'invalid-command')
+})
+
 test('should_change_grid_metadata_reversibly_without_geometry_or_route_loss', () => {
   const document = nested()
   document.connections[0] = { ...document.connections[0], points: [{ x: 900, y: 108 }, { x: 700, y: 208 }], labelPosition: { x: 800, y: 158 }, routeRevision: 0 }
@@ -187,6 +210,19 @@ test('should_change_grid_metadata_reversibly_without_geometry_or_route_loss', ()
   assert.deepEqual(parseDocument(JSON.stringify(next)), { ok: true, value: next })
   assert.equal(Object.hasOwn(applyCommand(next, { type: 'metadata', patch: { grid: undefined } }), 'grid'), false)
   rejects(document, { type: 'metadata', patch: { grid: { ...grid, spacing: 3 } } }, 'invalid-command')
+})
+
+test('should_upgrade_only_an_explicit_grid_color_to_v2_and_restore_automatic_without_a_redundant_history_edit_DGM156', () => {
+  const document = { ...nested(), grid: { ...effectiveGrid(), visible: false, present: true, export: true } }
+  const chosen = applyCommand(document, { type: 'metadata', patch: { grid: { ...document.grid, color: '#0070c0' } } })
+  assert.equal(chosen.schemaVersion, 2)
+  assert.equal(chosen.grid?.color, '#0070c0')
+  assert.deepEqual(chosen.entities, document.entities)
+  assert.deepEqual(chosen.connections, document.connections)
+  const automatic = applyCommand(chosen, { type: 'metadata', patch: { grid: { ...chosen.grid!, color: undefined } } })
+  assert.equal(automatic.schemaVersion, 2)
+  assert.equal(Object.hasOwn(automatic.grid!, 'color'), false)
+  assert.equal(JSON.stringify(automatic), JSON.stringify(applyCommand(automatic, { type: 'metadata', patch: { grid: { ...automatic.grid!, color: undefined } } })))
 })
 
 test.each([true, false])('should_align_paste_root_origin_once_and_retain_all_relative_offsets_when_snap_is_%s', snap => {
@@ -220,6 +256,71 @@ test('should_resize_once_without_moving_descendants_or_clipping_them', () => {
   assert.deepEqual({ x: next.entities[0].x, y: next.entities[0].y }, { x: document.entities[0].x, y: document.entities[0].y })
   assert.deepEqual(historyUndo(historyCommit({ past: [], present: document, future: [] }, next)).present, document)
   rejects(document, { type: 'resize', id: 'outer', width: 300, height: 200 }, 'invalid-command')
+})
+
+test('should_commit_boundary_drop_membership_from_release_geometry_without_parent_chasing_DGM153', () => {
+  const document = {
+    ...createDocument('boundary-drop'),
+    entities: [
+      { ...entity('current', 'boundary'), x: 100, y: 100, width: 400, height: 300 },
+      { ...entity('foreign', 'boundary'), x: 700, y: 100, width: 500, height: 400 },
+      { ...entity('child'), parentId: 'current', x: 32, y: 96 },
+      { ...entity('root'), x: 1300, y: 200 },
+    ],
+  }
+  const original = structuredClone(document)
+
+  const returnedToOrigin = applyBoundaryDrop(document, [{ id: 'root', x: 1300, y: 200 }])
+  assert.strictEqual(returnedToOrigin, document)
+
+  const escaped = applyBoundaryDrop(document, [{ id: 'child', x: 432, y: 96 }])
+  const escapedChild = escaped.entities.find(candidate => candidate.id === 'child')!
+  const escapedParent = escaped.entities.find(candidate => candidate.id === 'current')!
+  assert.equal(escapedChild.parentId, null)
+  assert.deepEqual(absolutePosition(escaped, 'child'), { x: 532, y: 196 })
+  assert.deepEqual({ x: escapedParent.x, y: escapedParent.y, width: escapedParent.width, height: escapedParent.height }, { x: 100, y: 100, width: 400, height: 300 })
+  assert.deepEqual(historyUndo(historyCommit({ past: [], present: document, future: [] }, escaped)).present, original)
+
+  const adopted = applyBoundaryDrop(document, [{ id: 'root', x: 800, y: 200 }])
+  const adoptedRoot = adopted.entities.find(candidate => candidate.id === 'root')!
+  assert.equal(adoptedRoot.parentId, 'foreign')
+  assert.deepEqual(absolutePosition(adopted, 'root'), { x: 800, y: 200 })
+
+  const partial = applyBoundaryDrop(document, [{ id: 'child', x: 300, y: 96 }])
+  const partialChild = partial.entities.find(candidate => candidate.id === 'child')!
+  const partialParent = partial.entities.find(candidate => candidate.id === 'current')!
+  const partialForeign = partial.entities.find(candidate => candidate.id === 'foreign')!
+  assert.equal(partialChild.parentId, 'current')
+  assert.ok(partialParent.width >= partialChild.x + partialChild.width + 24)
+  assert.deepEqual(partialForeign, document.entities.find(candidate => candidate.id === 'foreign'))
+
+  const borderContact = applyBoundaryDrop(document, [{ id: 'root', x: 480, y: 200 }])
+  assert.equal(borderContact.entities.find(candidate => candidate.id === 'root')!.parentId, null)
+  assert.deepEqual(borderContact.entities.find(candidate => candidate.id === 'foreign'), document.entities.find(candidate => candidate.id === 'foreign'))
+})
+
+test('should_resize_boundary_from_left_top_with_fixed_child_absolute_positions_DGM153', () => {
+  const document = {
+    ...createDocument('boundary-top-left-resize'),
+    entities: [
+      { ...entity('boundary', 'boundary'), x: 100, y: 100, width: 400, height: 300 },
+      { ...entity('child'), parentId: 'boundary', x: 50, y: 100 },
+    ],
+  }
+  const childBefore = absolutePosition(document, 'child')
+
+  const resized = applyBoundaryResize(document, {
+    id: 'boundary',
+    x: 80,
+    y: 60,
+    width: 420,
+    height: 340,
+  })
+  const boundary = resized.entities.find(candidate => candidate.id === 'boundary')!
+
+  assert.deepEqual({ x: boundary.x, y: boundary.y, width: boundary.width, height: boundary.height }, { x: 80, y: 60, width: 420, height: 340 })
+  assert.deepEqual(absolutePosition(resized, 'child'), childBefore)
+  assert.deepEqual(historyUndo(historyCommit({ past: [], present: document, future: [] }, resized)).present, document)
 })
 
 test('should_keep_explicit_layout_geometry_unquantized_when_grid_snap_is_enabled', () => {

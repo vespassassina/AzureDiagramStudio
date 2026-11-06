@@ -36,6 +36,20 @@ test('should_accept_only_hex_or_transparent_background_metadata_in_mcp_schema_an
   resource.text = JSON.stringify({ ...transparent, backgroundColor: 'white' })
   assert.equal(validateOutput(value, { name: 'export_diagram', arguments: { stateToken: 'current', format: 'json' } }), false)
 })
+test('should_accept_only_v2_opaque_grid_colors_through_mcp_and_preserve_automatic_omission_DGM156', () => {
+  const command = color => ({ name: 'edit_diagram', arguments: { stateToken: 'current', commands: [{ type: 'metadata', patch: { grid: { visible: true, style: 'dots', spacing: 8, snap: true, present: false, export: false, color } } }] } })
+  for (const color of ['#abc', '#0070c0']) assert.ok(validateMutation(command(color)))
+  for (const color of ['transparent', '#abcd', 'blue']) assert.equal(validateMutation(command(color)), false)
+  const base = { schemaVersion: 1, id: 'grid', title: '', subtitle: '', revision: 0, direction: 'RIGHT', synthetic: false, legendVisible: true, legend: [], entities: [], connections: [] }
+  const valid = { ...base, schemaVersion: 2, grid: { visible: true, style: 'dots', spacing: 8, snap: true, present: false, export: false, color: '#0070c0' } }
+  const resource = { uri: 'diagrammer://exports/current/diagram.json', mimeType: 'application/json', text: JSON.stringify(valid) }
+  const output = { content: [{ type: 'resource', resource }, { type: 'text', text: JSON.stringify({ stateToken: 'current', filename: 'diagram.json', mimeType: 'application/json', byteLength: Buffer.byteLength(resource.text) }) }] }
+  assert.ok(validateOutput(output, { name: 'export_diagram', arguments: { stateToken: 'current', format: 'json' } }))
+  resource.text = JSON.stringify({ ...valid, schemaVersion: 1 })
+  assert.equal(validateOutput(output, { name: 'export_diagram', arguments: { stateToken: 'current', format: 'json' } }), false)
+  resource.text = JSON.stringify({ ...valid, grid: { ...valid.grid, color: '#ABC' } })
+  assert.equal(validateOutput(output, { name: 'export_diagram', arguments: { stateToken: 'current', format: 'json' } }), false)
+})
 test('should_validate_exact_output_metadata_token_mime_base64_size_and_resource_uri', () => {
   assert.ok(validateOutput(output(), operation))
   assert.equal(validateOutput(output('stale'), operation), false)

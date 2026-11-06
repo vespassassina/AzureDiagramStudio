@@ -26,7 +26,7 @@ async function fixture(page: Page) {
     return validateDocument(source)
   }, source)
   if (!validation.ok) throw new Error(`Invalid browser fixture: ${JSON.stringify(validation.errors)}`)
-  const open = await fileCommand(page, 'Open JSON')
+  const open = await fileCommand(page, 'Load')
   const [chooser] = await Promise.all([page.waitForEvent('filechooser'), open.click()])
   await chooser.setFiles({ name: 'slide.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(source)) })
   await page.getByLabel('Document title').filter({ visible: true }).waitFor()

@@ -14,6 +14,10 @@ export function SettingsDialog({ onClose }: { onClose(): void }) {
   const [status, setStatus] = useState<McpStatus>({ state: 'unavailable', snapshotAvailable: false })
   const [feedback, setFeedback] = useState('')
   const [copying, setCopying] = useState(false)
+  const [savedPort, setSavedPort] = useState<number>()
+  const [portDraft, setPortDraft] = useState('')
+  const [portFeedback, setPortFeedback] = useState('')
+  const [portBusy, setPortBusy] = useState(false)
   const workspace = window.desktopWorkspace
   const [preference, setPreference] = useState<WorkspacePreference>()
   const [workspaceFeedback, setWorkspaceFeedback] = useState('')
@@ -46,12 +50,34 @@ export function SettingsDialog({ onClose }: { onClose(): void }) {
     const timer = window.setInterval(() => void refresh(), 2000)
     return () => { active = false; window.clearInterval(timer) }
   }, [bridge])
-  async function copy(kind: 'address' | 'token') {
+  useEffect(() => {
+    if (!bridge) return
+    let active = true
+    void bridge.readPort().then(port => {
+      if (!active) return
+      setSavedPort(port)
+      setPortDraft(current => current || String(port))
+    }, error => { if (active) setPortFeedback(`MCP port settings unavailable: ${String(error)}`) })
+    return () => { active = false }
+  }, [bridge])
+  const validPort = /^(?:[1-9]\d{0,4})$/.test(portDraft) && Number(portDraft) <= 65535
+  async function savePort() {
+    if (!bridge || portBusy || !validPort) return
+    setPortBusy(true); setPortFeedback('')
+    try {
+      const port = await bridge.savePort(Number(portDraft))
+      setSavedPort(port)
+      setPortDraft(String(port))
+      setPortFeedback(`MCP port ${port} saved for the next launch. Restart the app to apply it.`)
+    } catch (error) { setPortFeedback(`MCP port not saved: ${String(error)}`) }
+    finally { setPortBusy(false) }
+  }
+  async function copy() {
     if (!bridge || copying || status.state !== 'running') return
     setCopying(true); setFeedback('')
     try {
-      const result = await (kind === 'address' ? bridge.copyAddress() : bridge.copyToken())
-      setFeedback(result.ok ? kind === 'address' ? 'MCP address copied.' : 'Access token copied.' : result.message)
+      const result = await bridge.copyAddress()
+      setFeedback(result.ok ? 'MCP address copied.' : result.message)
     } catch { setFeedback('Clipboard copy failed. Try again.') }
     finally { setCopying(false) }
   }
@@ -61,7 +87,7 @@ export function SettingsDialog({ onClose }: { onClose(): void }) {
       <div className="about-content" role="region" aria-label="Local MCP settings" tabIndex={0}>
         <h2>Workspace root</h2>
         {!workspace ? <p>Workspace root configuration requires the desktop app. Browser saves and exports continue as browser downloads.</p> : <>
-          <p>Default: OS Documents / AzureDiagramStudio. Choose a root for new per-document workspace folders and default Save JSON / export destinations. Native save dialogs still let you choose another location.</p>
+          <p>Default: OS Documents / AzureDiagramStudio. Save writes the current diagram filename directly in this root; it never creates per-diagram folders or reconfigures this location. Save As chooses another destination, but later Save still writes this configured-root copy. Exports retain their own destination dialog.</p>
           {preference && <p><code aria-label="Current workspace root">{preference.root}</code>{preference.isDefault ? ' (default)' : ' (custom)'}</p>}
           <div className="mcp-copy-actions"><button type="button" disabled={workspaceBusy} onClick={() => void changeWorkspace('choose')}>Choose folder</button><button type="button" disabled={workspaceBusy} onClick={() => void changeWorkspace('reset')}>Reset to default</button></div>
           <p>Folders are created only on save/export. Existing files, recovery data and profiles are not moved. MCP output remains in memory.</p>
@@ -72,15 +98,21 @@ export function SettingsDialog({ onClose }: { onClose(): void }) {
         {!bridge ? <p>Desktop app required. The browser build does not run an MCP server.</p> : <>
           <p role="status">{status.state === 'running' ? 'Running on this device.' : status.message ?? 'Local MCP server unavailable.'}</p>
           {status.state === 'running' && <><p><code>{status.address}</code></p><p>{status.snapshotAvailable ? 'Current workspace available.' : 'Current workspace unavailable while loading or after an error.'}</p></>}
+          <label htmlFor={`${id}-mcp-port`}>MCP port for next launch</label>
+          <div className="mcp-copy-actions">
+            <input id={`${id}-mcp-port`} type="text" inputMode="numeric" value={portDraft} onChange={event => setPortDraft(event.target.value)} aria-describedby={`${id}-mcp-port-help`} />
+            <button type="button" disabled={portBusy || !validPort} onClick={() => void savePort()}>Save MCP port</button>
+          </div>
+          <p id={`${id}-mcp-port-help`}>Enter an integer from 1 through 65535. {savedPort === undefined ? 'Save a valid port to repair unavailable settings.' : `Saved next-launch port: ${savedPort}.`} Changes take effect after restarting the app; the current address above does not change.</p>
+          <p role="status" aria-live="polite">{portFeedback}</p>
         </>}
         <div className="mcp-copy-actions">
-          <button type="button" disabled={!bridge || status.state !== 'running' || copying} onClick={() => void copy('address')}>Copy MCP address</button>
-          <button type="button" disabled={!bridge || status.state !== 'running' || copying} onClick={() => void copy('token')}>Copy access token</button>
+          <button type="button" disabled={!bridge || status.state !== 'running' || copying} onClick={() => void copy()}>Copy MCP address</button>
         </div>
         <p role="status" aria-live="polite">{feedback}</p>
         <h3>Connect a local MCP client</h3>
-        <p>Use Streamable HTTP with this address and an <code>Authorization: Bearer &lt;access token&gt;</code> header. Copy the token only when configuring a trusted client; it grants read and write access to your diagram.</p>
-        <p>The server starts automatically, accepts same-machine clients only, and runs only while this desktop app is open. Restarting the app rotates the access token; copy the new token and actual address after restart.</p>
+        <p>Use Streamable HTTP with this address. Authorization headers from older client configuration are ignored.</p>
+        <p>The server starts automatically, accepts same-machine non-browser processes only, and runs only while this desktop app is open. Localhost does not authenticate local clients: any local process can read and edit the committed diagram while the app is running.</p>
         <p>Edits use normal validation, Undo and autosave. Clients must read the latest state token before changing a diagram. Writes are refused while you have unfinished edits, an open dialog, or other conflicting work. New diagram uses the normal unsaved-work confirmation.</p>
         <p>No client settings are changed automatically. The server cannot execute shell commands or read arbitrary files.</p>
       </div>

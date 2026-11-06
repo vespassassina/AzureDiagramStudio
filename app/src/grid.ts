@@ -2,6 +2,20 @@ import { absolutePosition } from './model.ts'
 import type { Diagram, Grid, Point } from './model.ts'
 
 const DEFAULT_GRID: Readonly<Grid> = Object.freeze({ visible: true, style: 'dots', spacing: 8, snap: true, present: false, export: false })
+export const GRID_COLOR_SWATCHES = [
+  ['Lightgrey', '#d9d9d9'],
+  ['Mediumgrey', '#7f7f7f'],
+  ['Darkgrey', '#595959'],
+  ['White', '#ffffff'],
+  ['Black', '#000000'],
+  ['Red', '#ff0000'],
+  ['Green', '#00b050'],
+  ['Yellow', '#ffff00'],
+  ['Blue', '#0070c0'],
+  ['Orange', '#ed7d31'],
+  ['Purple', '#7030a0'],
+  ['Brown', '#833c0c'],
+] as const
 
 export function effectiveGrid(grid?: Grid): Readonly<Grid> {
   return grid ?? DEFAULT_GRID

@@ -3,6 +3,8 @@ import { createDocument, sampleDiagram } from '../model.ts'
 import type { Diagram } from '../model.ts'
 import type { DocumentStorage } from '../contracts.ts'
 import { createSession, starterDocument, starterKeys } from './session.ts'
+import { isWorkbook } from '../workbook.ts'
+import type { WorkspaceDocument } from '../workbook.ts'
 import type { SessionDependencies } from './session.ts'
 import webApiSource from '../../../examples/azure-web-app.json?raw'
 import eventSource from '../../../examples/event-driven.json?raw'
@@ -10,7 +12,7 @@ import fabricSource from '../../../examples/fabric-onelake.json?raw'
 import enterpriseSource from '../../../examples/enterprise-integration.json?raw'
 import { parseDocument } from '../document/index.ts'
 import { alignmentPositions } from '../editor/interactions.ts'
-import * as historyModel from '../model.ts'
+import * as workbookModel from '../workbook.ts'
 import { computeLayout } from '../layout.ts'
 import { routeFixedGeometry } from '../routing.ts'
 
@@ -47,15 +49,15 @@ async function ready(initial: Diagram | null = null) { const host = harness(init
 describe('desktop workspace saves DGM138', () => {
   it('should_preserve_backup_marker_when_native_save_is_canceled_and_forward_identity', async () => {
     const h = await ready(sampleDiagram())
-    const save = vi.fn(async () => false)
-    h.dependencies.saveFile = save
+    const save = vi.fn(async (): Promise<{ saved: boolean; filename?: string }> => ({ saved: false }))
+    h.dependencies.saveDiagram = save
     const dirty = h.session.getSnapshot().backupDirty
     await h.session.saveJson()
-    expect(save).toHaveBeenCalledWith(expect.any(Blob), 'Commerce-platform.json', 'sample-commerce')
+    expect(save).toHaveBeenCalledWith(expect.any(Blob), 'Commerce-platform.json', false)
     expect(h.downloads).not.toHaveBeenCalled()
     expect(h.session.getSnapshot().backupDirty).toBe(dirty)
     expect(h.session.getSnapshot().message).toMatch(/canceled/i)
-    save.mockResolvedValueOnce(true)
+    save.mockResolvedValueOnce({ saved: true, filename: 'Commerce-platform.json' })
     await h.session.saveJson()
     expect(h.session.getSnapshot().backupDirty).toBe(false)
     h.session.stop()
@@ -381,12 +383,13 @@ describe('MCP canonical mutations DGM131', () => {
   })
   it('should_recheck_deadline_after_pure_history_preparation_before_commit', async () => {
     vi.useFakeTimers()
-    const original = historyModel.historyCommit
+    // The session commits through the workspace-root history (DGM-151A), not historyCommit.
+    const original = workbookModel.workspaceCommit
     try {
       const h = await ready(createDocument('deadline'))
       h.session.setMcpGuard(() => null)
       const before = h.session.mcpState()
-      const spy = vi.spyOn(historyModel, 'historyCommit').mockImplementation((history, next) => {
+      const spy = vi.spyOn(workbookModel, 'workspaceCommit').mockImplementation((history, next) => {
         vi.setSystemTime(Date.now() + 1000)
         return original(history, next)
       })
@@ -423,7 +426,7 @@ describe('DGM-127 fresh startup and unified picker intent', () => {
       expect(fresh.document.connections).toEqual([])
       expect(fresh.document.id).toBe('new-document')
       expect(fresh.readOnly).toBe(false)
-      expect(fresh.backupDirty).toBe(false)
+      expect(fresh.backupDirty).toBe(true)
       expect(fresh.canUndo).toBe(false)
       expect(fresh.starterOffer).toBe(true)
       host.session.starterOffered()
@@ -743,7 +746,7 @@ describe('DGM-040 integrated session', () => {
     expect(after.canUndo).toBe(before.canUndo)
     expect(after.canRedo).toBe(before.canRedo)
     expect(after.backupDirty).toBe(dirty)
-    expect(after.message).toBe('JSON download failed: Callback rejected')
+    expect(after.message).toBe('Save failed: Callback rejected')
     expect(after.saveState).toBe(before.saveState)
     if (dirty) {
       host.session.undo()
@@ -754,13 +757,13 @@ describe('DGM-040 integrated session', () => {
     }
     await host.session.stop()
   })
-  it('should_preserve_existing_clean_marker_policy_when_blank_or_native_open_replaces_work_DGM111', async () => {
+  it('should_keep_blank_baseline_distinct_from_a_written_JSON_backup_DGM158', async () => {
     const host = await ready(sampleDiagram())
     expect(host.session.getSnapshot().backupDirty).toBe(true)
     host.session.newDocument()
     const blank = host.session.getSnapshot()
     expect(blank.document).toEqual(createDocument('new-document'))
-    expect(blank.backupDirty).toBe(false)
+    expect(blank.backupDirty).toBe(true)
     expect(blank.canUndo).toBe(false)
     expect(host.downloads).not.toHaveBeenCalled()
     const opened = createDocument('opened', 'Native JSON')
@@ -1337,5 +1340,309 @@ describe('DGM-040 integrated session', () => {
     await host.session.saveJson()
     expect(JSON.parse(await (host.downloads.mock.calls[1][0] as Blob).text())).toEqual(canonical)
     await host.session.stop()
+  })
+})
+
+describe('File/New replacement and filename workflow DGM158 DGM159', () => {
+  it('should_skip_replace_only_for_exact_starter_baseline_and_restore_that_proof_on_undo', async () => {
+    const host = await ready()
+    const confirm = vi.mocked(host.dependencies.confirmReplace)
+    expect(host.session.openStarter('web-api')).toBe(true)
+    expect(host.session.getSnapshot().backupDirty).toBe(true)
+    expect(confirm).not.toHaveBeenCalled()
+    host.session.command({ type: 'metadata', patch: { description: 'Edited starter draft' } })
+    confirm.mockReturnValueOnce(false)
+    expect(host.session.openStarter('fabric')).toBe(false)
+    expect(confirm).toHaveBeenCalledOnce()
+    host.session.undo()
+    expect(host.session.openStarter('fabric')).toBe(true)
+    expect(confirm).toHaveBeenCalledOnce()
+    await host.session.stop()
+  })
+
+  it('should_keep_current_filename_separate_from_title_and_ignore_late_save_completion', async () => {
+    const host = await ready(createDocument('filename', 'Initial title'))
+    const pending = deferred<{ saved: boolean; filename?: string }>()
+    host.dependencies.saveDiagram = vi.fn(() => pending.promise)
+    const saving = host.session.saveJson()
+    host.session.command({ type: 'metadata', patch: { title: 'Edited after save' } })
+    pending.resolve({ saved: true, filename: 'Initial-title.json' })
+    await saving
+    expect(host.session.getSnapshot().currentFilename).toBe('Initial-title.json')
+    expect(host.session.getSnapshot().backupDirty).toBe(true)
+    await host.session.stop()
+  })
+
+  it('should_update_filename_only_after_successful_save_as_and_preserve_cancelled_state', async () => {
+    const host = await ready(createDocument('save-as', 'Saved diagram'))
+    host.dependencies.saveDiagram = vi.fn()
+      .mockResolvedValueOnce({ saved: false })
+      .mockResolvedValueOnce({ saved: true, filename: 'Chosen Unicode 世界.json' })
+    const before = host.session.getSnapshot().currentFilename
+    await host.session.saveJson(true)
+    expect(host.session.getSnapshot().currentFilename).toBe(before)
+    await host.session.saveJson(true)
+    expect(host.session.getSnapshot().currentFilename).toBe('Chosen Unicode 世界.json')
+    await host.session.stop()
+  })
+})
+describe('workbook root session DGM151A', () => {
+  async function workbookReady() {
+    const h = await ready(sampleDiagram())
+    let next = 0
+    h.dependencies.newId = () => `wb-${++next}`
+    return h
+  }
+  function pagesOf(root: WorkspaceDocument) { return isWorkbook(root) ? root.pages : [root] }
+
+  it('should_keep_legacy_diagram_root_unchanged_until_explicit_add_page', async () => {
+    const h = await workbookReady()
+    const legacy = h.session.getSnapshot().root
+    expect(isWorkbook(legacy)).toBe(false)
+    h.session.command({ type: 'metadata', patch: { title: 'Still a diagram' } })
+    expect(isWorkbook(h.session.getSnapshot().root)).toBe(false)
+    h.session.stop()
+  })
+  it('should_promote_with_one_undo_step_and_select_new_page_when_adding_a_page', async () => {
+    const h = await workbookReady()
+    const original = h.session.getSnapshot().root
+    expect(h.session.workbookCommand({ type: 'addPage' })).toBe(true)
+    const snapshot = h.session.getSnapshot()
+    expect(isWorkbook(snapshot.root)).toBe(true)
+    const pages = pagesOf(snapshot.root)
+    expect(pages[0]).toBe(original)
+    expect(snapshot.activePageId).toBe(pages[1].id)
+    expect(snapshot.document).toBe(pages[1])
+    h.session.undo()
+    expect(h.session.getSnapshot().root).toBe(original)
+    expect(h.session.getSnapshot().document).toBe(original)
+    h.session.stop()
+  })
+  it('should_apply_page_commands_only_to_active_page_and_share_other_pages', async () => {
+    const h = await workbookReady()
+    h.session.workbookCommand({ type: 'addPage' })
+    const before = h.session.getSnapshot().root
+    h.session.command({ type: 'metadata', patch: { title: 'Second page' } })
+    const after = h.session.getSnapshot().root
+    expect(pagesOf(after)[0]).toBe(pagesOf(before)[0])
+    expect(pagesOf(after)[1].title).toBe('Second page')
+    if (!isWorkbook(after) || !isWorkbook(before)) throw new Error('Expected a workbook root')
+    expect(after.revision).toBe(before.revision + 1)
+    h.session.stop()
+  })
+  it('should_reveal_affected_page_when_undo_changes_a_hidden_page', async () => {
+    const h = await workbookReady()
+    const first = h.session.getSnapshot().root.id
+    h.session.workbookCommand({ type: 'addPage' })
+    const second = h.session.getSnapshot().activePageId
+    expect(h.session.selectPage(first)).toBe(true)
+    h.session.command({ type: 'metadata', patch: { title: 'Edited first' } })
+    h.session.selectPage(second)
+    const untouched = pagesOf(h.session.getSnapshot().root)[1]
+    h.session.undo()
+    const snapshot = h.session.getSnapshot()
+    expect(snapshot.activePageId).toBe(first)
+    expect(pagesOf(snapshot.root)[1]).toBe(untouched)
+    h.session.stop()
+  })
+  it('should_navigate_pages_without_history_dirty_state_or_generation_change', async () => {
+    const h = await workbookReady()
+    h.session.workbookCommand({ type: 'addPage' })
+    const before = h.session.getSnapshot(), generation = h.session.generation()
+    expect(h.session.selectPage(pagesOf(before.root)[0].id)).toBe(true)
+    const after = h.session.getSnapshot()
+    expect(after.root).toBe(before.root)
+    expect(after.canUndo).toBe(before.canUndo)
+    expect(after.backupDirty).toBe(before.backupDirty)
+    expect(h.session.generation()).toBe(generation)
+    expect(h.session.selectPage('missing-page')).toBe(false)
+    h.session.stop()
+  })
+  it('should_not_add_history_for_noop_reorder_or_same_page_title', async () => {
+    const h = await workbookReady()
+    h.session.workbookCommand({ type: 'addPage' })
+    const root = h.session.getSnapshot().root
+    const ids = pagesOf(root).map(page => page.id)
+    expect(h.session.workbookCommand({ type: 'reorderPages', pageIds: ids })).toBe(true)
+    expect(h.session.workbookCommand({ type: 'renamePage', pageId: ids[1], title: pagesOf(root)[1].title })).toBe(true)
+    expect(h.session.getSnapshot().root).toBe(root)
+    h.session.undo()
+    expect(isWorkbook(h.session.getSnapshot().root)).toBe(false)
+    h.session.stop()
+  })
+  it('should_reorder_exact_permutation_as_one_structural_undo_step', async () => {
+    const h = await workbookReady()
+    h.session.workbookCommand({ type: 'addPage' })
+    const root = h.session.getSnapshot().root
+    const ids = pagesOf(root).map(page => page.id)
+    expect(h.session.workbookCommand({ type: 'reorderPages', pageIds: [ids[1], ids[0]] })).toBe(true)
+    expect(pagesOf(h.session.getSnapshot().root).map(page => page.id)).toEqual([ids[1], ids[0]])
+    expect(h.session.workbookCommand({ type: 'reorderPages', pageIds: [ids[0]] })).toBe(false)
+    h.session.undo()
+    expect(h.session.getSnapshot().root).toBe(root)
+    h.session.stop()
+  })
+  it('should_keep_workbook_metadata_separate_from_active_page_metadata', async () => {
+    const h = await workbookReady()
+    h.session.workbookCommand({ type: 'addPage' })
+    const page = h.session.getSnapshot().document
+    expect(h.session.workbookCommand({ type: 'workbookMetadata', patch: { title: 'Program', description: '# Workbook notes' } })).toBe(true)
+    const snapshot = h.session.getSnapshot()
+    expect(isWorkbook(snapshot.root) && snapshot.root.title).toBe('Program')
+    expect(isWorkbook(snapshot.root) && snapshot.root.description).toBe('# Workbook notes')
+    expect(snapshot.document).toBe(page)
+    h.session.stop()
+  })
+  it('should_save_the_complete_root_with_all_pages_and_metadata', async () => {
+    const h = await workbookReady()
+    h.session.workbookCommand({ type: 'addPage', title: 'Network' })
+    h.session.workbookCommand({ type: 'workbookMetadata', patch: { title: 'Program' } })
+    await h.session.saveJson()
+    const blob = h.downloads.mock.calls.at(-1)![0]
+    const saved = JSON.parse(await blob.text())
+    expect(saved.kind).toBe('workbook')
+    expect(saved.title).toBe('Program')
+    expect(saved.pages.map((page: Diagram) => page.title).at(-1)).toBe('Network')
+    expect(saved.pages).toHaveLength(2)
+    expect(h.session.getSnapshot().backupDirty).toBe(false)
+    h.session.stop()
+  })
+  it('should_open_a_workbook_root_and_activate_its_first_page', async () => {
+    const h = await workbookReady()
+    const root = { kind: 'workbook', schemaVersion: 1, id: 'book', title: 'Opened', revision: 3, pages: [createDocument('p1', 'One'), createDocument('p2', 'Two')] }
+    const text = JSON.stringify(root)
+    expect(await h.session.openFile({ name: 'book.json', size: text.length, text: async () => text }, 'open')).toBe(true)
+    const snapshot = h.session.getSnapshot()
+    expect(isWorkbook(snapshot.root)).toBe(true)
+    expect(snapshot.activePageId).toBe('p1')
+    expect(snapshot.canUndo).toBe(false)
+    h.session.stop()
+  })
+  it('should_reject_whole_workbook_input_with_duplicate_page_ids_and_keep_current_root', async () => {
+    const h = await workbookReady()
+    const current = h.session.getSnapshot().root
+    const text = JSON.stringify({ kind: 'workbook', schemaVersion: 1, id: 'book', title: 'Bad', revision: 0, pages: [createDocument('dup'), createDocument('dup')] })
+    expect(await h.session.openFile({ name: 'bad.json', size: text.length, text: async () => text }, 'open')).toBe(false)
+    expect(h.session.getSnapshot().root).toBe(current)
+    h.session.stop()
+  })
+  it('should_ignore_a_stale_open_when_newer_work_was_accepted_since_the_read_began', async () => {
+    const h = await workbookReady()
+    const generation = h.session.generation()
+    expect(h.session.workbookCommand({ type: 'newWorkbook' })).toBe(true)
+    const newer = h.session.getSnapshot().root
+    const text = JSON.stringify(createDocument('late', 'Late'))
+    expect(await h.session.openFile({ name: 'late.json', size: text.length, text: async () => text }, 'open', generation)).toBe(false)
+    expect(h.session.getSnapshot().root).toBe(newer)
+    h.session.stop()
+  })
+  it('should_start_new_workbook_through_replace_guard_with_unchanged_baseline', async () => {
+    const h = await workbookReady()
+    h.session.command({ type: 'metadata', patch: { title: 'Unsaved' } })
+    vi.mocked(h.dependencies.confirmReplace).mockReturnValueOnce(false)
+    expect(h.session.workbookCommand({ type: 'newWorkbook' })).toBe(false)
+    expect(isWorkbook(h.session.getSnapshot().root)).toBe(false)
+    expect(h.session.workbookCommand({ type: 'newWorkbook' })).toBe(true)
+    const snapshot = h.session.getSnapshot()
+    expect(isWorkbook(snapshot.root) && snapshot.root.pages).toHaveLength(1)
+    expect(snapshot.canUndo).toBe(false)
+    h.session.stop()
+  })
+  it('should_refuse_workbook_commands_when_read_only', async () => {
+    const h = harness(sampleDiagram())
+    await settle()
+    expect(h.session.workbookCommand({ type: 'addPage' })).toBe(false)
+    h.session.stop()
+  })
+})
+
+describe('workbook MCP and document exports DGM151C/D', () => {
+  const context = () => ({ deadline: Date.now() + 10000, active: () => true })
+  async function bookReady() {
+    const h = await ready(sampleDiagram())
+    let next = 0
+    h.dependencies.newId = () => `wb-${++next}`
+    h.session.setMcpGuard(() => null)
+    h.session.workbookCommand({ type: 'addPage' })
+    return h
+  }
+  async function state(h: Awaited<ReturnType<typeof bookReady>>) {
+    const result = await h.session.mcpWorkbook({ name: 'get_workbook', arguments: {} }, context())
+    if (!result.ok || !('value' in result)) throw new Error('get_workbook failed')
+    return result.value
+  }
+  it('should_reject_create_diagram_without_discarding_pages_when_root_is_workbook', async () => {
+    const h = await bookReady()
+    const root = h.session.getSnapshot().root
+    const result = await h.session.mcpMutate({ name: 'create_diagram', arguments: { stateToken: h.session.mcpState().stateToken } }, context())
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.message).toMatch(/edit_workbook/)
+    expect(h.session.getSnapshot().root).toBe(root)
+    h.session.stop()
+  })
+  it('should_edit_only_the_named_page_and_rotate_tokens_when_edit_workbook_succeeds', async () => {
+    const h = await bookReady()
+    const before = await state(h)
+    expect(before.kind).toBe('workbook')
+    expect(before.pages).toHaveLength(2)
+    const [first, second] = before.pages
+    const rootBefore = h.session.getSnapshot().root
+    const result = await h.session.mcpWorkbook({ name: 'edit_workbook', arguments: { stateToken: before.stateToken, commands: [{ type: 'renamePage', pageId: first!.id, title: 'Renamed first' }] } }, context())
+    expect(result.ok).toBe(true)
+    const after = await state(h)
+    expect(after.stateToken).not.toBe(before.stateToken)
+    expect(after.pages[0]!.title).toBe('Renamed first')
+    expect(after.pages[1]!.stateToken).toBe(second!.stateToken)
+    const rootAfter = h.session.getSnapshot().root
+    if (!isWorkbook(rootAfter) || !isWorkbook(rootBefore)) throw new Error('Expected workbook')
+    expect(rootAfter.pages[1]).toBe(rootBefore.pages[1])
+    // The old root token is now stale and must not mutate anything.
+    const stale = await h.session.mcpWorkbook({ name: 'edit_workbook', arguments: { stateToken: before.stateToken, commands: [{ type: 'renamePage', pageId: second!.id, title: 'Wrong' }] } }, context())
+    expect(stale.ok).toBe(false)
+    expect(h.session.getSnapshot().root).toBe(rootAfter)
+    h.session.stop()
+  })
+  it('should_reject_duplicate_page_ids_and_non_permutation_reorders_atomically', async () => {
+    const h = await bookReady()
+    const before = await state(h), root = h.session.getSnapshot().root
+    const duplicate = await h.session.mcpWorkbook({ name: 'edit_workbook', arguments: { stateToken: before.stateToken, commands: [{ type: 'renamePage', pageId: before.pages[0]!.id, title: 'Changed' }, { type: 'addPage', pageId: before.pages[1]!.id }] } }, context())
+    expect(duplicate.ok).toBe(false)
+    const partial = await h.session.mcpWorkbook({ name: 'edit_workbook', arguments: { stateToken: before.stateToken, commands: [{ type: 'reorderPages', pageIds: [before.pages[0]!.id] }] } }, context())
+    expect(partial.ok).toBe(false)
+    expect(h.session.getSnapshot().root).toBe(root)
+    h.session.stop()
+  })
+  it('should_export_page_with_page_token_and_workbook_json_with_root_token', async () => {
+    const h = await bookReady()
+    const current = await state(h)
+    const page = current.pages[1]!
+    const pageJson = await h.session.mcpWorkbook({ name: 'export_workbook', arguments: { stateToken: page.stateToken, scope: 'page', pageId: page.id, format: 'json' } }, context())
+    expect(pageJson.ok && 'output' in pageJson).toBe(true)
+    if (pageJson.ok && 'output' in pageJson) {
+      const meta = JSON.parse(pageJson.output.content[1].text)
+      expect(meta).toMatchObject({ scope: 'page', ownerId: page.id })
+    }
+    const wrongPage = await h.session.mcpWorkbook({ name: 'export_workbook', arguments: { stateToken: page.stateToken, scope: 'page', pageId: current.pages[0]!.id, format: 'json' } }, context())
+    expect(wrongPage.ok).toBe(false)
+    const whole = await h.session.mcpWorkbook({ name: 'export_workbook', arguments: { stateToken: current.stateToken, scope: 'workbook', format: 'json' } }, context())
+    expect(whole.ok && 'output' in whole).toBe(true)
+    if (whole.ok && 'output' in whole) {
+      const resource = whole.output.content[0] as { type: 'resource'; resource: { text: string } }
+      expect(JSON.parse(resource.resource.text)).toEqual(h.session.getSnapshot().root)
+    }
+    h.session.stop()
+  })
+  it('should_save_workbook_export_without_clearing_backup_marker_when_document_export_is_used', async () => {
+    const h = await bookReady()
+    const saveFile = vi.fn(async () => true)
+    h.dependencies.saveFile = saveFile
+    const dirty = h.session.getSnapshot().backupDirty
+    await h.session.exportDocument({ scope: 'workbook', format: 'json' })
+    expect(saveFile).toHaveBeenCalledTimes(1)
+    expect(h.session.getSnapshot().backupDirty).toBe(dirty)
+    await h.session.exportDocument({ scope: 'workbook', format: 'pdf' })
+    expect(h.session.getSnapshot().message).toMatch(/PDF export is available in the desktop app only/)
+    expect(saveFile).toHaveBeenCalledTimes(1)
+    h.session.stop()
   })
 })

@@ -2,15 +2,16 @@ import { validateDocument } from '../document/index.ts'
 import type { Diagram } from '../model.ts'
 import { searchableLibrary } from '../catalog/presentation.ts'
 import { starterCatalog } from './starters.ts'
-import { validateMutation, validateOutputOperation } from '../../electron/mcp-schema.mjs'
-import type { McpDocumentState, McpRequest, McpMutationResult, McpOperation, McpOutputOperation, McpOutputResult } from './mcp-contract.ts'
+import { validateMutation, validateOutputOperation, validateWorkbookOperation } from '../../electron/mcp-schema.mjs'
+import type { McpDocumentState, McpRequest, McpMutationResult, McpOperation, McpOutputOperation, McpOutputResult, McpWorkbookOperation, McpWorkbookResult } from './mcp-contract.ts'
 
 export type McpStatus = { state: 'running' | 'unavailable' | 'error'; address?: string; snapshotAvailable: boolean; message?: string }
 export type McpActionResult = { ok: true } | { ok: false; message: string }
 export interface DesktopMcp {
   status(): Promise<McpStatus>
+  readPort(): Promise<number>
+  savePort(port: number): Promise<number>
   copyAddress(): Promise<McpActionResult>
-  copyToken(): Promise<McpActionResult>
   publishSnapshot(text: string | null): Promise<McpActionResult>
   onMutation?(callback: (request: McpRequest) => void, canceled: (id: string) => void): () => void
   mutationActive?(id: string): Promise<boolean>
@@ -54,6 +55,7 @@ export function publishMcpSession(session: SessionSource, bridge: DesktopMcp) {
 type MutationSession = {
   mcpMutate(operation: McpOperation, context: { deadline: number; active(): boolean }): Promise<McpMutationResult>
   mcpOutput?(operation: McpOutputOperation, context: { deadline: number; active(): boolean }): Promise<McpOutputResult>
+  mcpWorkbook?(operation: McpWorkbookOperation, context: { deadline: number; active(): boolean }): Promise<McpWorkbookResult>
 }
 export function listenMcpMutations(session: MutationSession, bridge: DesktopMcp) {
   if (!bridge.onMutation || !bridge.completeMutation || !bridge.mutationActive) return () => {}
@@ -63,7 +65,7 @@ export function listenMcpMutations(session: MutationSession, bridge: DesktopMcp)
     if (!request || typeof request !== 'object' || Object.keys(request).length !== 3 ||
         typeof request.id !== 'string' || !request.id || request.id.length > 200 ||
         !Number.isSafeInteger(request.deadline) || Date.now() >= request.deadline ||
-        (!validateMutation(request.operation) && !validateOutputOperation(request.operation)) || pending.has(request.id)) return
+        (!validateMutation(request.operation) && !validateOutputOperation(request.operation) && !validateWorkbookOperation(request.operation)) || pending.has(request.id)) return
     const state = { active: true }
     pending.set(request.id, state)
     void (async () => {
@@ -71,7 +73,10 @@ export function listenMcpMutations(session: MutationSession, bridge: DesktopMcp)
         if (!await bridge.mutationActive!(request.id) || !live || !state.active || Date.now() >= request.deadline) return
         const context = { deadline: request.deadline, active: () => live && state.active }
         const operation = request.operation
-        const result = operation.name === 'snapshot_diagram' || operation.name === 'export_diagram'
+        // Workbook tools route only to the root-aware session; never to page-bound legacy handlers.
+        const result = operation.name === 'get_workbook' || operation.name === 'edit_workbook' || operation.name === 'export_workbook'
+          ? await session.mcpWorkbook?.(operation, context) ?? { ok: false, message: 'Workbook tools unavailable.' }
+          : operation.name === 'snapshot_diagram' || operation.name === 'export_diagram'
           ? await session.mcpOutput?.(operation, context) ?? { ok: false, message: 'Output unavailable.' }
           : await session.mcpMutate(operation, context)
         if (live && state.active) await bridge.completeMutation!(request.id, JSON.stringify(result))

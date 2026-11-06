@@ -1,6 +1,5 @@
 import { createServer } from 'node:http'
-import { randomBytes, timingSafeEqual } from 'node:crypto'
-import { mutationTools, validateMutation, outputTools, validateOutputOperation } from './mcp-schema.mjs'
+import { mutationTools, validateMutation, outputTools, validateOutputOperation, workbookTools, validateWorkbookOperation } from './mcp-schema.mjs'
 
 export const DEFAULT_MCP_PORT = 37431
 export const MCP_VERSIONS = Object.freeze(['2025-06-18', '2025-03-26'])
@@ -14,7 +13,7 @@ const tools = [
   { name: 'search_catalog', description: 'Search the existing selectable component catalog by label, category, aliases and keywords.', inputSchema: { type: 'object', properties: { query: { type: 'string', maxLength: 200 }, limit: { type: 'integer', minimum: 1, maximum: 100, default: 25 } }, required: ['query'], additionalProperties: false } },
   { name: 'list_templates', description: 'List the existing starting diagram identities without opening or modifying them.', inputSchema: emptySchema },
   { name: 'get_app_info', description: 'Read the running desktop app version and read-only access scope.', inputSchema: emptySchema },
-].map(tool => ({ ...tool, annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false } })).concat(mutationTools, outputTools)
+].map(tool => ({ ...tool, annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false } })).concat(mutationTools, outputTools, workbookTools)
 const record = value => value !== null && typeof value === 'object' && !Array.isArray(value)
 const exact = (value, allowed) => record(value) && Object.keys(value).every(key => allowed.includes(key))
 const empty = value => value === undefined || (record(value) && Object.keys(value).length === 0)
@@ -43,10 +42,12 @@ async function dispatch(message, store, version, mutate, signal, beginArrangemen
   if (method === 'tools/list') return empty(params) ? result({ tools }) : invalid()
   if (method !== 'tools/call') return failure(id, -32601, 'Method not found')
   if (!exact(params, ['name', 'arguments']) || !tools.some(tool => tool.name === params.name)) return invalid()
-  if ([...mutationTools, ...outputTools].some(tool => tool.name === params.name)) {
-    if (!validateMutation(params) && !validateOutputOperation(params)) return invalid()
+  // Workbook tools (DGM-151D) share the renderer-session broker; get_workbook is
+  // answered by the live session so its root/page tokens are never stale copies.
+  if ([...mutationTools, ...outputTools, ...workbookTools].some(tool => tool.name === params.name)) {
+    if (!validateMutation(params) && !validateOutputOperation(params) && !validateWorkbookOperation(params)) return invalid()
     if (!store.available() || !mutate) return result({ content: [{ type: 'text', text: 'Current workspace is unavailable.' }], isError: true })
-    if (params.name === 'arrange_diagram') beginArrangement()
+    if (params.name === 'arrange_diagram' || params.name === 'export_workbook') beginArrangement()
     const outcome = await mutate(params, signal)
     return outcome.ok ? result(outcome.output ?? content(outcome.value)) : result({ content: [{ type: 'text', text: outcome.message }], isError: true })
   }
@@ -65,22 +66,18 @@ async function dispatch(message, store, version, mutate, signal, beginArrangemen
   return result(content({ entries: entries.slice(0, args.limit ?? 25), total: entries.length }))
 }
 
-// Pseudocode: own one loopback listener and secret for this launch; authenticate
-// before routing; reject browser origins and rebinding; bound reads/work/time;
+// Pseudocode: own one loopback listener; reject browser origins and rebinding;
+// bound reads/work/time;
 // dispatch a stateless JSON response; on stop destroy pending sockets promptly.
 export function createMcpServer({ version, store, mutate, port = DEFAULT_MCP_PORT, log = console.error }) {
-  const token = randomBytes(32).toString('hex')
-  const expectedAuth = Buffer.from(`Bearer ${token}`)
-  let state = 'unavailable', address, server, starting, inFlight = 0
+  let state = 'unavailable', address, server, starting, inFlight = 0, message
   const sockets = new Set()
-  function status() { return { state, ...(address ? { address } : {}), snapshotAvailable: store.available(), ...(state === 'error' ? { message: 'Local MCP server could not start. Restart the app to retry.' } : {}) } }
+  function status() { return { state, ...(address ? { address } : {}), snapshotAvailable: store.available(), ...(state === 'error' ? { message: message ?? 'Local MCP server could not start. Restart the app to retry.' } : {}) } }
   function respond(response, statusCode, body) {
     response.writeHead(statusCode, { 'content-type': 'application/json', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff', ...(statusCode === 405 ? { allow: 'POST' } : {}) })
     response.end(body === undefined ? undefined : JSON.stringify(body))
   }
   async function handle(request, response) {
-    const auth = Buffer.from(request.headers.authorization ?? '')
-    if (auth.length !== expectedAuth.length || !timingSafeEqual(auth, expectedAuth)) { respond(response, 401, { error: 'Bearer authorization required' }); return }
     if (request.headers.host !== new URL(address).host || request.headers.origin !== undefined || request.headers['sec-fetch-site'] === 'cross-site') { respond(response, 403, { error: 'Local non-browser clients only' }); return }
     if (request.url !== '/mcp') { respond(response, 404, { error: 'Not found' }); return }
     if (request.method !== 'POST') { respond(response, 405, { error: 'Use POST; server push is not supported' }); return }
@@ -130,7 +127,7 @@ export function createMcpServer({ version, store, mutate, port = DEFAULT_MCP_POR
       server.listen(listenPort, '127.0.0.1')
     })
   }
-  async function start() {
+  async function start(listenPort = port) {
     if (state === 'running') return
     if (starting) return starting
     starting = (async () => {
@@ -138,12 +135,12 @@ export function createMcpServer({ version, store, mutate, port = DEFAULT_MCP_POR
       server.maxConnections = 32
       server.on('connection', socket => { sockets.add(socket); socket.once('close', () => sockets.delete(socket)); socket.setTimeout(REQUEST_TIMEOUT_MS, () => socket.destroy()) })
       try {
-        try { await listen(port) } catch (error) { if (error.code !== 'EADDRINUSE') throw error; await listen(0) }
+        await listen(listenPort)
         address = `http://127.0.0.1:${server.address().port}/mcp`
         state = 'running'
-        server.on('error', () => { state = 'error'; address = undefined; store.clear(); log('Local MCP server failed', { code: 'listener-error' }) })
+        server.on('error', () => { state = 'error'; address = undefined; message = 'Local MCP server failed. Change the saved port in Settings and restart the app to retry.'; store.clear(); log('Local MCP server failed', { code: 'listener-error' }) })
       } catch {
-        state = 'error'; address = undefined
+        state = 'error'; address = undefined; message = 'Local MCP server could not start. Change the saved port in Settings and restart the app to retry.'
         log('Local MCP server failed', { code: 'listen-failed' })
       }
     })()
@@ -155,5 +152,11 @@ export function createMcpServer({ version, store, mutate, port = DEFAULT_MCP_POR
     for (const socket of sockets) socket.destroy()
     if (server?.listening) await new Promise(resolve => server.close(resolve))
   }
-  return { start, stop, status, accessToken: () => token }
+  function reportConfigurationError(error) {
+    state = 'error'; address = undefined
+    message = `MCP port settings could not be read. Save a valid port in Settings to repair: ${error.message}`
+    store.clear()
+    log('Local MCP server configuration failed', { code: 'port-settings-invalid' })
+  }
+  return { start, stop, status, reportConfigurationError }
 }

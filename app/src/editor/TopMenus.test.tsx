@@ -11,7 +11,7 @@ function setup(disabled = false) {
   function Harness() {
     const [open, setOpen] = useState<string | null>(null)
     return <><TopMenus open={open} onOpen={setOpen} disabled={disabled} menus={[
-      { label: 'File', items: [{ label: 'New diagram', run }, { label: 'Open JSON', disabled: true, run }, { label: 'Save JSON', run }] },
+      { label: 'File', items: [{ label: 'New diagram', run }, { label: 'Load', disabled: true, run }, { label: 'Save', run }] },
       { label: 'View', items: [{ label: 'Component library', checked: true, run }] },
       { label: 'Settings', items: [{ label: 'Help', run }] },
     ]} /><button>Outside</button></>
@@ -26,12 +26,12 @@ it('should_navigate_menubar_and_menu_restore_focus_and_run_only_enabled_actions'
   fireEvent.keyDown(file, { key: 'ArrowDown' })
   expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'New diagram' }))
   fireEvent.keyDown(document.activeElement!, { key: 'ArrowDown' })
-  const unavailable = screen.getByRole('menuitem', { name: 'Open JSON' })
+  const unavailable = screen.getByRole('menuitem', { name: 'Load' })
   expect(document.activeElement).toBe(unavailable)
   fireEvent.click(unavailable)
   expect(run).not.toHaveBeenCalled()
   fireEvent.keyDown(unavailable, { key: 'End' })
-  expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'Save JSON' }))
+  expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'Save' }))
   fireEvent.keyDown(document.activeElement!, { key: 'Home' })
   expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'New diagram' }))
   fireEvent.keyDown(document.activeElement!, { key: 'ArrowRight' })
@@ -40,7 +40,7 @@ it('should_navigate_menubar_and_menu_restore_focus_and_run_only_enabled_actions'
   fireEvent.keyDown(document.activeElement!, { key: 'Escape' })
   expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'View menu' }))
   fireEvent.click(file)
-  fireEvent.click(screen.getByRole('menuitem', { name: 'Save JSON' }))
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Save' }))
   expect(run).toHaveBeenCalledOnce()
   expect(document.activeElement).toBe(file)
 })

@@ -34,6 +34,7 @@ async function mount(page: Page, spacing = 16, snap = true, readOnly = false) {
       root.render(React.createElement(Editor, {
         document: history.present, canUndo: !!history.past.length, canRedo: !!history.future.length, readOnly, saveState: readOnly ? 'read-only' : 'saved', backupDirty: false, message: evidence.errors.at(-1) ?? '', isArranging: false, isExporting: false,
         onCommand(command: any) { evidence.commands.push(command); try { history = historyCommit(history, applyCommand(history.present, command)); render() } catch (error) { evidence.errors.push(String(error)); render() } },
+        onBoundaryOperation(operation: any) { try { const next = operation(history.present); if (next !== history.present) { evidence.commands.push({ type: 'boundary-operation' }); history = historyCommit(history, next); render() } } catch (error) { evidence.errors.push(String(error)); render() } },
         onPreviewChange(preview: any) { evidence.previews.push(preview) }, onUndo() { history = historyUndo(history); render() }, onRedo() { history = historyRedo(history); render() },
         onNew() {}, onOpen() {}, onImport() {}, onSaveJson() {}, onArrange() {}, onExport() {},
       }))
@@ -58,7 +59,7 @@ async function drag(page: Page, id: string, dx: number, dy: number) {
   await page.mouse.down()
   await page.mouse.move(x + dx, y + dy, { steps: 12 })
   await page.mouse.up()
-  await page.waitForFunction(() => (window as any).__grid115.commands.length > 0)
+  await page.waitForFunction(() => ((window as any).__grid115 ?? (window as any).__dgm153)?.commands.length > 0)
 }
 
 function absolute(document: any, id: string): { x: number; y: number } {
@@ -152,12 +153,12 @@ test('should_verify_grid_with_real_nested_pointer_gestures_and_export_pixels_in_
       await page.waitForFunction(document => JSON.stringify((window as any).__grid115.document) === JSON.stringify(document), beforeResize.document)
       await page.locator('.react-flow__node[data-id="inner"]').click({ position: { x: 35, y: 22 } })
       const topLeft = page.locator('.react-flow__node[data-id="inner"] .react-flow__resize-control.top.left.handle')
-      expect(await topLeft.isHidden()).toBe(true)
-      expect(await page.locator('.react-flow__node[data-id="inner"] .react-flow__resize-control.top.line').isHidden()).toBe(true)
-      expect(await page.locator('.react-flow__node[data-id="inner"] .react-flow__resize-control.left.line').isHidden()).toBe(true)
+      expect(await topLeft.isVisible()).toBe(true)
+      expect(await page.locator('.react-flow__node[data-id="inner"] .react-flow__resize-control.top.line').isVisible()).toBe(true)
+      expect(await page.locator('.react-flow__node[data-id="inner"] .react-flow__resize-control.left.line').isVisible()).toBe(true)
       expect(await page.locator('.react-flow__node[data-id="inner"] .react-flow__resize-control.bottom.right.handle').isVisible()).toBe(true)
       await page.screenshot({ path: resolve(output, `browser-nested-${snap ? 'on' : 'off'}.png`) })
-      report.push({ case: `nested-pointer-${snap ? 'on' : 'off'}`, before, childAbsolute, after: grouped.document, resized: resized.document, commands: resized.commands, supportedResize: 'bottom/right/bottom-right', unsupportedCornersRemainHidden: true, phase, errors })
+      report.push({ case: `nested-pointer-${snap ? 'on' : 'off'}`, before, childAbsolute, after: grouped.document, resized: resized.document, commands: resized.commands, supportedResize: 'all borders and corners', phase, errors })
       expect(errors).toEqual([])
       await page.close()
     }
@@ -273,5 +274,94 @@ test('should_verify_grid_with_real_nested_pointer_gestures_and_export_pixels_in_
     console.info('DGM144 grid stage', 'server-close-start', new Date().toISOString())
     await server.close()
     console.info('DGM144 grid stage', 'server-close-complete', new Date().toISOString())
+  }
+}, 180_000)
+
+test('should_commit_boundary_membership_and_direct_border_resize_with_real_pointer_history_DGM153', async () => {
+  const dgm153Output = resolve('test-results/dgm153/browser')
+  await mkdir(dgm153Output, { recursive: true })
+  const server = await createServer({ root: resolve('.'), cacheDir: resolve('test-results/dgm153/vite-cache'), resolve: { dedupe: ['react', 'react-dom', '@xyflow/react'] }, optimizeDeps: { force: true }, server: { host: '127.0.0.1', port: 0, strictPort: true, open: false } })
+  await server.listen()
+  const address = server.httpServer!.address() as { port: number }
+  const browser = await chromium.launch({ channel: 'msedge', headless: true })
+  const report: Record<string, unknown> = {}
+  try {
+    const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+    const errors: string[] = []
+    page.on('pageerror', error => errors.push(error.message))
+    await page.goto(`http://127.0.0.1:${address.port}/src/editor/Dgm153Harness.html`)
+    await page.locator('.react-flow__node[data-id="child"]').waitFor()
+    await page.evaluate(() => document.fonts.ready)
+    await page.getByLabel('Close component library', { exact: true }).click()
+    await page.getByLabel('Fit diagram', { exact: true }).click()
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+
+    const peer = page.locator('.react-flow__node[data-id="peer"]')
+    const inner = page.locator('.react-flow__node[data-id="inner"]')
+    const peerBounds = await peer.boundingBox(), innerBounds = await inner.boundingBox()
+    expect(peerBounds).not.toBeNull(); expect(innerBounds).not.toBeNull()
+    await drag(page, 'peer', innerBounds!.x + innerBounds!.width / 2 - peerBounds!.x - 35, innerBounds!.y + innerBounds!.height / 2 - peerBounds!.y - 22)
+    await page.waitForFunction(() => (window as any).__dgm153.document.entities.find((entity: any) => entity.id === 'peer')?.parentId === 'inner')
+    const adopted = await page.evaluate(() => (window as any).__dgm153)
+    expect(adopted.errors).toEqual([])
+    expect(adopted.commands.at(-1)).toEqual({ type: 'boundary-operation' })
+    await page.keyboard.press('Control+z')
+    await page.waitForFunction(() => (window as any).__dgm153.document.entities.find((entity: any) => entity.id === 'peer')?.parentId === null)
+
+    const beforeResize = await page.evaluate(() => (window as any).__dgm153)
+    const childBefore = absolute(beforeResize.document, 'child')
+    const topLeft = inner.locator('.react-flow__resize-control.top.left.handle')
+    const topLeftBounds = await topLeft.boundingBox()
+    expect(topLeftBounds).not.toBeNull()
+    await page.mouse.move(topLeftBounds!.x + topLeftBounds!.width / 2, topLeftBounds!.y + topLeftBounds!.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(topLeftBounds!.x - 32, topLeftBounds!.y - 24, { steps: 8 })
+    await page.mouse.up()
+    await page.waitForFunction(count => (window as any).__dgm153.commands.length > count, beforeResize.commands.length)
+    const resized = await page.evaluate(() => (window as any).__dgm153)
+    expect(resized.commands.at(-1)).toEqual({ type: 'boundary-operation' })
+    expect(absolute(resized.document, 'child')).toEqual(childBefore)
+    const resizedInner = resized.document.entities.find((entity: any) => entity.id === 'inner')
+    expect(resizedInner.x).toBeLessThan(beforeResize.document.entities.find((entity: any) => entity.id === 'inner').x)
+    expect(resizedInner.y).toBeLessThan(beforeResize.document.entities.find((entity: any) => entity.id === 'inner').y)
+
+    const beforeCancel = await page.evaluate(() => (window as any).__dgm153)
+    const left = inner.locator('.react-flow__resize-control.left.line')
+    const leftBounds = await left.boundingBox()
+    expect(leftBounds).not.toBeNull()
+    await page.mouse.move(leftBounds!.x + leftBounds!.width / 2, leftBounds!.y + leftBounds!.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(leftBounds!.x - 24, leftBounds!.y + leftBounds!.height / 2, { steps: 4 })
+    await page.keyboard.press('Escape')
+    await page.mouse.up()
+    await page.waitForTimeout(100)
+    const cancelled = await page.evaluate(() => (window as any).__dgm153)
+    expect(cancelled.document).toEqual(beforeCancel.document)
+    expect(cancelled.commands).toEqual(beforeCancel.commands)
+
+    const child = page.locator('.react-flow__node[data-id="child"]')
+    const childBounds = await child.boundingBox()
+    const outerBounds = await page.locator('.react-flow__node[data-id="outer"]').boundingBox()
+    expect(childBounds).not.toBeNull(); expect(outerBounds).not.toBeNull()
+    await drag(page, 'child', outerBounds!.x + outerBounds!.width + 48 - childBounds!.x - 35, 0)
+    await page.waitForFunction(() => (window as any).__dgm153.document.entities.find((entity: any) => entity.id === 'child')?.parentId === null)
+    const escaped = await page.evaluate(() => (window as any).__dgm153)
+    expect(escaped.errors).toEqual([])
+    report.adopted = adopted.document
+    report.resized = resized.document
+    report.cancelled = cancelled.document
+    report.escaped = escaped.document
+    report.historyEdits = escaped.commands.length
+    report.errors = errors
+    await page.screenshot({ path: resolve(dgm153Output, 'boundary-pointer-final.png') })
+    await page.close()
+    expect(errors).toEqual([])
+    await writeFile(resolve(dgm153Output, 'boundary-pointer-report.json'), JSON.stringify({ status: 'passed', report }, null, 2))
+  } catch (error) {
+    await writeFile(resolve(dgm153Output, 'boundary-pointer-report-failed.json'), JSON.stringify({ status: 'failed', error: String(error), report }, null, 2))
+    throw error
+  } finally {
+    await browser.close()
+    await server.close()
   }
 }, 180_000)

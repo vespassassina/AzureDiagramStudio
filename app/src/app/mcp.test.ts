@@ -10,7 +10,7 @@ describe('committed desktop MCP publisher DGM131', () => {
   it('should_route_output_to_the_read_only_session_and_reject_malformed_or_expired_bridge_requests', async () => {
     let receive: (request: McpRequest) => void = () => {}
     const bridge: DesktopMcp = {
-      status: vi.fn(), copyAddress: vi.fn(), copyToken: vi.fn(), publishSnapshot: vi.fn(),
+      status: vi.fn(), readPort: vi.fn(), savePort: vi.fn(), copyAddress: vi.fn(), publishSnapshot: vi.fn(),
       onMutation: callback => { receive = callback; return () => {} },
       mutationActive: vi.fn(async () => true), completeMutation: vi.fn(async () => true),
     }
@@ -31,7 +31,7 @@ describe('committed desktop MCP publisher DGM131', () => {
   it('should_publish_valid_committed_changes_and_static_existing_metadata_once_not_drafts', async () => {
     let snapshot = { document: createDocument('test'), saveState: 'loading' as string }
     let notify = () => {}
-    const bridge: DesktopMcp = { status: vi.fn(), copyAddress: vi.fn(), copyToken: vi.fn(), publishSnapshot: vi.fn(async () => ({ ok: true as const })) }
+    const bridge: DesktopMcp = { status: vi.fn(), readPort: vi.fn(), savePort: vi.fn(), copyAddress: vi.fn(), publishSnapshot: vi.fn(async () => ({ ok: true as const })) }
     const stop = publishMcpSession({ getSnapshot: () => snapshot, subscribe: listener => { notify = listener; return () => {} } }, bridge)
     expect(bridge.publishSnapshot).toHaveBeenLastCalledWith(null)
     snapshot = { ...snapshot, saveState: 'saved' }; notify()
@@ -52,7 +52,7 @@ describe('committed desktop MCP publisher DGM131', () => {
     expect(bridge.publishSnapshot).toHaveBeenLastCalledWith(null)
   })
   it('should_publish_unavailable_when_existing_domain_validation_rejects_a_document', () => {
-    const bridge: DesktopMcp = { status: vi.fn(), copyAddress: vi.fn(), copyToken: vi.fn(), publishSnapshot: vi.fn(async () => ({ ok: true as const })) }
+    const bridge: DesktopMcp = { status: vi.fn(), readPort: vi.fn(), savePort: vi.fn(), copyAddress: vi.fn(), publishSnapshot: vi.fn(async () => ({ ok: true as const })) }
     const stop = publishMcpSession({ getSnapshot: () => ({ document: { ...createDocument('invalid'), revision: -1 }, saveState: 'saved' }), subscribe: () => () => {} }, bridge)
     expect(bridge.publishSnapshot).toHaveBeenLastCalledWith(null)
     stop()
@@ -64,7 +64,7 @@ describe('committed desktop MCP publisher DGM131', () => {
     let resolve!: (result: McpMutationResult) => void
     const pending = new Promise<McpMutationResult>(yes => { resolve = yes })
     const bridge: DesktopMcp = {
-      status: vi.fn(), copyAddress: vi.fn(), copyToken: vi.fn(), publishSnapshot: vi.fn(),
+      status: vi.fn(), readPort: vi.fn(), savePort: vi.fn(), copyAddress: vi.fn(), publishSnapshot: vi.fn(),
       onMutation: (callback, canceled) => { receive = callback; cancel = canceled; return vi.fn() },
       mutationActive: vi.fn(async () => true), completeMutation: vi.fn(async () => true),
     }

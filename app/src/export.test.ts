@@ -42,6 +42,14 @@ test.each(['dots', 'lines'] as const)('should_export_grid_%s_independently_of_ed
   expect(await exportSvg(hidden, false, true)).toContain('<pattern ')
 })
 
+test.each(['dots', 'lines'] as const)('should_render_explicit_grid_color_%s_only_when_grid_output_is_enabled_DGM156', async style => {
+  rasterEnvironment()
+  const document = { ...createDocument(`grid-color-${style}`, ''), schemaVersion: 2 as const, grid: { ...effectiveGrid(), style, visible: false, present: false, export: true, color: '#0070c0' } }
+  const svg = await exportSvg(document, false)
+  expect(svg).toMatch(style === 'dots' ? /<circle[^>]+fill="#0070c0"/ : /<path[^>]+stroke="#0070c0"/)
+  expect(await exportSvg({ ...document, grid: { ...document.grid, export: false } }, false)).not.toContain('#0070c0')
+})
+
 test('should_embed_font_and_escape_complete_metadata_when_exporting_svg', async () => {
   const document = { ...createDocument('export', '<title> & "'), subtitle: '<subtitle> \'', synthetic: false }
   const svg = await exportSvg(document)

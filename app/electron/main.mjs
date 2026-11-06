@@ -4,20 +4,32 @@ import { APP_ID, PRODUCT_NAME, PROFILE_NAME, STUDIO_URL, SCHEME_PRIVILEGES, WIND
 import { createLocalHandler } from './protocol.mjs'
 import { secureSession, secureWindow } from './security.mjs'
 import { createMcpServer } from './mcp.mjs'
-import { createSnapshotStore, createMutationBroker, registerMcpBridge } from './mcp-bridge.mjs'
+import { createSnapshotStore, createMutationBroker, registerMcpBridge, trustedSender } from './mcp-bridge.mjs'
+import { createPdfRenderer } from './pdf.mjs'
+import { createMcpPortSettings } from './mcp-port-settings.mjs'
 import { createWorkspaceSettings, registerWorkspaceBridge } from './workspace.mjs'
+import { createRecentFiles, registerRecentBridge } from './recent.mjs'
+import { runHeadless } from './headless-cli.mjs'
 
 protocol.registerSchemesAsPrivileged([{ scheme: 'ads', privileges: SCHEME_PRIVILEGES }])
 app.setName(PRODUCT_NAME)
 app.setAppUserModelId(APP_ID)
-const profileRoot = app.commandLine.getSwitchValue('user-data-dir') || app.getPath('appData')
-app.setPath('userData', path.join(profileRoot, PROFILE_NAME))
-
-const ownsProfile = app.requestSingleInstanceLock()
-let window
-if (!ownsProfile) app.quit()
-else {
+const headlessIndex = process.argv.indexOf('--headless-cli')
+if (headlessIndex >= 0) {
+  app.on('window-all-closed', event => event.preventDefault())
+  void runHeadless(process.argv.slice(headlessIndex + 1)).then(code => {
+    process.exitCode = code
+    process.stderr.write(`\u001eADS_EXIT:${code}\n`, () => process.exit(code))
+  })
+} else {
+  const profileRoot = app.commandLine.getSwitchValue('user-data-dir') || app.getPath('appData')
+  app.setPath('userData', path.join(profileRoot, PROFILE_NAME))
+  const ownsProfile = app.requestSingleInstanceLock()
+  let window
+  if (!ownsProfile) app.quit()
+  else {
   const store = createSnapshotStore()
+  const mcpSettings = createMcpPortSettings({ profile: app.getPath('userData') })
   const broker = createMutationBroker({ send: request => {
     if (!window || window.isDestroyed() || window.webContents.isDestroyed()) throw new Error('Renderer unavailable')
     window.webContents.send('mcp:mutation', request)
@@ -45,11 +57,22 @@ else {
     secureSession(session.defaultSession)
     await protocol.handle('ads', createLocalHandler(root))
     Menu.setApplicationMenu(null)
-    await mcp.start()
+    try { await mcp.start(await mcpSettings.readPort()) }
+    catch (error) { mcp.reportConfigurationError(error) }
     window = new BrowserWindow({ ...WINDOW_OPTIONS, webPreferences: { ...WINDOW_OPTIONS.webPreferences, preload: path.join(app.getAppPath(), 'electron', 'preload.cjs') }, icon: path.join(root, 'branding', 'app-icon.ico') })
     secureWindow(window)
-    registerMcpBridge({ ipcMain, clipboard, window, server: mcp, store, broker })
-    registerWorkspaceBridge({ ipcMain, window, settings: createWorkspaceSettings({ profile: app.getPath('userData'), documents: app.getPath('documents'), dialog, window }) })
+    registerMcpBridge({ ipcMain, clipboard, window, server: mcp, store, broker, settings: mcpSettings })
+    // DGM-151C: structured, data-only PDF jobs from the trusted studio frame only.
+    const renderPdf = createPdfRenderer({ BrowserWindow, ipcMain, appPath: app.getAppPath() })
+    ipcMain.handle('pdf:render', async (event, job) => {
+      if (!trustedSender(window, event)) throw new Error('Untrusted PDF sender')
+      return new Uint8Array(await renderPdf(job))
+    })
+    let workspaceSettings
+    const recent = createRecentFiles({ profile: app.getPath('userData'), onRecord: source => workspaceSettings?.markKnownDiagram(source) })
+    workspaceSettings = createWorkspaceSettings({ profile: app.getPath('userData'), documents: app.getPath('documents'), dialog, window, recent })
+    registerWorkspaceBridge({ ipcMain, window, settings: workspaceSettings })
+    registerRecentBridge({ ipcMain, window, dialog, recent })
     window.once('ready-to-show', () => window.show())
     await window.loadURL(STUDIO_URL)
   }).catch(error => {
@@ -57,4 +80,5 @@ else {
     dialog.showErrorBox(PRODUCT_NAME, 'The bundled application could not be opened. Please obtain a fresh portable executable. Your saved diagrams remain in your Windows profile.')
     app.quit()
   })
+  }
 }

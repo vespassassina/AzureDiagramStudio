@@ -1,9 +1,14 @@
 import type { LayoutOptions, LayoutResult } from '../layout.ts'
 import { createStorage, watchSessionLock } from '../persistence/index.ts'
-import { download, exportPng, exportSvg } from '../export.ts'
+import { download, exportPng, exportSvg, rasterizeIcon } from '../export.ts'
 import type { Diagram, Direction } from '../model.ts'
 import type { LayoutJob, SessionDependencies } from './session.ts'
-import { saveWorkspaceExport } from './workspace.ts'
+import { saveWorkspaceDiagram, saveWorkspaceExport } from './workspace.ts'
+import type { PdfJob } from './workbook-output.ts'
+
+// DGM-151C: the desktop preload exposes a structured PDF job bridge only; the
+// browser build has none, so PDF export reports itself unavailable.
+declare global { interface Window { desktopPdf?: { render(job: PdfJob): Promise<Uint8Array> } } }
 
 export function workerLayout(document: Diagram, direction: Direction, options?: LayoutOptions): LayoutJob {
   const worker = new Worker(new URL('../layout-worker.ts', import.meta.url), { type: 'module' })
@@ -42,7 +47,8 @@ export function workerLayout(document: Diagram, direction: Direction, options?: 
 }
 
 export const browserDependencies: SessionDependencies = {
-  createStorage, watchLock: watchSessionLock, layout: workerLayout, download, saveFile: saveWorkspaceExport, exportSvg, exportPng,
+  createStorage, watchLock: watchSessionLock, layout: workerLayout, download, saveFile: saveWorkspaceExport, saveDiagram: saveWorkspaceDiagram, exportSvg, exportPng, rasterizeIcon,
+  ...(typeof window !== 'undefined' && window.desktopPdf ? { renderPdf: (job: PdfJob) => window.desktopPdf!.render(job) } : {}),
   copyImage: png => {
     if (!globalThis.ClipboardItem || !navigator.clipboard?.write) throw new Error('Image clipboard is unavailable')
     return navigator.clipboard.write([new ClipboardItem({ 'image/png': png })])

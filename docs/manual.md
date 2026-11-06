@@ -1,4 +1,4 @@
-# Azure Diagram Studio: Short Manual
+﻿# Azure Diagram Studio: Short Manual
 
 **Windows0.5.1:** the stable/latest release adds diagram background presets,
 named swatches and an in-app RGB mixer to the menu, Help, workspace,
@@ -16,6 +16,104 @@ The historical source MCP PNG4000ms timeout remains a
 issue or an authorized deadline increase.
 
 This manual describes the [Windows0.5.1 release](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.5.1), including conventional menus, the eleven-step Help guide, persistent Favorites, guided starters, Markdown sidebar, local MCP and background/RGB controls. The [DGM-147 verification report](verification/DGM-147.md) identifies exact source `3dc7579db438f7c0780ebab03f8f29b6e79daec4`, both tested portables and verification limits. Earlier releases and local packages remain unchanged historical artifacts. Stable publication is not general platform or human certification.
+
+## Experimental connector segment adjustments (disabled by default)
+
+## Headless CLI and stdio MCP (current source only)
+
+The current source build can run headlessly without opening the editor or
+starting the desktop HTTP MCP listener. From `app`, use
+`node scripts/headless.mjs --help`. The same source runner supports `new`,
+`validate`, `inspect`, `edit`, `arrange`, `export`, `catalog`, `templates`,
+and `mcp`. Normal command results are newline-terminated JSON on stdout;
+diagnostics are written to stderr. Existing output files are refused unless
+`--overwrite` is explicit, and file outputs are written atomically.
+
+For a local AI client, configure stdio with command `node`, arguments
+`["scripts/headless.mjs", "mcp"]`, and working directory `<repository>/app`.
+Use `mcp --input diagram.json` only to select the initial diagram. The stdio
+server keeps changes in memory, returns current state tokens, exposes no
+file-path, shell, browser, listener, token or clipboard tools, and exits on
+EOF or interrupt. This source-only interface does not claim that installed or
+published binaries contain it.
+
+## Page-scoped functional state styles (current source only)
+
+In the diagram Properties sidebar, **Page styles** opens the advanced page-local
+state registry. Each state has a stable ID, readable name and optional plain
+text meaning, plus bounded box (fill, stroke, text color, width, line style)
+and connector (stroke, text color, width, line style) overrides. Apply commits the
+whole registry as one history edit; Cancel or Escape discards the draft. The
+registry is optional: omitted legacy diagrams retain the exact Live, Planned,
+Not connected and Synthetic behavior; an explicit empty registry has no
+available states.
+
+**Current source limitation (2026-11-05):** independent production-preview
+verification now confirms custom meanings are visible in the editor legend
+and exposed in its ARIA tree at 1280x720; the SVG contains painted meaning text,
+and decoded PNG/embedded Markdown output visibly includes it. The verifier
+diagnostic found the 640x480 dark-theme meaning outside the window because the
+responsive workspace is vertically scrollable: the short canvas dock puts the
+legend just below the initial viewport, and the Page styles focus-return path
+can leave the workspace scrolled to the Properties dock. The meaning remains
+in the native accessibility tree and is reachable within the workspace's
+measured scroll range; the former absolute-window assertion is therefore a
+scroll-position oracle, not evidence of unreachable legend content. DGM-157 is
+still unaccepted; remaining UI, MCP, and preservation criteria are not
+qualified. The latest run did not requalify MCP output after this scene change;
+the earlier 20/20 canonical integration applies to its then-current inputs
+only. See [DGM-157 verification](verification/DGM-157.md) for the current
+matrix and evidence. This source feature makes no installed/release claim.
+
+MCP clients use the same `edit_diagram` command path and current `stateToken`.
+Configure styles atomically before assigning their IDs to v2 entity or
+connection `status` fields:
+
+```json
+{
+  "type": "configureStateStyles",
+  "stateStyles": [{
+    "id": "degraded",
+    "name": "Degraded",
+    "meaning": "Service is available with reduced capability.",
+    "box": { "stroke": "#cc6600", "lineStyle": "dashed" },
+    "connector": { "stroke": "#cc6600", "strokeWidth": 2 }
+  }]
+}
+```
+
+Changing a used state updates all assigned visuals and its single legend entry.
+Removing a used state requires an explicit `remap` entry to another remaining
+ID or `null` to unset it; invalid, stale or partial requests leave the page
+unchanged. This is source behavior only and makes no installed/release claim.
+
+## Recent original diagrams (current source only)
+
+On the desktop source build, **File â†’ Recent diagrams** lists up to 20
+successfully opened or saved JSON originals, newest first. Choose an entry to
+reread that original file; its name and full path distinguish same-named
+diagrams. This history is local to the desktop profile. Missing, moved,
+unreadable, oversized or invalid files show an error and leave current work
+unchanged. Unsaved-work confirmation still protects replacement. Browser builds
+retain normal **Open JSON** and downloads but explain that original-file history
+requires the desktop app. Published 0.5.1 is unchanged.
+
+**Experimental and disabled by default:** the source retains manual connector
+segment editing only for experimental regression fixtures. Normal editor users
+cannot activate segment handles or segment-arrow controls, so this is not a
+user-ready feature or an accepted upgrade. Installed0.5.1 does not include it.
+See [DGM-148 verification](verification/DGM-148.md).
+
+Existing saved manual routes remain visible in reloads, Present and SVG/PNG
+output, including their label positions. They intentionally do not add obstacle
+avoidance.
+
+Use **Reset to automatic routing** in Connection properties to clear only the
+selected connectorâ€™s adjustment. Label/style/arrow, document metadata and
+stacking edits retain a valid manual route. Moving/resizing connected objects,
+reconnecting, changing endpoint sides, topology changes and Auto-arrange reset
+routes under the existing automatic-routing policy. This is source-only;
+published Windows0.5.1 executables are unchanged.
 
 The newer [guided starters and saved descriptions](verification/DGM-122.md),
 plus [Markdown Edit/Preview and the shared presentation sidebar](verification/DGM-124.md),
@@ -117,11 +215,7 @@ an installed operating-system service.
 
 The local MCP server starts automatically when the owned desktop instance opens
 and stops when the app exits. Open **Settings** to see its actual status and
-address. **Copy MCP address** copies the loopback HTTP endpoint.
-**Copy access token** copies its bearer credential separately without displaying
-it in the dialog. A restart rotates the token, so update your client after
-restarting the app. If the preferred port is occupied, the app uses an available
-loopback port; copy the current address rather than assuming a fixed port.
+address. **Copy MCP address** copies the loopback HTTP endpoint. Settings saves a port from 1 through 65535 for the next launch, while displaying the actual current address separately. Restarting is user-owned; the app never rebinds a running listener or silently chooses another port when the saved port is occupied.
 Errors and failed clipboard actions are shown explicitly. A browser build
 reports that the desktop app is required.
 
@@ -189,16 +283,13 @@ An edit response confirms a live session change, not guaranteed durable storage:
 check the app's save status and use Save JSON for a portable backup. Errors use
 MCP tool failure responses or JSON-RPC errors; a refused request is not success.
 
-The server binds only to `127.0.0.1`, requires an Authorization bearer token and
-rejects foreign Host/Origin traffic. Do not expose it through port forwarding,
-share its token, put credentials in a URL or commit client secrets to Git.
-There is no unauthenticated fallback. Loading or unavailable workspace data
+The server binds only to `127.0.0.1` and rejects foreign Host/Origin traffic. Older Authorization headers are harmlessly ignored. Do not expose it through port forwarding. Localhost does not authenticate local clients: any same-machine process can read and edit while the app runs. Loading or unavailable workspace data
 returns an explicit error rather than an old saved diagram.
 
 ### MCP Snapshot And Export (Source Only)
 
 An agent can create/edit a diagram, arrange it, inspect a returned PNG, edit again
-and obtain the final exports entirely through authenticated HTTP MCP. This is
+and obtain the final exports entirely through local HTTP MCP. This is
 source-only: it does not change the immutable published 0.4.0 artifacts. No
 external client's compatibility is claimed by the source-Electron acceptance.
 
@@ -223,7 +314,7 @@ architecture-skill import schema. Markdown is UTF-8 description followed by
 members: `<stem>.<svg|png|json>` and `<stem>.md` containing the exact description.
 No companion option exists on snapshot; true is invalid for Markdown format.
 
-Example `tools/call` parameters, after reading the current token:
+Example `tools/call` parameters, after reading the current diagram state token:
 
 ```json
 {"name":"snapshot_diagram","arguments":{"stateToken":"<current token>"}}
@@ -275,11 +366,7 @@ performed by either tool. Only the client decides what to do with returned bytes
 ### Connect A Client
 
 Use your client's **Add MCP server** flow, select **HTTP / Streamable HTTP**,
-paste the address from Settings and add the request header:
-
-```text
-Authorization: Bearer <token copied from Settings>
-```
+paste the address from Settings. No Authorization header is required.
 
 Keep the desktop app running on the same machine as the client connection.
 A cloud-hosted connector cannot reach your machine's loopback address. Client
@@ -289,11 +376,10 @@ The app does not silently register itself or overwrite existing client settings.
 For **Claude Code**, its documented HTTP setup is:
 
 ```text
-claude mcp add --transport http azure-diagram-studio <copied-address> --header "Authorization: Bearer <copied-token>"
+claude mcp add --transport http azure-diagram-studio <copied-address>
 ```
 
-Review the command locally; do not paste a real token into a shared terminal,
-chat, script or repository. See the [Claude Code MCP reference](https://code.claude.com/docs/en/mcp).
+Review the command locally. See the [Claude Code MCP reference](https://code.claude.com/docs/en/mcp).
 This command is not a claim that Claude Desktop or every Claude deployment uses
 the same registration mechanism.
 
@@ -316,7 +402,7 @@ this server uses stateless JSON responses over Streamable HTTP.
 This section was originally source-only; it is now included in Windows 0.3.0.
 The heading is retained for existing documentation links.
 
-In current source, choose **Settings menu → About**. Windows 0.3.0 retains
+In current source, choose **Settings menu â†’ About**. Windows 0.3.0 retains
 the older About button beside Help at the top of the drawing tool rail. It shows
 Azure Diagram Studio's version, local-first purpose, original application logo,
 plain-text project/documentation references, independent/not-Microsoft identity and
@@ -393,7 +479,7 @@ limits remain historical; they are not a requirement to recruit participants.
 
 ## First-Use UI Guide
 
-In current local source, choose **Settings → Help** in the top menubar;
+In current local source, choose **Settings â†’ Help** in the top menubar;
 **Settings** and **About** share that menu. **File** contains New diagram,
 Open JSON, Import skill JSON and Save JSON. **View** contains library/sidebar
 visibility, Properties/Markdown views, theme and existing fit commands.
@@ -433,7 +519,7 @@ the picker and leaves the empty canvas. No sample architecture is loaded by
 default. A failed or read-only recovery does not start a new writable diagram.
 
 Saved work, including an intentionally saved empty diagram, reopens as it was
-without the startup picker. To start again, use **File → New diagram**
+without the startup picker. To start again, use **File â†’ New diagram**
 or Commands; both open the same Blank-plus-templates chooser. Opening or
 canceling it does not replace existing work or commit a draft. Accepted
 replacement still uses the existing unsaved-work confirmation. This new startup
@@ -565,7 +651,7 @@ selection, grid and object borders are not globally thickened.
 
 In Windows0.5.1 and current source, **Document properties** offers White, Paper, Transparent and
 Solid color presets, named swatches, and a compact in-app RGB mixer. The mixer
-keeps sliders, integer 0–255 channel fields and a validated `#RGB` or
+keeps sliders, integer 0â€“255 channel fields and a validated `#RGB` or
 `#RRGGBB` field synchronized; invalid values show an error and do not commit.
 `#fff` and case variants identify the White preset. Reset restores the
 absent-field white default. Transparent uses a checkerboard only in the editor
@@ -575,11 +661,44 @@ change their saved colors. Older installed releases are unchanged. Retain
 editable backups before opening transparent documents with older clients,
 which may not accept the newer `transparent` value.
 
-**Show grid** and **Snap to grid** are independent. Choose **Dots** or **Lines** and integer **Grid spacing** from 4 to 128. Snapping uses a shared canvas origin, including nested objects; switching it off permits free placement without moving existing content. **Show grid in Present** and **Include grid in exports** are separate opt-ins. Auto-arrange is not quantized to this grid.
+**Show grid** and **Snap to grid** are independent. Choose **Dots** or
+**Lines** and integer **Grid spacing** from 4 to 128. In current source only,
+the page-local **Grid color** palette offers **Automatic**, **Lightgrey**,
+**Mediumgrey**, **Darkgrey**, **White**, **Black**, **Red**, **Green**,
+**Yellow**, **Blue**, **Orange**, **Purple** and **Brown**. This palette is
+not included in Windows 0.5.1. Automatic clears the saved color and preserves
+the existing contrast-aware default; an explicit choice remains exact across
+themes, diagram backgrounds and reloads. Choosing a color does not enable a
+hidden grid or alter style, spacing, snap, Present or export settings.
+
+Independent current-source checks verified all 12 named swatches plus
+Automatic in the actual Editor and decoded shared SVG/PNG output. Blue painted
+in both Dots and Lines and in Present when its grid option was enabled; an
+immediate Blue-to-Present action also painted the accepted color before its
+pending save completed, then persisted it at the same revision. White-on-white
+remains explicitly white, with a visible selection ring. Embedded Markdown
+contained Blue when `includeGrid` was enabled and no grid when disabled. The
+earlier Red observation on entering Present was traced to a color/style-only
+test wait accepting an older Blue revision before a later Red save; the
+revision-bound current-source check did not reproduce a product reversion
+([DGM-156 verification](verification/DGM-156.md)). Workbook/page switching,
+headless CLI startup, and workbook, PDF or ZIP output remain dependent or
+unqualified; these results do not qualify an installed release.
+
+**Show grid in Present** and **Include grid in exports** are separate opt-ins.
+Snapping uses a shared canvas origin, including nested objects; switching it
+off permits free placement without moving existing content. Auto-arrange is
+not quantized to this grid.
 
 ## Connect and Describe Flows
 
-Choose **Connect components**, click the source and then the target. You can also drag from a component's connector handle to another component. Select a connection to edit its **Label**, **Source**, **Target**, **Source side**, **Target side**, **Line** and **Direction**.
+Choose **Connect components**, click the source and then the target. You can also drag from a component's connector handle to another component. Select a connection to expose its source and target endpoint targets. Drag either endpoint to any exact point on an eligible component or boundary border; the attachment remains relative to that border as the item moves or resizes. A focused endpoint can also move along its current border with the arrow keys (Shift moves farther). Press **Delete** or **Backspace** on a selected connector or endpoint to remove the whole connector while leaving both boxes intact. Escape, pointer cancellation and an empty-space drop restore the original connection; Delete while dragging removes it once and a later pointer release cannot restore it. Resetting manual route segments does not reset exact attachments. Select a connection to edit its **Label**, **Source**, **Target**, **Source side**, **Target side**, **Line** and **Direction**.
+
+An exact endpoint attachment explicitly saves a Diagram v2 `sourceOffset` or
+`targetOffset` in the inclusive `0..1` range alongside its non-automatic
+border side. Existing Diagram v1 files open and remain v1 unless this feature
+is used; v1 files containing v2-only offsets are rejected rather than silently
+discarded. Use an updated app when sharing a v2 diagram with exact attachments.
 
 Connection dots now have larger visible and pointer-hit areas. Press Escape
 while holding a component move, multi-selection move, resize, connection,
@@ -597,7 +716,7 @@ when editing is disabled.
 
 ## Direct Editing and Commands
 
-Double-click a component, connection label or text note, or select it and press F2, to edit inline. Enter commits a single-line label; Escape cancels. For notes, Enter adds a newline and Ctrl/Command+Enter commits. Leaving a valid field commits once; invalid content remains editable with an error. These edits are disabled in Present and Read-only mode.
+Clicking a component, boundary, rectangle, text note or connector selects it without opening the Sidebar or renaming it. If Properties is already open, it follows the selection without taking focus; Markdown stays open and keeps its draft. To edit inline, select exactly one item, then click its painted title or connector label. F2 and the context-menu **Edit label** action remain available for every item, including an empty label. Double-clicking an item body, icon or connector line does not rename it. Enter commits a single-line label; Escape cancels. For notes, Enter adds a newline and Ctrl/Command+Enter commits. Leaving a valid field commits once; invalid content remains editable with an error. These edits are disabled in Present and Read-only mode.
 
 Choose **Commands**, or Ctrl/Command+K while the editor owns focus, to search existing actions. Arrow keys and Enter choose an enabled action; Escape closes the menu and returns focus. Text fields retain their own shortcuts. Background and grid commands focus the corresponding document setting.
 
@@ -614,7 +733,7 @@ Read-only and modal/presentation guards still apply.
 
 Use **Select tool** to move objects. Shift-click objects for a multiple selection, then choose **Group selection** to create a boundary. Select a boundary and use **Ungroup selection** to dissolve it without deleting its contents.
 
-Use **Add boundary** to draw an ownership/trust area, and **Parent** in Properties to assign selected objects to it. Merely placing an object over a boundary does not prove parent membership. Resize a selected boundary using its visible handles.
+Use **Add boundary** to draw an ownership/trust area, and **Parent** in Properties to assign selected objects to it. Dragging an item fully inside a boundary also adopts it; dragging a member fully outside removes it. A partial overlap or border contact keeps its current membership and expands only that current boundary, never a foreign boundary. Drag any boundary border or corner directly to resize it. Left and top border drags move the boundary origin while keeping contained items fixed on the canvas. Resize does not adopt, detach or scale items; Escape cancels an active drag.
 
 For a same-parent selection, use **Align left**, **Align center** (horizontal centers) or **Align top** in the selection tools or Commands. Alignment needs at least two selected roots; its anchor is the first root in document order, not the first object clicked. **Distribute horizontally** and **Distribute vertically** need at least three roots and equalize gaps between object edges while retaining the outside ends. A selected boundary moves its subtree once, even when a descendant is also selected.
 
@@ -642,7 +761,7 @@ canvas positions. The arrangement choice is transient, not a new JSON field.
 
 Arrangement now sizes boundaries from their contents and wrapped headers instead of inheriting obsolete expanded dimensions. Removing children and arranging again can shrink a boundary. Ordinary editing still does not rearrange unrelated objects.
 
-Use **Pan tool**, **Zoom in**, **Zoom out** and **Fit diagram** to navigate. **Fit selection** frames selected objects, including a selected boundary's descendants; it changes only the camera. Select objects for **Copy selection**, **Cut selection**, **Duplicate selection** or **Delete selection**; paste with Ctrl/Cmd+V, the context menu or **Commands → Paste selection**. Dedicated Paste buttons are removed in current source; clipboard capabilities remain. This selection clipboard is not a JSON file backup or a promise of cross-application clipboard transfer.
+Use **Pan tool**, **Zoom in**, **Zoom out** and **Fit diagram** to navigate. **Fit selection** frames selected objects, including a selected boundary's descendants; it changes only the camera. Select objects for **Copy selection**, **Cut selection**, **Duplicate selection** or **Delete selection**; paste with Ctrl/Cmd+V, the context menu or **Commands â†’ Paste selection**. Dedicated Paste buttons are removed in current source; clipboard capabilities remain. This selection clipboard is not a JSON file backup or a promise of cross-application clipboard transfer.
 
 The sidebar starts closed. **Add component** opens the component library, which
 stays open after insertion, selection and focus changes until **Close component
@@ -710,15 +829,15 @@ Component **Status** can be **Unset**, **Live**, **Planned**, **Not connected** 
 
 ## Save, Open and Import
 
-- **Loading local work**, **Saving locally** and **Saved on this device** describe local storage, not a transferable file backup. **Editable JSON copy needed** independently means choose **Save JSON** for newer work.
+- **Loading local work**, **Saving locally** and **Saved on this device** describe local storage, not a transferable file backup. **Editable JSON copy needed** independently means choose **Save** for newer work.
 - **Local save failed** means local storage did not succeed. Download JSON now; free storage and edit again to retry. A successful JSON callback does not turn a local failure into local success.
-- **Save JSON** downloads an editable native document. **No newer JSON changes** means the current revision's download callback completed, not that the OS acknowledged a durable file write. Check the downloaded file, keep copies somewhere backed up, and version important milestones. Native save-dialog cancellation/completion remains unverified.
+- In the desktop app, **Save** atomically writes editable JSON using the current filename directly under the configured Settings workspace root. **Save As** chooses an arbitrary destination and filename; it updates the filename, but later **Save** writes the configured-root copy rather than silently replacing that external original. Existing unrelated root collisions require explicit overwrite confirmation. Browser Save/Save As uses supported downloads and cannot guarantee a Settings-controlled filesystem destination.
 - Custom icons are embedded PNG data in that backup, not links to local files. Native JSON and skill JSON have a **5 MiB** limit for the whole file, including embedded images; many icons can reach that limit.
-- **Open JSON** opens that native document, including these examples. It replaces the active document after any applicable confirmation.
+- **Load** opens that native document, including these examples. It replaces the active document after any applicable confirmation. **Recent diagrams** rereads the registered original through the same guarded Load path.
 - **Import skill JSON** is separate: it accepts architecture-skill specifications and reports import warnings. Check labels, grouping, unsupported icons and connection meanings after importing.
 - If the session shows **Read-only**, another session may own editing. You can still save a JSON backup; close the other editing session and let the app reacquire ownership. Do not clear storage to force ownership.
 
-The schema stays at version 1 with optional custom-icon, numeric-order, background, grid and Markdown-description fields. Older documents still open, but a pre-feature client is not a safe way to edit and resave a document containing these fields: it may reject or lose fields it does not support. Keep the original backup and use a current client.
+Diagram schema version 1 remains unchanged. A page with an explicit grid color saves as version 2 with an optional normalized opaque `grid.color`; Automatic omits that field. Opening or editing a version 1 document alone does not migrate it. Current clients reject version-1 files that include version-2-only fields so an older client cannot silently discard them. Older documents still open, but a pre-feature client is not a safe way to edit and resave a version 2 document: it may reject it or lose fields it does not support. Keep the original backup and use a current client.
 
 ## Export Pictures
 
@@ -768,7 +887,7 @@ Azure Diagram Studio is independent and not endorsed by Microsoft or the named v
 
 ## Workspace root (desktop source follow-up)
 
-Open **Settings menu → Settings**. **Workspace root** displays the absolute
+Open **Settings menu â†’ Settings**. **Workspace root** displays the absolute
 OS-resolved Documents/AzureDiagramStudio default. **Choose folder** saves a
 custom root in this app profile; cancellation leaves it unchanged. **Reset to
 default** explicitly saves the default again, and can repair corrupt root
@@ -791,3 +910,38 @@ downloads. MCP exports return bytes in memory and never save automatically
 under this root. Native dialogs remain human-unqualified in owner automation:
 the source acceptance runner mocks only native selection/confirmation while
 using real preload, main, filesystem and profile restart.
+# Current 0.5.2 Workbook And File Workflow
+
+Use **File > New workbook** or add a page to explicitly create a workbook.
+Bottom tabs navigate pages in Edit and Present; Add page, rename and reorder
+are Edit-only actions. Workbook and page titles/Markdown have separate
+controls. Navigation does not edit the document; Undo/Redo restores content
+and order across pages. Presentation ink is temporary and page-local.
+
+**Save** writes the entire diagram or workbook to the configured Settings
+workspace using the current filename. **Save As** chooses another destination
+and filename; subsequent Save still uses the configured workspace. **Load**
+and Recent reread JSON originals with the same replacement guards. A pristine
+starter or current JSON backup can skip confirmation; autosaved edits cannot.
+Browser downloads cannot guarantee the desktop workspace destination.
+
+**Page styles** edits page-local state names, meanings and supported paint.
+Apply is one history transaction. Removing a used state requires explicit
+replacement or Unset. Legends visibly show configured meanings; absent custom
+registries retain the legacy defaults. The responsive workspace scrolls
+between the canvas and dock, and legend content is scrollable.
+
+Export selects Current page or Whole workbook. Workbook image exports contain
+ordered page artwork, descriptions and a manifest. Desktop PDF produces one
+landscape A4 page per diagram; browser PDF is unavailable. VSDX contains native
+editable shapes and connected connectors with embedded icon images.
+**Native Visio interoperability is unverified**: open/edit/glue acceptance
+requires a machine with Visio. Keep JSON as the authoritative source.
+
+The supported headless launcher provides workbook/page operations and
+`get_workbook`, `edit_workbook`, `export_workbook` alongside diagram tools.
+Use explicit page IDs and current state tokens. No MCP filesystem or shell
+tools are exposed. Direct Electron stdout is not the supported stdio entry.
+
+The sections below include retained historical source/version observations;
+refer to this current workflow for the completed 0.5.2 feature scope.
