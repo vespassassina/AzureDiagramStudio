@@ -107,7 +107,12 @@ not a claimed pass. See `docs/verification/DGM-162.md`.
 Source milestone `341e238` is committed, fast-forward merged and pushed to
 the default branch. The final ARM64 app is deployed/open with a separate
 profile and stable port 37434; the earlier Desktop test app is preserved.
-The next delivery action is tag/publication and download hash verification.
+**Delivery complete:** tag `0.5.2` points to `fd213f8`; the public
+[0.5.2 release](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.5.2)
+contains both executables and `SHA256SUMS.txt`. Fresh downloads of both
+published executables match the qualified candidates' sizes and SHA-256.
+The independent exact-package GUI/MCP addendum passes with no product
+defects confirmed. No additional sprint was started as part of this release.
 Older diagnostic cursors
 below are historical, not instructions to restart per-feature verification.
 
