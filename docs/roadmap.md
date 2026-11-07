@@ -1,6 +1,6 @@
 # Diagrammer Roadmap and Delegation Plan
 
-Updated: 2026-11-07. Status: DGM-166 LOCAL ARM64 0.5.4 QUALIFIED AND COPIED TO DESKTOP. PUBLIC STABLE/LATEST REMAINS 0.5.3. OLDER RELEASES, INSTALLATIONS, PREVIEWS AND DRAFTS REMAIN PRESERVED.
+Updated: 2026-11-07. Status: DGM-167 ARM64/X64 0.5.4 QUALIFIED / SOURCE COMMITTED / PUBLICATION NEXT. OLDER RELEASES, INSTALLATIONS, PREVIEWS AND DRAFTS REMAIN PRESERVED.
 
 ## Current Execution Policy
 
@@ -88,6 +88,17 @@ evidence. This scoped [decision](decisions.md#2026-10-19-replace-formal-particip
 supersedes earlier participant-trial stops, not technical safety requirements.
 
 ## Execution Queue
+
+**Latest publication authorization, 2026-11-07: DGM-167 qualified.** The PO
+accepted the Desktop refinements and requested "love it, publish the compiled
+binaries". Accepted source is committed as `f50ab67`. The exact Desktop ARM64
+asset is preserved unchanged; matching x64 packaging reused its accepted
+61-file stage without rebuilding/restaging. Both ASARs match, and one
+independent x64 GUI/MCP check passed under ARM64 emulation. Accepted ARM64
+feature evidence is reused. See [DGM-167](verification/DGM-167.md).
+**Exact next action:** fast-forward push source/docs, create annotated tag
+0.5.4, publish both executables and checksums as stable/latest, then verify
+fresh anonymous public downloads. No old release/tag or Desktop replacement.
 
 **Latest local delivery, 2026-11-07: DGM-166 complete.** The PO requested
 catalog preview/dragging/category/button refinements, compact diagrams, the
