@@ -1,10 +1,13 @@
 ﻿# Azure Diagram Studio: Short Manual
 
-**Local Windows ARM64 0.5.4:** the Desktop portable includes the catalog preview,
-compact-layout and page-navigation refinements described below. It replaces
-only the previous Desktop executable, not an installed/running application or
-its profile. [DGM-166](verification/DGM-166.md) records the exact package and
-delivery evidence. It is not a new public release.
+**[Published Windows 0.5.4](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.5.4):**
+the stable/latest ARM64 and x64 portables include the catalog preview,
+compact-layout and page-navigation refinements described below. ARM64 is the
+exact approved Desktop executable; x64 was qualified under ARM64 emulation,
+not native Intel/AMD hardware. [DGM-166](verification/DGM-166.md) records the
+features/Desktop delivery; [DGM-167](verification/DGM-167.md) records public
+distribution. Publication does not replace installed/running applications
+or their profiles.
 
 **[Published Windows 0.5.3](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.5.3):**
 the stable/latest portable packages include the workbook/page
@@ -929,7 +932,7 @@ the source acceptance runner mocks only native selection/confirmation while
 using real preload, main, filesystem and profile restart.
 # Current Source: Adding, Removing And Renaming Diagrams
 
-These DGM-163 controls are included in published 0.5.3 and the local 0.5.4
+These DGM-163 controls are included in published 0.5.3 and 0.5.4
 build, not retroactively added to the 0.5.2 executables.
 
 Use **File > Add Diagram** to browse a blank diagram or architecture starter,
@@ -963,7 +966,7 @@ editing. Single-line rename fields commit on click-away or Enter and cancel
 with Escape. Multiline text keeps normal newlines and existing Ctrl+Enter
 commit behavior.
 
-In local 0.5.4, changing pages cancels transient move, resize and connector
+In 0.5.4, changing pages cancels transient move, resize and connector
 gestures, releases their pointer state and ignores late callbacks from the
 old page. Valid text/property drafts finish on their original page and remain
 undoable. Autosave stays enabled; cancellation does not delete recovery data.
@@ -984,7 +987,7 @@ adaptations, split equally between Microsoft-, AWS- and Google Cloud-origin
 patterns. **Existing starters** remains available as a collapsible group.
 
 Select a category and architecture, or search by title, category or origin.
-Browsing changes only the preview, not the current workbook. In local 0.5.4,
+Browsing changes only the preview, not the current workbook. In 0.5.4,
 the diagram automatically fits and centers in the available preview. Drag
 inside the preview to pan after zooming, use keyboard scrolling, or choose
 **100%** for native-scale inspection. **Fit** restores the centered overview
@@ -993,7 +996,7 @@ to Fit. Drag the dialog by its title bar to reposition it within the window.
 Categories, including Existing starters, have icons beside their labels.
 Published 0.5.3 retains its native-scale default.
 
-The 24 new local diagrams use compact, layered single-page layouts, preserving
+The 24 new 0.5.4 diagrams use compact, layered single-page layouts, preserving
 all original flows, ownership boundaries and guidance. Source links, reviewed dates, Markdown explanations and
 mapping caveats are shown beside the preview and retained in the added page's
 Markdown. Add the page explicitly; Cancel, Escape or dismissing the catalog

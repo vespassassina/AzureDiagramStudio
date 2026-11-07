@@ -1,6 +1,6 @@
 # Diagrammer Roadmap and Delegation Plan
 
-Updated: 2026-11-07. Status: DGM-167 ARM64/X64 0.5.4 QUALIFIED / SOURCE COMMITTED / PUBLICATION NEXT. OLDER RELEASES, INSTALLATIONS, PREVIEWS AND DRAFTS REMAIN PRESERVED.
+Updated: 2026-11-07. Status: DGM-167 ARM64/X64 0.5.4 STABLE/LATEST PUBLISHED / SOURCE PUSHED AND TAGGED / FRESH PUBLIC DOWNLOADS VERIFIED. OLDER RELEASES, INSTALLATIONS, PREVIEWS AND DRAFTS REMAIN PRESERVED.
 
 ## Current Execution Policy
 
@@ -89,16 +89,24 @@ supersedes earlier participant-trial stops, not technical safety requirements.
 
 ## Execution Queue
 
-**Latest publication authorization, 2026-11-07: DGM-167 qualified.** The PO
+**Latest publication authorization, 2026-11-07: DGM-167 complete.** The PO
 accepted the Desktop refinements and requested "love it, publish the compiled
 binaries". Accepted source is committed as `f50ab67`. The exact Desktop ARM64
 asset is preserved unchanged; matching x64 packaging reused its accepted
 61-file stage without rebuilding/restaging. Both ASARs match, and one
 independent x64 GUI/MCP check passed under ARM64 emulation. Accepted ARM64
 feature evidence is reused. See [DGM-167](verification/DGM-167.md).
-**Exact next action:** fast-forward push source/docs, create annotated tag
-0.5.4, publish both executables and checksums as stable/latest, then verify
-fresh anonymous public downloads. No old release/tag or Desktop replacement.
+Source/qualification were fast-forward pushed to the current and default
+`feat/DGM-070-desktop-release` branches. Annotated tag 0.5.4 targets
+`7eb454ef642ed80edec9ab758075989817f0956c`, with product source `f50ab67`.
+[Stable/latest 0.5.4](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.5.4)
+was published at 15:50:40 UTC with both EXEs and SHA256SUMS. Fresh anonymous
+downloads returned HTTP 200 and matched qualified sizes/hashes; the public
+checksum file and GitHub latest-release endpoint also matched. The Desktop
+ARM64 executable, older releases/tags, running applications and profiles
+remain unchanged.
+**Exact next action:** publication is complete; await new PO scope. No further
+approved implementation, packaging or release work remains.
 
 **Latest local delivery, 2026-11-07: DGM-166 complete.** The PO requested
 catalog preview/dragging/category/button refinements, compact diagrams, the

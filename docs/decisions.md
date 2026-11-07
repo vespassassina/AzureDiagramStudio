@@ -843,3 +843,22 @@ and user profiles remain unchanged.
 
 Who: PO via the refinement request and single-page choice.
 Evidence: [DGM-166](verification/DGM-166.md).
+
+## 2026-11-07: Publish The Approved 0.5.4 Desktop Binary And Matching x64
+
+Context: the PO accepted the refinements and requested "love it, publish the
+compiled binaries".
+
+Decision: retain the exact approved ARM64 executable and compile only a
+matching x64 portable from its accepted stage. Reuse unchanged feature
+evidence, independently qualify the actual x64 runtime, then fast-forward
+push/tag and publish stable/latest 0.5.4 with checksums and fresh-download
+verification.
+
+Consequences: no ARM64 rebuild, new feature/dependency/security policy,
+Desktop replacement or prior-release/tag overwrite. x64-under-ARM64-emulation
+and unsigned/native acceptance limits remain disclosed. The published ARM64
+asset matches the approved Desktop executable byte for byte.
+
+Who: PO via the explicit publication request.
+Evidence: [DGM-167](verification/DGM-167.md).
