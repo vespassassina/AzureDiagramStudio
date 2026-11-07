@@ -29,10 +29,10 @@
       "subtitle": "Regional failure domain",
       "parentId": null,
       "layer": "foreground",
-      "x": 61,
-      "y": 206,
-      "width": 745,
-      "height": 207,
+      "x": 0,
+      "y": 24,
+      "width": 524,
+      "height": 640,
       "color": "azure"
     },
     {
@@ -42,10 +42,10 @@
       "subtitle": "Regional failure domain",
       "parentId": null,
       "layer": "foreground",
-      "x": 1195,
-      "y": 61,
-      "width": 705,
-      "height": 256,
+      "x": 566,
+      "y": 24,
+      "width": 524,
+      "height": 640,
       "color": "teal"
     },
     {
@@ -55,10 +55,10 @@
       "subtitle": "Cross-region control",
       "parentId": null,
       "layer": "foreground",
-      "x": 2319,
-      "y": 94,
-      "width": 312,
-      "height": 463,
+      "x": 0,
+      "y": 706,
+      "width": 264,
+      "height": 644,
       "color": "amber"
     },
     {
@@ -68,10 +68,10 @@
       "subtitle": "Azure App Service",
       "parentId": "group-region-a",
       "layer": "foreground",
-      "x": 24,
-      "y": 87,
-      "width": 264,
-      "height": 96,
+      "x": 22,
+      "y": 160,
+      "width": 220,
+      "height": 105,
       "color": "azure",
       "icon": "server",
       "status": "synthetic"
@@ -83,10 +83,10 @@
       "subtitle": "Azure SQL",
       "parentId": "group-region-a",
       "layer": "foreground",
-      "x": 457,
-      "y": 87,
-      "width": 264,
-      "height": 96,
+      "x": 282,
+      "y": 160,
+      "width": 220,
+      "height": 105,
       "color": "azure",
       "icon": "database",
       "status": "synthetic"
@@ -98,10 +98,10 @@
       "subtitle": "Azure App Service",
       "parentId": "group-region-b",
       "layer": "foreground",
-      "x": 24,
-      "y": 104,
-      "width": 264,
-      "height": 96,
+      "x": 22,
+      "y": 160,
+      "width": 220,
+      "height": 105,
       "color": "teal",
       "icon": "server",
       "status": "synthetic"
@@ -113,10 +113,10 @@
       "subtitle": "Selected Azure database replication option",
       "parentId": "group-region-b",
       "layer": "foreground",
-      "x": 417,
-      "y": 112,
-      "width": 264,
-      "height": 120,
+      "x": 282,
+      "y": 160,
+      "width": 220,
+      "height": 135,
       "color": "teal",
       "icon": "database",
       "status": "synthetic"
@@ -128,10 +128,10 @@
       "subtitle": "Azure Front Door",
       "parentId": "group-global",
       "layer": "foreground",
-      "x": 24,
-      "y": 343,
-      "width": 264,
-      "height": 96,
+      "x": 22,
+      "y": 160,
+      "width": 220,
+      "height": 105,
       "color": "amber",
       "icon": "api",
       "status": "synthetic"
@@ -143,9 +143,9 @@
       "subtitle": "Application workflow and runbook",
       "parentId": "group-global",
       "layer": "foreground",
-      "x": 24,
-      "y": 203,
-      "width": 264,
+      "x": 22,
+      "y": 328,
+      "width": 220,
       "height": 120,
       "color": "amber",
       "icon": "service",
@@ -158,10 +158,10 @@
       "subtitle": "Azure Monitor",
       "parentId": "group-global",
       "layer": "foreground",
-      "x": 24,
-      "y": 87,
-      "width": 264,
-      "height": 96,
+      "x": 22,
+      "y": 496,
+      "width": 220,
+      "height": 105,
       "color": "amber",
       "icon": "service",
       "status": "synthetic"
@@ -173,10 +173,10 @@
       "subtitle": "Generic clients",
       "parentId": null,
       "layer": "foreground",
-      "x": 1636,
-      "y": 431,
-      "width": 264,
-      "height": 96,
+      "x": -230,
+      "y": 296,
+      "width": 220,
+      "height": 88,
       "color": "source",
       "icon": "user",
       "status": "synthetic"
@@ -194,25 +194,25 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 1900,
-          "y": 515
+          "x": -22,
+          "y": 384
         },
         {
-          "x": 2327,
-          "y": 515
+          "x": -22,
+          "y": 850
         },
         {
-          "x": 2327,
-          "y": 449
+          "x": 34,
+          "y": 850
         },
         {
-          "x": 2343,
-          "y": 449
+          "x": 34,
+          "y": 866
         }
       ],
       "labelPosition": {
-        "x": 2113.5,
-        "y": 515
+        "x": -65,
+        "y": 617
       },
       "routeRevision": 1
     },
@@ -227,33 +227,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 2343,
-          "y": 469
+          "x": 132,
+          "y": 866
         },
         {
-          "x": 1908,
-          "y": 469
+          "x": 132,
+          "y": 810
         },
         {
-          "x": 1908,
-          "y": 397
+          "x": 0,
+          "y": 810
         },
         {
-          "x": 365,
-          "y": 397
+          "x": 0,
+          "y": 305
         },
         {
-          "x": 365,
-          "y": 357
+          "x": 132,
+          "y": 305
         },
         {
-          "x": 349,
-          "y": 357
+          "x": 132,
+          "y": 289
         }
       ],
       "labelPosition": {
-        "x": 1136.5,
-        "y": 397
+        "x": 108.5,
+        "y": 557.5
       },
       "routeRevision": 1
     },
@@ -268,33 +268,25 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 2343,
-          "y": 489
+          "x": 230,
+          "y": 866
         },
         {
-          "x": 2070.5,
-          "y": 489
+          "x": 230,
+          "y": 810
         },
         {
-          "x": 2070.5,
-          "y": 301
+          "x": 600,
+          "y": 810
         },
         {
-          "x": 1499,
-          "y": 301
-        },
-        {
-          "x": 1499,
-          "y": 229
-        },
-        {
-          "x": 1483,
-          "y": 229
+          "x": 600,
+          "y": 289
         }
       ],
       "labelPosition": {
-        "x": 1784.75,
-        "y": 317
+        "x": 708.5,
+        "y": 549.5
       },
       "routeRevision": 1
     },
@@ -309,25 +301,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 349,
-          "y": 351
+          "x": 242,
+          "y": 236.5
         },
         {
-          "x": 502,
-          "y": 351
+          "x": 258,
+          "y": 236.5
         },
         {
-          "x": 502,
-          "y": 341
+          "x": 258,
+          "y": 176
         },
         {
-          "x": 518,
-          "y": 341
+          "x": 266,
+          "y": 176
+        },
+        {
+          "x": 266,
+          "y": 236.5
+        },
+        {
+          "x": 282,
+          "y": 236.5
         }
       ],
       "labelPosition": {
-        "x": 425.5,
-        "y": 335
+        "x": 262,
+        "y": 160
       },
       "routeRevision": 1
     },
@@ -342,25 +342,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 1483,
-          "y": 249
+          "x": 808,
+          "y": 277
         },
         {
-          "x": 1596,
-          "y": 249
+          "x": 824,
+          "y": 277
         },
         {
-          "x": 1596,
-          "y": 185
+          "x": 824,
+          "y": 176
         },
         {
-          "x": 1612,
-          "y": 185
+          "x": 832,
+          "y": 176
+        },
+        {
+          "x": 832,
+          "y": 196
+        },
+        {
+          "x": 848,
+          "y": 196
         }
       ],
       "labelPosition": {
-        "x": 1547.5,
-        "y": 201
+        "x": 828,
+        "y": 160
       },
       "routeRevision": 1
     },
@@ -375,25 +383,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 782,
-          "y": 305
+          "x": 502,
+          "y": 277
         },
         {
-          "x": 1596,
-          "y": 305
+          "x": 580,
+          "y": 277
         },
         {
-          "x": 1596,
-          "y": 281
+          "x": 580,
+          "y": 297
         },
         {
-          "x": 1612,
-          "y": 281
+          "x": 832,
+          "y": 297
+        },
+        {
+          "x": 832,
+          "y": 216
+        },
+        {
+          "x": 848,
+          "y": 216
         }
       ],
       "labelPosition": {
-        "x": 1189,
-        "y": 305
+        "x": 706,
+        "y": 313
       },
       "routeRevision": 1
     },
@@ -408,25 +424,25 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 782,
-          "y": 377
+          "x": 294,
+          "y": 289
         },
         {
-          "x": 2327,
-          "y": 377
+          "x": 294,
+          "y": 1018
         },
         {
-          "x": 2327,
-          "y": 309
+          "x": 230,
+          "y": 1018
         },
         {
-          "x": 2343,
-          "y": 309
+          "x": 230,
+          "y": 1034
         }
       ],
       "labelPosition": {
-        "x": 1554.5,
-        "y": 377
+        "x": 405.5,
+        "y": 653.5
       },
       "routeRevision": 1
     },
@@ -441,25 +457,25 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 1876,
-          "y": 185
+          "x": 860,
+          "y": 319
         },
         {
-          "x": 2327,
-          "y": 185
+          "x": 860,
+          "y": 1186
         },
         {
-          "x": 2327,
-          "y": 265
+          "x": 230,
+          "y": 1186
         },
         {
-          "x": 2343,
-          "y": 265
+          "x": 230,
+          "y": 1202
         }
       ],
       "labelPosition": {
-        "x": 2101.5,
-        "y": 185
+        "x": 928.5,
+        "y": 752.5
       },
       "routeRevision": 1
     }

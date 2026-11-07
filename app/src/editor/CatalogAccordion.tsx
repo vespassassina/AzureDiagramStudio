@@ -14,8 +14,8 @@ const groups = [...menuGroups('azure'), ...menuGroups('software')]
 const computeGroup = groups.find(group => group.catalog === 'azure' && group.items.some(item => item.icon === 'azure-app'))
 const selectionKeys = new Set(selectionLibrary.map(item => item.icon))
 const optionGroups = searchGroups('').map(group => ({ ...group, items: group.items.filter(item => selectionKeys.has(item.icon)) }))
-const catalogs = [{ id: 'azure', label: 'Azure / Microsoft', count: searchableLibrary.filter(item => item.catalog !== 'software').length }, { id: 'software', label: 'Software', count: searchableLibrary.filter(item => item.catalog === 'software').length }] as const
-const catalogLabels = { azure: 'Azure / Microsoft', software: 'Software', favorites: 'Favorites' }
+const catalogs = [{ id: 'azure', label: 'Microsoft', count: searchableLibrary.filter(item => item.catalog !== 'software').length }, { id: 'software', label: 'Software', count: searchableLibrary.filter(item => item.catalog === 'software').length }] as const
+const catalogLabels = { azure: 'Microsoft', software: 'Software', favorites: 'Favorites' }
 const groupIcons = { server: Server, network: Network, database: Database, brain: Brain, workflow: Workflow, shield: Shield, layers: Layers, boxes: Boxes, 'app-window': AppWindow, building: Building2 }
 
 const CurrentCatalogOptions = memo(function CurrentCatalogOptions() {

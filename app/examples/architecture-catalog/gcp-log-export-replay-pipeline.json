@@ -29,10 +29,10 @@
       "subtitle": "Organization logging plane",
       "parentId": null,
       "layer": "foreground",
-      "x": 24,
-      "y": 159.5,
-      "width": 773,
-      "height": 216,
+      "x": 0,
+      "y": 24,
+      "width": 524,
+      "height": 640,
       "color": "azure"
     },
     {
@@ -42,10 +42,10 @@
       "subtitle": "Integration boundary",
       "parentId": null,
       "layer": "foreground",
-      "x": 1139,
+      "x": 566,
       "y": 24,
-      "width": 1270,
-      "height": 347,
+      "width": 1044,
+      "height": 812,
       "color": "teal"
     },
     {
@@ -55,10 +55,10 @@
       "subtitle": "Third-party service boundary",
       "parentId": null,
       "layer": "foreground",
-      "x": 2771,
-      "y": 203.75,
-      "width": 312,
-      "height": 207,
+      "x": 0,
+      "y": 878,
+      "width": 264,
+      "height": 640,
       "color": "amber"
     },
     {
@@ -68,10 +68,10 @@
       "subtitle": "Generic Azure workloads",
       "parentId": "group-azure-logs",
       "layer": "foreground",
-      "x": 24,
-      "y": 87,
-      "width": 264,
-      "height": 105,
+      "x": 22,
+      "y": 160,
+      "width": 220,
+      "height": 120,
       "color": "azure",
       "icon": "service",
       "status": "synthetic"
@@ -83,10 +83,10 @@
       "subtitle": "Azure Monitor",
       "parentId": "group-azure-logs",
       "layer": "foreground",
-      "x": 485,
-      "y": 91.5,
-      "width": 264,
-      "height": 96,
+      "x": 282,
+      "y": 160,
+      "width": 220,
+      "height": 105,
       "color": "azure",
       "icon": "service",
       "status": "synthetic"
@@ -98,10 +98,10 @@
       "subtitle": "Azure Event Hubs",
       "parentId": "group-export",
       "layer": "foreground",
-      "x": 24,
-      "y": 227,
-      "width": 264,
-      "height": 96,
+      "x": 22,
+      "y": 160,
+      "width": 220,
+      "height": 105,
       "color": "teal",
       "icon": "queue",
       "status": "synthetic"
@@ -113,9 +113,9 @@
       "subtitle": "Azure Functions",
       "parentId": "group-export",
       "layer": "foreground",
-      "x": 457,
-      "y": 114.5,
-      "width": 264,
+      "x": 802,
+      "y": 160,
+      "width": 220,
       "height": 105,
       "color": "teal",
       "icon": "queue",
@@ -128,9 +128,9 @@
       "subtitle": "Service Bus dead-letter queue",
       "parentId": "group-export",
       "layer": "foreground",
-      "x": 24,
-      "y": 87,
-      "width": 264,
+      "x": 802,
+      "y": 328,
+      "width": 220,
       "height": 120,
       "color": "teal",
       "icon": "storage",
@@ -143,10 +143,10 @@
       "subtitle": "Azure Key Vault",
       "parentId": "group-export",
       "layer": "foreground",
-      "x": 982,
-      "y": 92.75,
-      "width": 264,
-      "height": 96,
+      "x": 802,
+      "y": 496,
+      "width": 220,
+      "height": 88,
       "color": "teal",
       "icon": "shield",
       "status": "synthetic"
@@ -158,10 +158,10 @@
       "subtitle": "Azure Monitor",
       "parentId": "group-export",
       "layer": "foreground",
-      "x": 982,
-      "y": 208.75,
-      "width": 264,
-      "height": 96,
+      "x": 802,
+      "y": 664,
+      "width": 220,
+      "height": 105,
       "color": "teal",
       "icon": "service",
       "status": "synthetic"
@@ -173,10 +173,10 @@
       "subtitle": "Generic HTTP collector",
       "parentId": "group-external",
       "layer": "foreground",
-      "x": 24,
-      "y": 87,
-      "width": 264,
-      "height": 96,
+      "x": 22,
+      "y": 160,
+      "width": 220,
+      "height": 120,
       "color": "amber",
       "icon": "service",
       "status": "synthetic"
@@ -194,17 +194,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 312,
-          "y": 299
+          "x": 242,
+          "y": 196
         },
         {
-          "x": 509,
-          "y": 299
+          "x": 258,
+          "y": 196
+        },
+        {
+          "x": 258,
+          "y": 176
+        },
+        {
+          "x": 266,
+          "y": 176
+        },
+        {
+          "x": 266,
+          "y": 277
+        },
+        {
+          "x": 282,
+          "y": 277
         }
       ],
       "labelPosition": {
-        "x": 410.5,
-        "y": 299
+        "x": 262,
+        "y": 160
       },
       "routeRevision": 1
     },
@@ -219,17 +235,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 773,
-          "y": 299
+          "x": 502,
+          "y": 236.5
         },
         {
-          "x": 1163,
-          "y": 299
+          "x": 566,
+          "y": 236.5
+        },
+        {
+          "x": 566,
+          "y": 176
+        },
+        {
+          "x": 572,
+          "y": 176
+        },
+        {
+          "x": 572,
+          "y": 236.5
+        },
+        {
+          "x": 588,
+          "y": 236.5
         }
       ],
       "labelPosition": {
-        "x": 968,
-        "y": 299
+        "x": 569,
+        "y": 160
       },
       "routeRevision": 1
     },
@@ -244,25 +276,25 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 1427,
-          "y": 263
+          "x": 808,
+          "y": 236.5
         },
         {
-          "x": 1580,
-          "y": 263
+          "x": 1352,
+          "y": 236.5
         },
         {
-          "x": 1580,
-          "y": 191.5
+          "x": 1352,
+          "y": 226.5
         },
         {
-          "x": 1596,
-          "y": 191.5
+          "x": 1368,
+          "y": 226.5
         }
       ],
       "labelPosition": {
-        "x": 1503.5,
-        "y": 263
+        "x": 1080,
+        "y": 236.5
       },
       "routeRevision": 1
     },
@@ -277,25 +309,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 1860,
-          "y": 150.5
+          "x": 1448,
+          "y": 289
         },
         {
-          "x": 2105,
-          "y": 150.5
+          "x": 1448,
+          "y": 344
         },
         {
-          "x": 2105,
-          "y": 200.75
+          "x": 1360,
+          "y": 344
         },
         {
-          "x": 2121,
-          "y": 200.75
+          "x": 1360,
+          "y": 504
+        },
+        {
+          "x": 1478,
+          "y": 504
+        },
+        {
+          "x": 1478,
+          "y": 520
         }
       ],
       "labelPosition": {
-        "x": 1982.5,
-        "y": 150.5
+        "x": 1250.5,
+        "y": 424
       },
       "routeRevision": 1
     },
@@ -310,33 +350,25 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 1860,
-          "y": 211.5
+          "x": 1368,
+          "y": 277
         },
         {
-          "x": 2113,
-          "y": 211.5
+          "x": 816,
+          "y": 277
         },
         {
-          "x": 2113,
-          "y": 224.75
+          "x": 816,
+          "y": 1050
         },
         {
-          "x": 2771,
-          "y": 224.75
-        },
-        {
-          "x": 2771,
-          "y": 302.75
-        },
-        {
-          "x": 2795,
-          "y": 302.75
+          "x": 242,
+          "y": 1050
         }
       ],
       "labelPosition": {
-        "x": 2606.5,
-        "y": 224.75
+        "x": 896,
+        "y": 663.5
       },
       "routeRevision": 1
     },
@@ -351,25 +383,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 1596,
-          "y": 170.5
+          "x": 1468,
+          "y": 289
         },
         {
-          "x": 1443,
-          "y": 170.5
+          "x": 1468,
+          "y": 312
         },
         {
-          "x": 1443,
-          "y": 199
+          "x": 1360,
+          "y": 312
         },
         {
-          "x": 1427,
-          "y": 199
+          "x": 1360,
+          "y": 336
+        },
+        {
+          "x": 1468,
+          "y": 336
+        },
+        {
+          "x": 1468,
+          "y": 352
         }
       ],
       "labelPosition": {
-        "x": 1519.5,
-        "y": 170.5
+        "x": 1387,
+        "y": 328
       },
       "routeRevision": 1
     },
@@ -384,33 +424,17 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 1427,
-          "y": 219
+          "x": 1488,
+          "y": 352
         },
         {
-          "x": 1576,
-          "y": 219
-        },
-        {
-          "x": 1576,
-          "y": 220.75
-        },
-        {
-          "x": 1579,
-          "y": 220.75
-        },
-        {
-          "x": 1579,
-          "y": 190.5
-        },
-        {
-          "x": 1596,
-          "y": 190.5
+          "x": 1488,
+          "y": 289
         }
       ],
       "labelPosition": {
-        "x": 1501.5,
-        "y": 219
+        "x": 1556.5,
+        "y": 328
       },
       "routeRevision": 1
     },
@@ -425,25 +449,41 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 1860,
-          "y": 231.5
+          "x": 1508,
+          "y": 289
         },
         {
-          "x": 2105,
-          "y": 231.5
+          "x": 1508,
+          "y": 312
         },
         {
-          "x": 2105,
-          "y": 244.75
+          "x": 1478,
+          "y": 312
         },
         {
-          "x": 2121,
-          "y": 244.75
+          "x": 1478,
+          "y": 344
+        },
+        {
+          "x": 1596,
+          "y": 344
+        },
+        {
+          "x": 1596,
+          "y": 672
+        },
+        {
+          "x": 1478,
+          "y": 672
+        },
+        {
+          "x": 1478,
+          "y": 688
         }
       ],
       "labelPosition": {
-        "x": 1982.5,
-        "y": 231.5
+        "x": 1663,
+        "y": 508
       },
       "routeRevision": 1
     }

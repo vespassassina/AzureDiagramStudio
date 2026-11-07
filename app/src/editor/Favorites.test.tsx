@@ -13,7 +13,7 @@ it('should_expose_persistent_favorites_as_a_peer_category_with_search_and_action
   favorites()
   expect(screen.getByText(/no favorites yet.*star/i)).toBeTruthy()
   fireEvent.keyDown(screen.getByRole('tab', { name: /^Favorites/ }), { key: 'Home' })
-  expect(screen.getByRole('tab', { name: /^Azure/ }).getAttribute('aria-selected')).toBe('true')
+  expect(screen.getByRole('tab', { name: /^Microsoft/ }).getAttribute('aria-selected')).toBe('true')
   fireEvent.click(screen.getByRole('button', { name: 'Add App Service to favorites' }))
   favorites()
   expect(screen.getByRole('button', { name: 'Insert App Service' })).toBeTruthy()

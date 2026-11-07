@@ -443,3 +443,24 @@ Evidence: [DGM-164 verification](verification/DGM-164.md).
 - Finish the full slice, batch confirmed defects to its owner and retain
   failures. Reuse unchanged passing checks; a final single-behavior repair
   needs its focused regression and direct recheck, not another broad matrix.
+
+## 2026-11-07: DGM-166 Compact Layout And Gesture Repair
+
+Evidence: [DGM-166](verification/DGM-166.md).
+
+- Compact layout must use canonical text measurements and obstacle-aware
+  routing from the start. Handcrafted elbow routes and globally shrinking
+  component geometry caused avoidable repair cycles; use standard measured
+  tiles and reorganize ownership groups instead.
+- Pointer previews and text drafts share transaction storage. Unconditionally
+  clearing it before navigation loses valid edits. Identify gesture-owned
+  transactions, finish text on its original page, and invalidate late pointer
+  callbacks without disabling autosave.
+- Presentation navigation is view-only; routing it through edit finishing
+  blocks it. Preserve this distinction in actual page-switch regressions.
+- Measure initial Fit after settled layout and reserve scrollbar space.
+  Correct centering after a resize does not establish correct first-open
+  behavior.
+- Keep independent summary aggregation faithful to raw measurements. Preserve
+  harness failures, distinguish them from product defects, and recheck only
+  repaired behavior against the new exact package.

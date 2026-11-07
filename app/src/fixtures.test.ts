@@ -138,6 +138,11 @@ test('should_separate_measured_component_tiles_when_nested_fixture_siblings_shar
   assert.ok(gateway.y + measureEntity(gateway).height < app.y, 'The complete gateway must finish with a positive gap before app')
 })
 
+test('should_preserve_the_incumbent_220px_measured_component_floor_for_180px_custom_tiles', () => {
+  const component = { id: 'legacy-width', kind: 'component' as const, label: 'Width 180 probe', subtitle: 'Stored width 180px', parentId: null, x: 0, y: 0, width: 180, height: 88, color: 'azure' }
+  assert.deepEqual(measureEntity(component), { width: 220, height: 88 })
+})
+
 test('should_contain_each_measured_child_when_nested_fixture_has_two_boundary_levels', () => {
   const nested = qualityFixtures().find(document => document.id === 'nested-cross-links-v1')!
   const overflow: string[] = []

@@ -4,13 +4,29 @@
 
 A local architecture editor for Azure, Microsoft Fabric, Microsoft applications and software systems. Draw with architecture glyphs, clearly identified named badges or your own authorized images; describe ownership boundaries, connect components and export without a cloud account. The public source repository is [vespassassina/AzureDiagramStudio](https://github.com/vespassassina/AzureDiagramStudio).
 
-## 0.5.3
+## Local 0.5.4 Catalog Refinement
+
+The local ARM64 Desktop executable includes automatically fitted, centered
+architecture previews with drag-to-pan and a draggable Add Diagram dialog.
+Categories have icons, the primary action is flat, and the component library
+uses the name **Microsoft**.
+
+All 24 new architectures use compact, layered single-page layouts with
+standard readable tiles and canonical obstacle-aware routing. Page navigation
+cancels transient gestures without discarding valid text drafts or disabling
+autosave. Existing diagram geometry remains unchanged.
+
+[Local delivery evidence](docs/verification/DGM-166.md) identifies the exact
+0.5.4 package copied to the Desktop. This local build is not a new public
+release; the published latest release remains 0.5.3.
+
+## Published 0.5.3
 
 [Download the latest Windows portable release](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.5.3)
 for ARM64 or x64, with published SHA-256 checksums. Fresh public downloads of
 both executables matched the qualified packages.
 
-The source now uses **File > Add Diagram** to browse architectures and append
+The 0.5.3 UI uses **File > Add Diagram** to browse architectures and append
 the selected diagram to the current workbook instead of replacing it.
 **Add New Page** and the trailing page-strip **+** create a blank page directly.
 The page strip has a trailing

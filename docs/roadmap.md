@@ -1,6 +1,6 @@
 # Diagrammer Roadmap and Delegation Plan
 
-Updated: 2026-11-06. Status: DGM-165 WINDOWS 0.5.3 STABLE/LATEST PUBLISHED / SOURCE PUSHED AND TAGGED / FRESH PUBLIC DOWNLOADS VERIFIED. OLDER RELEASES, INSTALLATIONS, PREVIEWS AND DRAFTS REMAIN PRESERVED.
+Updated: 2026-11-07. Status: DGM-166 LOCAL ARM64 0.5.4 QUALIFIED AND COPIED TO DESKTOP. PUBLIC STABLE/LATEST REMAINS 0.5.3. OLDER RELEASES, INSTALLATIONS, PREVIEWS AND DRAFTS REMAIN PRESERVED.
 
 ## Current Execution Policy
 
@@ -88,6 +88,31 @@ evidence. This scoped [decision](decisions.md#2026-10-19-replace-formal-particip
 supersedes earlier participant-trial stops, not technical safety requirements.
 
 ## Execution Queue
+
+**Latest local delivery, 2026-11-07: DGM-166 complete.** The PO requested
+catalog preview/dragging/category/button refinements, compact diagrams, the
+Microsoft library label, root-cause gesture cancellation and replacement of
+the Desktop executable. The PO chose compact layered single-page layouts,
+not multi-page architecture insertion.
+
+The complete implementation and consolidated repair batch are accepted.
+All 24 new diagrams retain their topology/provenance, use standard component
+geometry and canonical routing; 202 routes comprise 886 orthogonal segments,
+with maximum content aspect ratio 1.61. One independent verifier accepted
+actual interaction/navigation/draft/Undo/Present/autosave behavior and rechecked
+the bounded repairs on the final exact package: 61/61 ASAR matches, initial
+Fit centered within 0.7 px, 24 previews without clipping/text-icon overlap,
+category icons and unchanged legacy component dimensions.
+
+The qualified unsigned Windows ARM64 0.5.4 portable was copied to the Desktop;
+the original hash-matching 0.5.3 Desktop copy was removed only after the new
+copy was verified. Size: 404137689 bytes. SHA-256:
+`F3726E06A52441CA40517CD20F26DDF8093BDB5162DFE55C197D626CF3D69FE9`.
+See [DGM-166 evidence](verification/DGM-166.md). Source changes remain local
+on the existing feature branch; no new commit/push/tag/publication, x64 build
+or installation was requested or performed. Existing running apps/profiles
+and the 4178 preview remain untouched.
+**Exact next action:** this requested batch is delivered; await new PO scope.
 
 **Latest delivery authorization, 2026-11-06:** the PO requested "compile and
 publish latest". [DGM-165](specs/DGM-165.md) has compiled and independently

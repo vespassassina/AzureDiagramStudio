@@ -29,10 +29,10 @@
       "subtitle": "Public ingress",
       "parentId": null,
       "layer": "foreground",
-      "x": 621,
-      "y": 460,
-      "width": 720,
-      "height": 229,
+      "x": 0,
+      "y": 24,
+      "width": 524,
+      "height": 640,
       "color": "azure"
     },
     {
@@ -42,10 +42,10 @@
       "subtitle": "Regional failure domain",
       "parentId": null,
       "layer": "foreground",
-      "x": 1710,
-      "y": 487,
-      "width": 312,
-      "height": 207,
+      "x": 566,
+      "y": 24,
+      "width": 264,
+      "height": 640,
       "color": "teal"
     },
     {
@@ -55,10 +55,10 @@
       "subtitle": "Regional failure domain",
       "parentId": null,
       "layer": "foreground",
-      "x": 1710,
-      "y": 240,
-      "width": 312,
-      "height": 207,
+      "x": 0,
+      "y": 706,
+      "width": 264,
+      "height": 640,
       "color": "amber"
     },
     {
@@ -68,10 +68,10 @@
       "subtitle": "Management plane",
       "parentId": null,
       "layer": "foreground",
-      "x": 1029,
-      "y": 24,
-      "width": 312,
-      "height": 332,
+      "x": 566,
+      "y": 706,
+      "width": 264,
+      "height": 640,
       "color": "rose"
     },
     {
@@ -81,10 +81,10 @@
       "subtitle": "Azure Front Door",
       "parentId": "group-edge",
       "layer": "foreground",
-      "x": 24,
-      "y": 98,
-      "width": 264,
-      "height": 96,
+      "x": 22,
+      "y": 160,
+      "width": 220,
+      "height": 105,
       "color": "azure",
       "icon": "api",
       "status": "synthetic"
@@ -96,10 +96,10 @@
       "subtitle": "Azure Front Door probes",
       "parentId": "group-edge",
       "layer": "foreground",
-      "x": 432,
-      "y": 98,
-      "width": 264,
-      "height": 96,
+      "x": 282,
+      "y": 160,
+      "width": 220,
+      "height": 120,
       "color": "azure",
       "icon": "api",
       "status": "synthetic"
@@ -111,10 +111,10 @@
       "subtitle": "Azure App Service",
       "parentId": "group-region-a",
       "layer": "foreground",
-      "x": 24,
-      "y": 87,
-      "width": 264,
-      "height": 96,
+      "x": 22,
+      "y": 160,
+      "width": 220,
+      "height": 88,
       "color": "teal",
       "icon": "server",
       "status": "synthetic"
@@ -126,10 +126,10 @@
       "subtitle": "Azure App Service",
       "parentId": "group-region-b",
       "layer": "foreground",
-      "x": 24,
-      "y": 87,
-      "width": 264,
-      "height": 96,
+      "x": 22,
+      "y": 160,
+      "width": 220,
+      "height": 88,
       "color": "amber",
       "icon": "server",
       "status": "synthetic"
@@ -141,10 +141,10 @@
       "subtitle": "Azure DevOps",
       "parentId": "group-control",
       "layer": "foreground",
-      "x": 24,
-      "y": 212,
-      "width": 264,
-      "height": 96,
+      "x": 22,
+      "y": 160,
+      "width": 220,
+      "height": 105,
       "color": "rose",
       "icon": "function",
       "status": "synthetic"
@@ -156,9 +156,9 @@
       "subtitle": "Application Insights",
       "parentId": "group-control",
       "layer": "foreground",
-      "x": 24,
-      "y": 87,
-      "width": 264,
+      "x": 22,
+      "y": 328,
+      "width": 220,
       "height": 105,
       "color": "rose",
       "icon": "service",
@@ -171,10 +171,10 @@
       "subtitle": "Generic clients",
       "parentId": null,
       "layer": "foreground",
-      "x": 24,
-      "y": 558,
-      "width": 264,
-      "height": 96,
+      "x": -320,
+      "y": 184,
+      "width": 220,
+      "height": 88,
       "color": "source",
       "icon": "user",
       "status": "synthetic"
@@ -186,9 +186,9 @@
       "subtitle": "Azure SQL",
       "parentId": null,
       "layer": "foreground",
-      "x": 2356,
-      "y": 536,
-      "width": 264,
+      "x": 1040,
+      "y": 296,
+      "width": 220,
       "height": 105,
       "color": "source",
       "icon": "database",
@@ -207,17 +207,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 288,
-          "y": 606
+          "x": -100,
+          "y": 260
         },
         {
-          "x": 645,
-          "y": 606
+          "x": 0,
+          "y": 260
+        },
+        {
+          "x": 0,
+          "y": 176
+        },
+        {
+          "x": 6,
+          "y": 176
+        },
+        {
+          "x": 6,
+          "y": 196
+        },
+        {
+          "x": 22,
+          "y": 196
         }
       ],
       "labelPosition": {
-        "x": 466.5,
-        "y": 606
+        "x": 3,
+        "y": 160
       },
       "routeRevision": 1
     },
@@ -232,25 +248,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 909,
-          "y": 586
+          "x": 242,
+          "y": 257
         },
         {
-          "x": 1037,
-          "y": 586
+          "x": 258,
+          "y": 257
         },
         {
-          "x": 1037,
-          "y": 606
+          "x": 258,
+          "y": 176
         },
         {
-          "x": 1053,
-          "y": 606
+          "x": 266,
+          "y": 176
+        },
+        {
+          "x": 266,
+          "y": 196
+        },
+        {
+          "x": 282,
+          "y": 196
         }
       ],
       "labelPosition": {
-        "x": 973,
-        "y": 586
+        "x": 262,
+        "y": 160
       },
       "routeRevision": 1
     },
@@ -265,25 +289,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 1317,
-          "y": 622
+          "x": 502,
+          "y": 196
         },
         {
-          "x": 1718,
-          "y": 622
+          "x": 566,
+          "y": 196
         },
         {
-          "x": 1718,
-          "y": 586
+          "x": 566,
+          "y": 176
         },
         {
-          "x": 1734,
-          "y": 586
+          "x": 572,
+          "y": 176
+        },
+        {
+          "x": 572,
+          "y": 240
+        },
+        {
+          "x": 588,
+          "y": 240
         }
       ],
       "labelPosition": {
-        "x": 1517.5,
-        "y": 622
+        "x": 569,
+        "y": 160
       },
       "routeRevision": 1
     },
@@ -298,25 +330,25 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 1317,
-          "y": 590
+          "x": 294,
+          "y": 304
         },
         {
-          "x": 1702,
-          "y": 590
+          "x": 294,
+          "y": 850
         },
         {
-          "x": 1702,
-          "y": 371
+          "x": 210,
+          "y": 850
         },
         {
-          "x": 1734,
-          "y": 371
+          "x": 210,
+          "y": 866
         }
       ],
       "labelPosition": {
-        "x": 1509.5,
-        "y": 590
+        "x": 348,
+        "y": 577
       },
       "routeRevision": 1
     },
@@ -331,33 +363,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 909,
-          "y": 622
+          "x": 242,
+          "y": 216
         },
         {
-          "x": 1045,
-          "y": 622
+          "x": 274,
+          "y": 216
         },
         {
-          "x": 1045,
-          "y": 662
+          "x": 274,
+          "y": 176
         },
         {
-          "x": 1710,
-          "y": 662
+          "x": 558,
+          "y": 176
         },
         {
-          "x": 1710,
-          "y": 604
+          "x": 558,
+          "y": 260
         },
         {
-          "x": 1734,
-          "y": 604
+          "x": 588,
+          "y": 260
         }
       ],
       "labelPosition": {
-        "x": 1377.5,
-        "y": 662
+        "x": 416,
+        "y": 160
       },
       "routeRevision": 1
     },
@@ -372,33 +404,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 909,
-          "y": 610
+          "x": 132,
+          "y": 289
         },
         {
-          "x": 1045,
-          "y": 610
+          "x": 132,
+          "y": 706
         },
         {
-          "x": 1045,
-          "y": 547
+          "x": 264,
+          "y": 706
         },
         {
-          "x": 1571.5,
-          "y": 547
+          "x": 264,
+          "y": 793
         },
         {
-          "x": 1571.5,
-          "y": 391
+          "x": 142,
+          "y": 793
         },
         {
-          "x": 1734,
-          "y": 391
+          "x": 142,
+          "y": 866
         }
       ],
       "labelPosition": {
-        "x": 1439.875,
-        "y": 547
+        "x": 189.5,
+        "y": 497.5
       },
       "routeRevision": 1
     },
@@ -413,25 +445,25 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 1998,
-          "y": 586
+          "x": 808,
+          "y": 260
         },
         {
-          "x": 2340,
-          "y": 586
+          "x": 1024,
+          "y": 260
         },
         {
-          "x": 2340,
-          "y": 609
+          "x": 1024,
+          "y": 308
         },
         {
-          "x": 2356,
-          "y": 609
+          "x": 1040,
+          "y": 308
         }
       ],
       "labelPosition": {
-        "x": 2169,
-        "y": 586
+        "x": 916,
+        "y": 260
       },
       "routeRevision": 1
     },
@@ -446,25 +478,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 1998,
-          "y": 411
+          "x": 242,
+          "y": 878
         },
         {
-          "x": 2340,
-          "y": 411
+          "x": 558,
+          "y": 878
         },
         {
-          "x": 2340,
-          "y": 568
+          "x": 558,
+          "y": 672
         },
         {
-          "x": 2356,
-          "y": 568
+          "x": 1024,
+          "y": 672
+        },
+        {
+          "x": 1024,
+          "y": 389
+        },
+        {
+          "x": 1040,
+          "y": 389
         }
       ],
       "labelPosition": {
-        "x": 2169,
-        "y": 411
+        "x": 791,
+        "y": 688
       },
       "routeRevision": 1
     },
@@ -479,33 +519,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 1317,
-          "y": 300
+          "x": 698,
+          "y": 866
         },
         {
-          "x": 1382.375,
-          "y": 300
+          "x": 698,
+          "y": 793
         },
         {
-          "x": 1382.375,
-          "y": 638
+          "x": 566,
+          "y": 793
         },
         {
-          "x": 1718,
-          "y": 638
+          "x": 566,
+          "y": 288
         },
         {
-          "x": 1718,
-          "y": 622
+          "x": 688,
+          "y": 288
         },
         {
-          "x": 1734,
-          "y": 622
+          "x": 688,
+          "y": 272
         }
       ],
       "labelPosition": {
-        "x": 1438.375,
-        "y": 469
+        "x": 622,
+        "y": 540.5
       },
       "routeRevision": 1
     },
@@ -520,25 +560,25 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 1317,
-          "y": 320
+          "x": 588,
+          "y": 878
         },
         {
-          "x": 1710,
-          "y": 320
+          "x": 558,
+          "y": 878
         },
         {
-          "x": 1710,
-          "y": 379
+          "x": 558,
+          "y": 942
         },
         {
-          "x": 1734,
-          "y": 379
+          "x": 242,
+          "y": 942
         }
       ],
       "labelPosition": {
-        "x": 1513.5,
-        "y": 320
+        "x": 400,
+        "y": 942
       },
       "routeRevision": 1
     },
@@ -553,25 +593,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 1734,
-          "y": 640
+          "x": 708,
+          "y": 272
         },
         {
-          "x": 1349,
-          "y": 640
+          "x": 708,
+          "y": 706
         },
         {
-          "x": 1349,
-          "y": 204
+          "x": 830,
+          "y": 706
         },
         {
-          "x": 1317,
-          "y": 204
+          "x": 830,
+          "y": 1018
+        },
+        {
+          "x": 698,
+          "y": 1018
+        },
+        {
+          "x": 698,
+          "y": 1034
         }
       ],
       "labelPosition": {
-        "x": 1265.5,
-        "y": 422
+        "x": 791.5,
+        "y": 489
       },
       "routeRevision": 1
     }

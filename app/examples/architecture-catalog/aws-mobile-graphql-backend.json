@@ -29,10 +29,10 @@
       "subtitle": "Untrusted client",
       "parentId": null,
       "layer": "foreground",
-      "x": 61,
-      "y": 56,
-      "width": 312,
-      "height": 207,
+      "x": 0,
+      "y": 24,
+      "width": 264,
+      "height": 640,
       "color": "azure"
     },
     {
@@ -42,10 +42,10 @@
       "subtitle": "Authenticated API boundary",
       "parentId": null,
       "layer": "foreground",
-      "x": 791,
+      "x": 306,
       "y": 24,
-      "width": 1245,
-      "height": 358,
+      "width": 784,
+      "height": 640,
       "color": "teal"
     },
     {
@@ -55,10 +55,10 @@
       "subtitle": "Protected data plane",
       "parentId": null,
       "layer": "foreground",
-      "x": 2457,
-      "y": 82,
-      "width": 312,
-      "height": 207,
+      "x": 0,
+      "y": 706,
+      "width": 264,
+      "height": 640,
       "color": "amber"
     },
     {
@@ -68,10 +68,10 @@
       "subtitle": "Generic iOS",
       "parentId": "group-client",
       "layer": "foreground",
-      "x": 24,
-      "y": 87,
-      "width": 264,
-      "height": 96,
+      "x": 22,
+      "y": 160,
+      "width": 220,
+      "height": 88,
       "color": "azure",
       "icon": "user",
       "status": "synthetic"
@@ -83,9 +83,9 @@
       "subtitle": "Microsoft Entra External ID",
       "parentId": "group-azure-api",
       "layer": "foreground",
-      "x": 24,
-      "y": 231,
-      "width": 264,
+      "x": 22,
+      "y": 160,
+      "width": 220,
       "height": 103,
       "color": "teal",
       "icon": "user",
@@ -98,9 +98,9 @@
       "subtitle": "Azure API Management plus app backend",
       "parentId": "group-azure-api",
       "layer": "foreground",
-      "x": 24,
-      "y": 91,
-      "width": 264,
+      "x": 22,
+      "y": 328,
+      "width": 220,
       "height": 120,
       "color": "teal",
       "icon": "service",
@@ -113,10 +113,10 @@
       "subtitle": "Azure Functions",
       "parentId": "group-azure-api",
       "layer": "foreground",
-      "x": 449,
-      "y": 103,
-      "width": 264,
-      "height": 96,
+      "x": 282,
+      "y": 160,
+      "width": 220,
+      "height": 88,
       "color": "teal",
       "icon": "function",
       "status": "synthetic"
@@ -128,10 +128,10 @@
       "subtitle": "Application Insights",
       "parentId": "group-azure-api",
       "layer": "foreground",
-      "x": 957,
-      "y": 87,
-      "width": 264,
-      "height": 96,
+      "x": 542,
+      "y": 160,
+      "width": 220,
+      "height": 105,
       "color": "teal",
       "icon": "queue",
       "status": "synthetic"
@@ -143,10 +143,10 @@
       "subtitle": "Azure Cosmos DB",
       "parentId": "group-data",
       "layer": "foreground",
-      "x": 24,
-      "y": 87,
-      "width": 264,
-      "height": 96,
+      "x": 22,
+      "y": 160,
+      "width": 220,
+      "height": 105,
       "color": "amber",
       "icon": "database",
       "status": "synthetic"
@@ -164,25 +164,25 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 349,
-          "y": 187
+          "x": 242,
+          "y": 220
         },
         {
-          "x": 799,
-          "y": 187
+          "x": 312,
+          "y": 220
         },
         {
-          "x": 799,
-          "y": 267
+          "x": 312,
+          "y": 196
         },
         {
-          "x": 815,
-          "y": 267
+          "x": 328,
+          "y": 196
         }
       ],
       "labelPosition": {
-        "x": 574,
-        "y": 187
+        "x": 297.5,
+        "y": 236
       },
       "routeRevision": 1
     },
@@ -197,25 +197,25 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 815,
-          "y": 287
+          "x": 328,
+          "y": 216
         },
         {
-          "x": 365,
-          "y": 287
+          "x": 258,
+          "y": 216
         },
         {
-          "x": 365,
-          "y": 207
+          "x": 258,
+          "y": 240
         },
         {
-          "x": 349,
-          "y": 207
+          "x": 242,
+          "y": 240
         }
       ],
       "labelPosition": {
-        "x": 590,
-        "y": 287
+        "x": 275.5,
+        "y": 200
       },
       "routeRevision": 1
     },
@@ -230,25 +230,25 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 349,
-          "y": 195
+          "x": 242,
+          "y": 260
         },
         {
-          "x": 539.5,
-          "y": 195
+          "x": 312,
+          "y": 260
         },
         {
-          "x": 539.5,
-          "y": 223
+          "x": 312,
+          "y": 364
         },
         {
-          "x": 815,
-          "y": 223
+          "x": 328,
+          "y": 364
         }
       ],
       "labelPosition": {
-        "x": 677.25,
-        "y": 223
+        "x": 420,
+        "y": 312
       },
       "routeRevision": 1
     },
@@ -263,17 +263,25 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 1079,
-          "y": 175
+          "x": 548,
+          "y": 364
         },
         {
-          "x": 1240,
-          "y": 175
+          "x": 572,
+          "y": 364
+        },
+        {
+          "x": 572,
+          "y": 260
+        },
+        {
+          "x": 588,
+          "y": 260
         }
       ],
       "labelPosition": {
-        "x": 1159.5,
-        "y": 175
+        "x": 636.5,
+        "y": 312
       },
       "routeRevision": 1
     },
@@ -288,33 +296,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 1504,
-          "y": 191
+          "x": 600,
+          "y": 272
         },
         {
-          "x": 1740,
-          "y": 191
+          "x": 600,
+          "y": 296
         },
         {
-          "x": 1740,
-          "y": 215
+          "x": 272,
+          "y": 296
         },
         {
-          "x": 2465,
-          "y": 215
+          "x": 272,
+          "y": 850
         },
         {
-          "x": 2465,
-          "y": 181
+          "x": 230,
+          "y": 850
         },
         {
-          "x": 2481,
-          "y": 181
+          "x": 230,
+          "y": 866
         }
       ],
       "labelPosition": {
-        "x": 2102.5,
-        "y": 231
+        "x": 381.5,
+        "y": 573
       },
       "routeRevision": 1
     },
@@ -329,25 +337,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 1504,
-          "y": 159
+          "x": 808,
+          "y": 260
         },
         {
-          "x": 1732,
-          "y": 159
+          "x": 824,
+          "y": 260
         },
         {
-          "x": 1732,
-          "y": 195
+          "x": 824,
+          "y": 184
         },
         {
-          "x": 1748,
-          "y": 195
+          "x": 832,
+          "y": 184
+        },
+        {
+          "x": 832,
+          "y": 196
+        },
+        {
+          "x": 848,
+          "y": 196
         }
       ],
       "labelPosition": {
-        "x": 1618,
-        "y": 159
+        "x": 828,
+        "y": 168
       },
       "routeRevision": 1
     }

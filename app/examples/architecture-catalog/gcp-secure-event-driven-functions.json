@@ -29,10 +29,10 @@
       "subtitle": "Source environment",
       "parentId": null,
       "layer": "foreground",
-      "x": 24,
-      "y": 57.30000000000001,
-      "width": 312,
-      "height": 207,
+      "x": 0,
+      "y": 24,
+      "width": 264,
+      "height": 640,
       "color": "azure"
     },
     {
@@ -42,10 +42,10 @@
       "subtitle": "Application workload",
       "parentId": null,
       "layer": "foreground",
-      "x": 682,
+      "x": 566,
       "y": 24,
-      "width": 1200,
-      "height": 459,
+      "width": 784,
+      "height": 644,
       "color": "teal"
     },
     {
@@ -55,10 +55,10 @@
       "subtitle": "Non-public dependency",
       "parentId": null,
       "layer": "foreground",
-      "x": 2292,
-      "y": 319.5,
-      "width": 770,
-      "height": 214,
+      "x": 0,
+      "y": 710,
+      "width": 524,
+      "height": 640,
       "color": "amber"
     },
     {
@@ -68,10 +68,10 @@
       "subtitle": "Azure Blob Storage",
       "parentId": "group-producer",
       "layer": "foreground",
-      "x": 24,
-      "y": 87,
-      "width": 264,
-      "height": 96,
+      "x": 22,
+      "y": 160,
+      "width": 220,
+      "height": 105,
       "color": "azure",
       "icon": "storage",
       "status": "synthetic"
@@ -83,10 +83,10 @@
       "subtitle": "Event Grid",
       "parentId": "group-function-zone",
       "layer": "foreground",
-      "x": 24,
-      "y": 120.3,
-      "width": 264,
-      "height": 96,
+      "x": 22,
+      "y": 160,
+      "width": 220,
+      "height": 88,
       "color": "teal",
       "icon": "queue",
       "status": "synthetic"
@@ -98,10 +98,10 @@
       "subtitle": "Azure Functions",
       "parentId": "group-function-zone",
       "layer": "foreground",
-      "x": 395,
-      "y": 120.3,
-      "width": 264,
-      "height": 96,
+      "x": 282,
+      "y": 160,
+      "width": 220,
+      "height": 88,
       "color": "teal",
       "icon": "queue",
       "status": "synthetic"
@@ -113,10 +113,10 @@
       "subtitle": "Managed identity",
       "parentId": "group-function-zone",
       "layer": "foreground",
-      "x": 912,
-      "y": 212,
-      "width": 264,
-      "height": 96,
+      "x": 542,
+      "y": 160,
+      "width": 220,
+      "height": 88,
       "color": "teal",
       "icon": "shield",
       "status": "synthetic"
@@ -128,9 +128,9 @@
       "subtitle": "Azure Key Vault",
       "parentId": "group-function-zone",
       "layer": "foreground",
-      "x": 912,
-      "y": 87,
-      "width": 264,
+      "x": 542,
+      "y": 328,
+      "width": 220,
       "height": 105,
       "color": "teal",
       "icon": "shield",
@@ -143,10 +143,10 @@
       "subtitle": "Azure Monitor",
       "parentId": "group-function-zone",
       "layer": "foreground",
-      "x": 912,
-      "y": 328,
-      "width": 264,
-      "height": 96,
+      "x": 542,
+      "y": 496,
+      "width": 220,
+      "height": 88,
       "color": "teal",
       "icon": "service",
       "status": "synthetic"
@@ -158,10 +158,10 @@
       "subtitle": "Private Endpoint and VNet integration",
       "parentId": "group-private-data",
       "layer": "foreground",
-      "x": 24,
-      "y": 87,
-      "width": 264,
-      "height": 103,
+      "x": 22,
+      "y": 160,
+      "width": 220,
+      "height": 120,
       "color": "amber",
       "icon": "shield",
       "status": "synthetic"
@@ -173,10 +173,10 @@
       "subtitle": "Azure SQL",
       "parentId": "group-private-data",
       "layer": "foreground",
-      "x": 482,
-      "y": 90.5,
-      "width": 264,
-      "height": 96,
+      "x": 282,
+      "y": 160,
+      "width": 220,
+      "height": 105,
       "color": "amber",
       "icon": "database",
       "status": "synthetic"
@@ -194,17 +194,25 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 312,
-          "y": 192.3
+          "x": 242,
+          "y": 196
         },
         {
-          "x": 706,
-          "y": 192.3
+          "x": 572,
+          "y": 196
+        },
+        {
+          "x": 572,
+          "y": 260
+        },
+        {
+          "x": 588,
+          "y": 260
         }
       ],
       "labelPosition": {
-        "x": 509,
-        "y": 192.3
+        "x": 407,
+        "y": 196
       },
       "routeRevision": 1
     },
@@ -219,17 +227,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 970,
-          "y": 192.3
+          "x": 808,
+          "y": 228
         },
         {
-          "x": 1077,
-          "y": 192.3
+          "x": 824,
+          "y": 228
+        },
+        {
+          "x": 824,
+          "y": 180
+        },
+        {
+          "x": 832,
+          "y": 180
+        },
+        {
+          "x": 832,
+          "y": 218
+        },
+        {
+          "x": 848,
+          "y": 218
         }
       ],
       "labelPosition": {
-        "x": 1023.5,
-        "y": 192.3
+        "x": 828,
+        "y": 164
       },
       "routeRevision": 1
     },
@@ -244,25 +268,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 1341,
-          "y": 174.3
+          "x": 1068,
+          "y": 218
         },
         {
-          "x": 1578,
-          "y": 174.3
+          "x": 1084,
+          "y": 218
         },
         {
-          "x": 1578,
-          "y": 248
+          "x": 1084,
+          "y": 180
         },
         {
-          "x": 1594,
-          "y": 248
+          "x": 1092,
+          "y": 180
+        },
+        {
+          "x": 1092,
+          "y": 228
+        },
+        {
+          "x": 1108,
+          "y": 228
         }
       ],
       "labelPosition": {
-        "x": 1459.5,
-        "y": 174.3
+        "x": 1088,
+        "y": 164
       },
       "routeRevision": 1
     },
@@ -277,33 +309,25 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 1341,
-          "y": 174.3
+          "x": 1068,
+          "y": 260
         },
         {
-          "x": 1357,
-          "y": 174.3
+          "x": 1092,
+          "y": 260
         },
         {
-          "x": 1357,
-          "y": 190.3
+          "x": 1092,
+          "y": 364
         },
         {
-          "x": 1367.5,
-          "y": 190.3
-        },
-        {
-          "x": 1367.5,
-          "y": 204
-        },
-        {
-          "x": 1594,
-          "y": 204
+          "x": 1108,
+          "y": 364
         }
       ],
       "labelPosition": {
-        "x": 1468,
-        "y": 202.63
+        "x": 1192.5,
+        "y": 312
       },
       "routeRevision": 1
     },
@@ -318,33 +342,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 1341,
-          "y": 210.3
+          "x": 848,
+          "y": 260
         },
         {
-          "x": 1367.5,
-          "y": 210.3
+          "x": 816,
+          "y": 260
         },
         {
-          "x": 1367.5,
-          "y": 344
+          "x": 816,
+          "y": 862
         },
         {
-          "x": 2292,
-          "y": 344
+          "x": 258,
+          "y": 862
         },
         {
-          "x": 2292,
-          "y": 418.5
+          "x": 258,
+          "y": 882
         },
         {
-          "x": 2316,
-          "y": 418.5
+          "x": 242,
+          "y": 882
         }
       ],
       "labelPosition": {
-        "x": 2060.875,
-        "y": 344
+        "x": 920,
+        "y": 561
       },
       "routeRevision": 1
     },
@@ -359,17 +383,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 2580,
-          "y": 458
+          "x": 242,
+          "y": 902
         },
         {
-          "x": 2774,
-          "y": 458
+          "x": 258,
+          "y": 902
+        },
+        {
+          "x": 258,
+          "y": 998
+        },
+        {
+          "x": 266,
+          "y": 998
+        },
+        {
+          "x": 266,
+          "y": 963
+        },
+        {
+          "x": 282,
+          "y": 963
         }
       ],
       "labelPosition": {
-        "x": 2677,
-        "y": 458
+        "x": 339,
+        "y": 988.4
       },
       "routeRevision": 1
     },
@@ -384,25 +424,25 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 1341,
-          "y": 228.3
+          "x": 1056,
+          "y": 272
         },
         {
-          "x": 1568.5,
-          "y": 228.3
+          "x": 1056,
+          "y": 504
         },
         {
-          "x": 1568.5,
-          "y": 364
+          "x": 1120,
+          "y": 504
         },
         {
-          "x": 1594,
-          "y": 364
+          "x": 1120,
+          "y": 520
         }
       ],
       "labelPosition": {
-        "x": 1454.75,
-        "y": 244.3
+        "x": 977,
+        "y": 388
       },
       "routeRevision": 1
     }

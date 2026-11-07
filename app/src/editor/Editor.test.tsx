@@ -11,6 +11,7 @@ import { iconFixture } from '../custom-icons/test-fixtures.ts'
 import { importCustomIcon } from '../custom-icons/import.ts'
 import { applyCommand } from '../document/index.ts'
 import { starterDocument } from '../app/session.ts'
+import { createWorkbook } from '../workbook.ts'
 
 vi.mock('../custom-icons/import.ts', () => ({ importCustomIcon: vi.fn() }))
 const engine = vi.hoisted(() => ({ cancelConnection: vi.fn() }))
@@ -1071,6 +1072,42 @@ describe('controlled editor', () => {
     expect(JSON.stringify(flow.props.nodes.map((node: any) => ({ id: node.id, position: node.position, measured: node.measured })))).toBe(before)
     expect(props.onCommand).not.toHaveBeenCalled(); expect(props.onUndo).not.toHaveBeenCalled(); expect(props.onRedo).not.toHaveBeenCalled()
   })
+  it('should_commit_a_page_title_draft_before_switching_pages_DGM166', () => {
+    const first = { ...sampleDiagram(), id: 'page-one', title: 'Page one' }
+    const second = { ...createDocument('page-two'), title: 'Page two' }
+    const root = { ...createWorkbook('workbook', first.id), pages: [first, second] }
+    const { props } = setup({ document: first, root, onSelectPage: vi.fn(), onWorkbookCommand: vi.fn(() => true) })
+    const title = screen.getByRole('textbox', { name: 'Page title' })
+    fireEvent.change(title, { target: { value: 'Committed source title' } })
+    fireEvent.click(screen.getByRole('tab', { name: 'Page two' }))
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'metadata', patch: { title: 'Committed source title' } })
+    expect(props.onSelectPage).toHaveBeenCalledExactlyOnceWith('page-two')
+  })
+  it('should_discard_a_stale_drag_callback_after_page_navigation_DGM166', () => {
+    const first = { ...sampleDiagram(), id: 'page-one', title: 'Page one' }
+    const second = { ...createDocument('page-two'), title: 'Page two' }
+    const root = { ...createWorkbook('workbook', first.id), pages: [first, second] }
+    const { props } = setup({ document: first, root, onSelectPage: vi.fn(), onWorkbookCommand: vi.fn(() => true) })
+    const canvas = screen.getByRole('main', { name: 'Architecture canvas' })
+    const node = flow.props.nodes.find((candidate: any) => candidate.id === 'gateway')
+    fireEvent.mouseDown(canvas, { button: 0 })
+    act(() => flow.props.onNodeDragStart())
+    const staleStop = flow.props.onNodeDragStop
+    fireEvent.click(screen.getByRole('tab', { name: 'Page two' }))
+    act(() => staleStop({}, node, [{ ...node, position: { x: 700, y: 200 } }]))
+    expect(props.onSelectPage).toHaveBeenCalledExactlyOnceWith('page-two')
+    expect(props.onCommand).not.toHaveBeenCalled()
+  })
+  it('should_switch_presentation_pages_without_edit_mode_draft_commit_DGM166', () => {
+    const first = { ...sampleDiagram(), id: 'page-one', title: 'Page one' }
+    const second = { ...createDocument('page-two'), title: 'Page two' }
+    const root = { ...createWorkbook('workbook', first.id), pages: [first, second] }
+    const { props } = setup({ document: first, root, onSelectPage: vi.fn(), onWorkbookCommand: vi.fn(() => true) })
+    fireEvent.click(screen.getByRole('button', { name: 'Present' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Page two' }))
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(props.onSelectPage).toHaveBeenCalledExactlyOnceWith('page-two')
+  })
   it.each(['read-only roundtrip', 'same-id replacement'])('should_reject_stale_link_completion_after_%s_DGM119', mode => {
     const { props, rerender } = setup({ document: sampleDiagram() })
     const previous = flow.props
@@ -2091,9 +2128,9 @@ describe('controlled editor', () => {
     expect(within(dialog).getByText('Microsoft origin')).toBeTruthy()
     expect(within(dialog).getByRole('link', { name: 'Open primary source' })).toBeTruthy()
     expect(within(dialog).getByRole('button', { name: 'Blank' })).toBeTruthy()
-    expect(within(dialog).getByRole('img', { name: /100 percent$/ })).toBeTruthy()
+    expect(within(dialog).getByRole('img', { name: /percent$/ })).toBeTruthy()
     fireEvent.click(within(dialog).getByRole('button', { name: 'Fit overview' }))
-    expect(within(dialog).getByRole('img', { name: /50 percent$/ })).toBeTruthy()
+    expect(within(dialog).getByRole('button', { name: 'Fit overview' }).getAttribute('aria-pressed')).toBe('true')
     fireEvent.click(within(dialog).getByRole('button', { name: 'Reset preview zoom' }))
     expect(within(dialog).getByRole('img', { name: /100 percent$/ })).toBeTruthy()
     expect(within(dialog).getByRole('region', { name: 'Scrollable diagram preview' })).toHaveProperty('tabIndex', 0)
@@ -2111,9 +2148,32 @@ describe('controlled editor', () => {
     viewport.scrollLeft = 300
     viewport.scrollTop = 200
     fireEvent.click(within(dialog).getByRole('button', { name: /Document-grounded assistant with separate ingestion and evaluation pathsGoogle Cloud/ }))
-    expect(within(dialog).getByRole('img', { name: /100 percent$/ })).toBeTruthy()
+    expect(within(dialog).getByRole('button', { name: 'Fit overview' }).getAttribute('aria-pressed')).toBe('true')
     expect(viewport.scrollLeft).toBe(0)
     expect(viewport.scrollTop).toBe(0)
+  })
+  it('should_drag_the_catalog_dialog_from_its_header_and_pan_only_the_preview_DGM166', () => {
+    setup()
+    fireEvent.click(menuItemDGM140('Add diagram'))
+    const dialog = screen.getByRole('dialog', { name: 'Add diagram' }) as HTMLElement
+    const existing = within(dialog).getByRole('button', { name: 'Existing starters' })
+    expect(existing.querySelectorAll('svg')).toHaveLength(2)
+    const header = dialog.querySelector('.architecture-catalog-header') as HTMLElement
+    Object.assign(header, { setPointerCapture: vi.fn(), hasPointerCapture: vi.fn(() => true), releasePointerCapture: vi.fn() })
+    fireEvent.pointerDown(header, { button: 0, pointerId: 7, clientX: 100, clientY: 100 })
+    fireEvent.pointerMove(header, { pointerId: 7, clientX: 148, clientY: 136 })
+    expect(dialog.style.transform).toBe('translate(48px, 36px)')
+    fireEvent.pointerUp(header, { pointerId: 7 })
+
+    const viewport = within(dialog).getByRole('region', { name: 'Scrollable diagram preview' }) as HTMLDivElement
+    const canvas = dialog.querySelector('.architecture-catalog-preview-canvas') as HTMLElement
+    Object.assign(viewport, { setPointerCapture: vi.fn(), hasPointerCapture: vi.fn(() => true), releasePointerCapture: vi.fn() })
+    viewport.scrollLeft = 240; viewport.scrollTop = 180
+    fireEvent.pointerDown(canvas, { button: 0, pointerId: 8, clientX: 200, clientY: 200 })
+    fireEvent.pointerMove(viewport, { pointerId: 8, clientX: 160, clientY: 150 })
+    expect(viewport.scrollLeft).toBe(280)
+    expect(viewport.scrollTop).toBe(230)
+    fireEvent.pointerCancel(viewport, { pointerId: 8 })
   })
   it('should_trap_links_and_controls_but_leave_search_arrows_native_without_replacing_work_DGM164', () => {
     const { props } = setup({ document: sampleDiagram() })
@@ -2785,7 +2845,7 @@ describe('controlled editor', () => {
     fireEvent.click(screen.getByRole('tab', { name: /^Favorites/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Clear favorite components' }))
     expect(screen.getByText(/No favorites yet/)).toBeTruthy()
-    fireEvent.click(screen.getByRole('tab', { name: /^Azure/ }))
+    fireEvent.click(screen.getByRole('tab', { name: /^Microsoft/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Add App Service to favorites' }))
     unmount()
     setup()
@@ -4218,7 +4278,7 @@ describe('controlled editor', () => {
   it('should_keep_group_state_out_of_history_and_geometry_when_document_edits_commit', () => {
     const { props, rerender } = setup({ document: sampleDiagram() })
     const group = menuGroups('azure').find(group => !group.items.some(item => item.icon === 'azure-app'))!
-    const headerName = `Azure / Microsoft: ${group.label} (${group.items.length})`
+    const headerName = `Microsoft: ${group.label} (${group.items.length})`
     fireEvent.click(screen.getByRole('button', { name: headerName }))
     fireEvent.click(screen.getByText('gateway'))
     fireEvent.keyDown(window, { key: 'ArrowRight' })
@@ -4269,7 +4329,7 @@ describe('controlled editor', () => {
   it('should_allow_fabric_browsing_but_guard_all_new_insertion_paths_when_readonly', () => {
     const item = selectionLibrary.find(item => /onelake/i.test(item.label))!
     const { props } = setup({ document: sampleDiagram(), readOnly: true, saveState: 'read-only' })
-    fireEvent.click(screen.getByRole('button', { name: /^Azure \/ Microsoft: Microsoft Fabric/ }))
+    fireEvent.click(screen.getByRole('button', { name: /^Microsoft: Microsoft Fabric/ }))
     fireEvent.change(screen.getByLabelText('Search components'), { target: { value: 'OneLake' } })
     const row = screen.getAllByRole('button', { name: `Insert ${item.label}` }).find(button => button.getAttribute('data-icon') === item.icon) as HTMLButtonElement
     expect(row.disabled).toBe(true); expect(row.draggable).toBe(false)

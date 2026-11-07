@@ -29,10 +29,10 @@
       "subtitle": "Transactional data plane",
       "parentId": null,
       "layer": "foreground",
-      "x": 24,
+      "x": 0,
       "y": 24,
-      "width": 1191,
-      "height": 231,
+      "width": 784,
+      "height": 640,
       "color": "azure"
     },
     {
@@ -42,10 +42,10 @@
       "subtitle": "Durable event path",
       "parentId": null,
       "layer": "foreground",
-      "x": 1543,
-      "y": 36,
-      "width": 737,
-      "height": 207,
+      "x": 826,
+      "y": 24,
+      "width": 524,
+      "height": 640,
       "color": "teal"
     },
     {
@@ -55,10 +55,10 @@
       "subtitle": "Lake and consumers",
       "parentId": null,
       "layer": "foreground",
-      "x": 2633,
-      "y": 36,
-      "width": 839,
-      "height": 207,
+      "x": 0,
+      "y": 706,
+      "width": 524,
+      "height": 640,
       "color": "amber"
     },
     {
@@ -68,9 +68,9 @@
       "subtitle": "Generic application",
       "parentId": "group-source",
       "layer": "foreground",
-      "x": 24,
-      "y": 94.5,
-      "width": 264,
+      "x": 22,
+      "y": 160,
+      "width": 220,
       "height": 105,
       "color": "azure",
       "icon": "service",
@@ -83,10 +83,10 @@
       "subtitle": "Azure Cosmos DB",
       "parentId": "group-source",
       "layer": "foreground",
-      "x": 482,
-      "y": 99,
-      "width": 264,
-      "height": 96,
+      "x": 282,
+      "y": 160,
+      "width": 220,
+      "height": 105,
       "color": "azure",
       "icon": "database",
       "status": "synthetic"
@@ -98,9 +98,9 @@
       "subtitle": "Database-specific connector",
       "parentId": "group-source",
       "layer": "foreground",
-      "x": 903,
-      "y": 87,
-      "width": 264,
+      "x": 542,
+      "y": 160,
+      "width": 220,
       "height": 120,
       "color": "azure",
       "icon": "database",
@@ -113,10 +113,10 @@
       "subtitle": "Azure Event Hubs",
       "parentId": "group-streaming",
       "layer": "foreground",
-      "x": 24,
-      "y": 87,
-      "width": 264,
-      "height": 96,
+      "x": 22,
+      "y": 160,
+      "width": 220,
+      "height": 105,
       "color": "teal",
       "icon": "queue",
       "status": "synthetic"
@@ -128,10 +128,10 @@
       "subtitle": "Azure Functions",
       "parentId": "group-streaming",
       "layer": "foreground",
-      "x": 449,
-      "y": 87,
-      "width": 264,
-      "height": 96,
+      "x": 282,
+      "y": 160,
+      "width": 220,
+      "height": 105,
       "color": "teal",
       "icon": "queue",
       "status": "synthetic"
@@ -143,10 +143,10 @@
       "subtitle": "Azure Data Lake Storage",
       "parentId": "group-analytics",
       "layer": "foreground",
-      "x": 24,
-      "y": 87,
-      "width": 264,
-      "height": 96,
+      "x": 22,
+      "y": 160,
+      "width": 220,
+      "height": 120,
       "color": "amber",
       "icon": "storage",
       "status": "synthetic"
@@ -158,10 +158,10 @@
       "subtitle": "Fabric",
       "parentId": "group-analytics",
       "layer": "foreground",
-      "x": 551,
-      "y": 87,
-      "width": 264,
-      "height": 96,
+      "x": 282,
+      "y": 160,
+      "width": 220,
+      "height": 105,
       "color": "amber",
       "icon": "user",
       "status": "synthetic"
@@ -179,17 +179,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 312,
-          "y": 171
+          "x": 242,
+          "y": 236.5
         },
         {
-          "x": 506,
-          "y": 171
+          "x": 258,
+          "y": 236.5
+        },
+        {
+          "x": 258,
+          "y": 176
+        },
+        {
+          "x": 266,
+          "y": 176
+        },
+        {
+          "x": 266,
+          "y": 236.5
+        },
+        {
+          "x": 282,
+          "y": 236.5
         }
       ],
       "labelPosition": {
-        "x": 409,
-        "y": 171
+        "x": 262,
+        "y": 160
       },
       "routeRevision": 1
     },
@@ -204,17 +220,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 770,
-          "y": 171
+          "x": 502,
+          "y": 277
         },
         {
-          "x": 927,
-          "y": 171
+          "x": 518,
+          "y": 277
+        },
+        {
+          "x": 518,
+          "y": 176
+        },
+        {
+          "x": 526,
+          "y": 176
+        },
+        {
+          "x": 526,
+          "y": 196
+        },
+        {
+          "x": 542,
+          "y": 196
         }
       ],
       "labelPosition": {
-        "x": 848.5,
-        "y": 171
+        "x": 522,
+        "y": 160
       },
       "routeRevision": 1
     },
@@ -229,17 +261,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 1191,
-          "y": 171
+          "x": 762,
+          "y": 196
         },
         {
-          "x": 1567,
-          "y": 171
+          "x": 826,
+          "y": 196
+        },
+        {
+          "x": 826,
+          "y": 176
+        },
+        {
+          "x": 832,
+          "y": 176
+        },
+        {
+          "x": 832,
+          "y": 277
+        },
+        {
+          "x": 848,
+          "y": 277
         }
       ],
       "labelPosition": {
-        "x": 1379,
-        "y": 171
+        "x": 829,
+        "y": 160
       },
       "routeRevision": 1
     },
@@ -254,17 +302,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 1831,
-          "y": 171
+          "x": 1068,
+          "y": 236.5
         },
         {
-          "x": 1992,
-          "y": 171
+          "x": 1084,
+          "y": 236.5
+        },
+        {
+          "x": 1084,
+          "y": 176
+        },
+        {
+          "x": 1092,
+          "y": 176
+        },
+        {
+          "x": 1092,
+          "y": 226.5
+        },
+        {
+          "x": 1108,
+          "y": 226.5
         }
       ],
       "labelPosition": {
-        "x": 1911.5,
-        "y": 171
+        "x": 1088,
+        "y": 160
       },
       "routeRevision": 1
     },
@@ -279,17 +343,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 2256,
-          "y": 171
+          "x": 1108,
+          "y": 277
         },
         {
-          "x": 2657,
-          "y": 171
+          "x": 1076,
+          "y": 277
+        },
+        {
+          "x": 1076,
+          "y": 858
+        },
+        {
+          "x": 258,
+          "y": 858
+        },
+        {
+          "x": 258,
+          "y": 878
+        },
+        {
+          "x": 242,
+          "y": 878
         }
       ],
       "labelPosition": {
-        "x": 2456.5,
-        "y": 171
+        "x": 667,
+        "y": 858
       },
       "routeRevision": 1
     },
@@ -304,17 +384,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 2921,
-          "y": 171
+          "x": 242,
+          "y": 898
         },
         {
-          "x": 3184,
-          "y": 171
+          "x": 258,
+          "y": 898
+        },
+        {
+          "x": 258,
+          "y": 994
+        },
+        {
+          "x": 266,
+          "y": 994
+        },
+        {
+          "x": 266,
+          "y": 959
+        },
+        {
+          "x": 282,
+          "y": 959
         }
       ],
       "labelPosition": {
-        "x": 3052.5,
-        "y": 171
+        "x": 373.5,
+        "y": 984.4
       },
       "routeRevision": 1
     }

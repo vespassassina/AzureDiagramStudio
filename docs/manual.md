@@ -1,6 +1,12 @@
 ﻿# Azure Diagram Studio: Short Manual
 
-**[Windows 0.5.3](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.5.3):**
+**Local Windows ARM64 0.5.4:** the Desktop portable includes the catalog preview,
+compact-layout and page-navigation refinements described below. It replaces
+only the previous Desktop executable, not an installed/running application or
+its profile. [DGM-166](verification/DGM-166.md) records the exact package and
+delivery evidence. It is not a new public release.
+
+**[Published Windows 0.5.3](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.5.3):**
 the stable/latest portable packages include the workbook/page
 controls and 35-starter architecture catalog described in the current
 sections below. File groups workbook operations separately from Add New Page
@@ -614,7 +620,7 @@ descriptions. The separate strict skill-spec import format was not extended.
 
 ## Add and Find Components
 
-Open the component library and use **Search components**. **Azure / Microsoft** has eight top-level groups, including **Microsoft Fabric** and **Microsoft Apps**. Each group starts with up to four familiar choices, followed by an alphabetical tail; search includes the remaining current choices. For OneLake, expand **Microsoft Fabric**, or search `OneLake`. **Software** contains generic components and the **Vendors** group; HP and HPE are separate choices.
+Open the component library and use **Search components**. **Microsoft** has eight top-level groups, including **Microsoft Fabric** and **Microsoft Apps**. Each group starts with up to four familiar choices, followed by an alphabetical tail; search includes the remaining current choices. For OneLake, expand **Microsoft Fabric**, or search `OneLake`. **Software** contains generic components and the **Vendors** group; HP and HPE are separate choices.
 
 Microsoft Apps includes five official architecture glyphs, seven bundled Microsoft product PNGs and two original named badges. Vendors contains 17 bundled vendor PNG icons. Their presence is not evidence of a working integration; consult the included notices for trademark limitations.
 
@@ -623,7 +629,7 @@ Choose a service, then click the canvas to place it; alternatively drag it from 
 Search also recognizes familiar aliases such as `APIM`, `AAD`, `Entra ID`, `ACA` and `AKS`. Use arrow keys and Enter to choose a result, or Escape to cancel. Recent successful insertions (up to 8) last only for the current editor session; clearing them does not change the diagram.
 
 **Newer source only:** Favorites (up to 12) is a peer category alongside
-Azure / Microsoft and Software. Use a component's existing star to add/remove
+Microsoft and Software. Use a component's existing star to add/remove
 it, then choose Favorites to browse or search only saved favorites. Category
 tabs support Left/Right and Home/End. Removing the last favorite keeps an
 actionable empty category; it does not switch categories unexpectedly.
@@ -923,8 +929,8 @@ the source acceptance runner mocks only native selection/confirmation while
 using real preload, main, filesystem and profile restart.
 # Current Source: Adding, Removing And Renaming Diagrams
 
-These controls are the DGM-163 source follow-up, not the published 0.5.2
-executables.
+These DGM-163 controls are included in published 0.5.3 and the local 0.5.4
+build, not retroactively added to the 0.5.2 executables.
 
 Use **File > Add Diagram** to browse a blank diagram or architecture starter,
 then choose **Add Diagram** in the catalog to append it. It selects the page,
@@ -957,6 +963,12 @@ editing. Single-line rename fields commit on click-away or Enter and cancel
 with Escape. Multiline text keeps normal newlines and existing Ctrl+Enter
 commit behavior.
 
+In local 0.5.4, changing pages cancels transient move, resize and connector
+gestures, releases their pointer state and ignores late callbacks from the
+old page. Valid text/property drafts finish on their original page and remain
+undoable. Autosave stays enabled; cancellation does not delete recovery data.
+Text composition and genuine pending/failed edit guards remain protected.
+
 In **Page styles**, choose a style tab and edit its identity/meaning and
 separate Box/Connector columns. Drafts survive style-tab switches.
 Leave appearance fields blank to inherit; stroke widths must be 0.5 to 12.
@@ -972,10 +984,17 @@ adaptations, split equally between Microsoft-, AWS- and Google Cloud-origin
 patterns. **Existing starters** remains available as a collapsible group.
 
 Select a category and architecture, or search by title, category or origin.
-Browsing changes only the preview, not the current workbook. The diagram opens
-at 100% native scale; scroll to inspect it, use the zoom controls, or choose
-**Fit** for an overview. Selecting another architecture resets zoom and both
-scroll directions. Source links, reviewed dates, Markdown explanations and
+Browsing changes only the preview, not the current workbook. In local 0.5.4,
+the diagram automatically fits and centers in the available preview. Drag
+inside the preview to pan after zooming, use keyboard scrolling, or choose
+**100%** for native-scale inspection. **Fit** restores the centered overview
+and follows viewport resizing; selecting another architecture resets inspection
+to Fit. Drag the dialog by its title bar to reposition it within the window.
+Categories, including Existing starters, have icons beside their labels.
+Published 0.5.3 retains its native-scale default.
+
+The 24 new local diagrams use compact, layered single-page layouts, preserving
+all original flows, ownership boundaries and guidance. Source links, reviewed dates, Markdown explanations and
 mapping caveats are shown beside the preview and retained in the added page's
 Markdown. Add the page explicitly; Cancel, Escape or dismissing the catalog
 adds nothing.

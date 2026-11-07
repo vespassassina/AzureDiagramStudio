@@ -528,6 +528,7 @@ export default function EditorSurface(props: EditorProps) {
   })
   const physicalPress = useRef(false)
   const activePointer = useRef<{ id: number; point: Point } | null>(null)
+  const capturedGestureTarget = useRef<{ element: HTMLElement | SVGRectElement; pointerId: number } | null>(null)
   const cancelledPress = useRef(false)
   const [gestureEpoch, setGestureEpoch] = useState(0)
   const resetGestureAfterHistory = useRef(false)
@@ -721,31 +722,39 @@ export default function EditorSurface(props: EditorProps) {
     if (saved) { setZoom(saved.viewport.zoom); void setViewport(saved.viewport, { duration: 0 }) }
     else requestAnimationFrame(() => currentFitCanvas.current(false))
   }
-  // Page switch admission: refuse explicitly while text composition, a pointer
-  // gesture or an unaccepted entry commit is active; otherwise finish drafts first
-  // so they commit to the page they were typed on, then navigate.
+  // Page navigation cancels transient pointer work before committing any text
+  // draft. A DOM click can arrive before a lost pointer-up has cleared React
+  // Flow's drag refs, so refusing here stranded ordinary page-tab clicks.
   function pageSwitchRefusal(): string | null {
     if (composing.current || inlineComposing.current) return 'Finish text composition before changing pages.'
-    if (physicalPress.current || engineGesture.current || moveGesture.current || routeGesture.current || endpointGesture.current || boundaryResizeGestures.current.size) return 'Finish the current gesture before changing pages.'
     if (entryCommit.current) return 'Edit has not yet been accepted.'
     return null
   }
+  function preparePageNavigation() {
+    const refusal = pageSwitchRefusal()
+    if (refusal) { setNotice(refusal); return false }
+    // Text/property previews are valid source-page drafts, not gestures: finish
+    // them first. Only gesture-owned previews are discarded below.
+    if (inlineRef.current && !finishInline()) return false
+    if (!isGestureTransaction(transaction.current) && !finish()) return false
+    // Invalidate pointer callbacks before the parent replaces the active page.
+    // Committed document mutations have already been emitted; only transient
+    // gesture work is discarded.
+    cancelGesture(true, true)
+    return true
+  }
   function switchPage(id: string) {
     if (id === props.document.id || !props.onSelectPage || !rootPages.some(page => page.id === id)) return
-    const refusal = pageSwitchRefusal()
-    if (refusal) { setNotice(refusal); return }
+    // Present page navigation is view-only and must not go through edit-mode
+    // finish(), which intentionally rejects while presentation is active.
     if (presentationActive.current) { presentationPageTarget.current = id; props.onSelectPage(id); return }
-    if (inlineRef.current && !finishInline()) return
-    if (!finish()) return
+    if (!preparePageNavigation()) return
     setConnectedPicker(null); setContextMenu(null)
     props.onSelectPage(id)
   }
   function workbookCommand(command: WorkbookUiCommand) {
     if (presentationActive.current || !writable || !props.onWorkbookCommand) return false
-    const refusal = pageSwitchRefusal()
-    if (refusal) { setNotice(refusal); return false }
-    if (inlineRef.current && !finishInline()) return false
-    if (!finish()) return false
+    if (!preparePageNavigation()) return false
     return props.onWorkbookCommand(command)
   }
   function pageHasMeaningfulAuthoring(page: Diagram) {
@@ -819,18 +828,33 @@ export default function EditorSurface(props: EditorProps) {
     if (!transaction.current) return
     transaction.current = null; setDraft(null); props.onPreviewChange(null)
   }
-  function cancelGesture() {
+  function isGestureTransaction(transaction: Transaction | null) {
+    return !!transaction && (transaction.key === 'move' || transaction.key.startsWith('resize:') || transaction.key.startsWith('endpoint:') || transaction.key.startsWith('route:'))
+  }
+  function cancelGesture(releasePress = false, preserveNonGesturePreview = false) {
     gestureCancelled.current = true
+    if (releasePress) physicalPress.current = false
     activePointer.current = null
     moveGesture.current = null
+    // Keep stale engine callbacks inert until the physical press ends or the
+    // next real press resets this latch in trackSecondary.
     cancelledPress.current = physicalPress.current
+    boundaryReleasePending.current = false
     activeBoundaryResize.current.clear()
+    capturedBoundaryResize.current.clear()
     finalizedBoundaryResize.current.clear()
     boundaryResizeGeometry.current.clear()
     boundaryResizeGestures.current.clear()
+    const captured = capturedGestureTarget.current
+    if (captured?.element.hasPointerCapture?.(captured.pointerId)) captured.element.releasePointerCapture(captured.pointerId)
+    capturedGestureTarget.current = null
     endEndpointGesture()
     const saved = engineGesture.current?.measurements
-    clearPreview(); if (saved) setMeasurements(saved); setGestureEpoch(current => current + 1)
+    engineGesture.current = null
+    routeGesture.current = null
+    if (!preserveNonGesturePreview || isGestureTransaction(transaction.current)) clearPreview()
+    if (saved) setMeasurements(saved)
+    setGestureEpoch(current => current + 1)
     flowStore.getState().cancelConnection()
   }
   function clearRouteGesture() {
@@ -1169,6 +1193,7 @@ export default function EditorSurface(props: EditorProps) {
     if (!connection) return
     event.preventDefault(); event.stopPropagation()
     event.currentTarget.setPointerCapture?.(event.pointerId)
+    capturedGestureTarget.current = { element: event.currentTarget, pointerId: event.pointerId }
     gestureCancelled.current = false
     endpointGesture.current = { document: props.document, revision: props.document.revision, connectionId: connection.id, endpoint, pointerId: event.pointerId }
     setEndpointHost({ connectionId: connection.id, from: connection.from, to: connection.to })
@@ -1178,6 +1203,7 @@ export default function EditorSurface(props: EditorProps) {
   // ref and the pinned host together so the controls follow the committed edge.
   function endEndpointGesture() {
     endpointGesture.current = null
+    capturedGestureTarget.current = null
     setEndpointHost(null)
   }
   function moveEndpoint(event: ReactPointerEvent<HTMLElement>) {
@@ -1256,6 +1282,7 @@ export default function EditorSurface(props: EditorProps) {
     if (!connection || !segmentHandles(connection.points ?? []).some(candidate => candidate.index === handle.index)) return
     gestureCancelled.current = false
     event.preventDefault(); event.stopPropagation(); event.currentTarget.setPointerCapture?.(event.pointerId)
+    capturedGestureTarget.current = { element: event.currentTarget, pointerId: event.pointerId }
     const pointerOrigin = screenToFlowPosition({ x: event.clientX, y: event.clientY }, { snapToGrid: false })
     const handleOrigin = { x: handle.x, y: handle.y }
     routeGesture.current = { document: props.document, revision: props.document.revision, connectionId: connection.id, handle, points: connection.points!.map(point => ({ ...point })), pointerId: event.pointerId, pointerOrigin, handleOrigin, grabOffset: { x: pointerOrigin.x - handleOrigin.x, y: pointerOrigin.y - handleOrigin.y } }
@@ -1271,6 +1298,7 @@ export default function EditorSurface(props: EditorProps) {
     const gesture = routeGesture.current
     if (!gesture || gesture.pointerId === null || pointerId !== undefined && gesture.pointerId !== pointerId) return
     routeGesture.current = null
+    capturedGestureTarget.current = null
     if (!writable || props.document !== gesture.document || props.document.revision !== gesture.revision || presentationActive.current || inlineRef.current || latestContext.current.blocked) { clearPreview(); return }
     finish()
   }
@@ -1278,6 +1306,7 @@ export default function EditorSurface(props: EditorProps) {
     const gesture = routeGesture.current
     if (!gesture || gesture.pointerId !== null) return
     routeGesture.current = null
+    capturedGestureTarget.current = null
     if (!writable || props.document !== gesture.document || props.document.revision !== gesture.revision || presentationActive.current || inlineRef.current || latestContext.current.blocked) { clearPreview(); return }
     finish()
   }

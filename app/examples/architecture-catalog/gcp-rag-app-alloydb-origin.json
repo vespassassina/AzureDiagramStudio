@@ -29,10 +29,10 @@
       "subtitle": "External actors",
       "parentId": null,
       "layer": "foreground",
-      "x": 24,
-      "y": 198.2,
-      "width": 312,
-      "height": 330,
+      "x": 0,
+      "y": 24,
+      "width": 264,
+      "height": 640,
       "color": "azure"
     },
     {
@@ -42,10 +42,10 @@
       "subtitle": "Data preparation",
       "parentId": null,
       "layer": "foreground",
-      "x": 1785,
+      "x": 1086,
       "y": 24,
-      "width": 1583,
-      "height": 227.5,
+      "width": 1044,
+      "height": 640,
       "color": "teal"
     },
     {
@@ -55,10 +55,10 @@
       "subtitle": "Application and model access",
       "parentId": null,
       "layer": "foreground",
-      "x": 620,
-      "y": 243.2,
-      "width": 765,
-      "height": 238,
+      "x": 0,
+      "y": 706,
+      "width": 1044,
+      "height": 640,
       "color": "amber"
     },
     {
@@ -68,10 +68,10 @@
       "subtitle": "Offline quality loop",
       "parentId": null,
       "layer": "foreground",
-      "x": 1785,
-      "y": 271.5,
-      "width": 312,
-      "height": 214,
+      "x": 1086,
+      "y": 706,
+      "width": 264,
+      "height": 640,
       "color": "rose"
     },
     {
@@ -81,9 +81,9 @@
       "subtitle": "Generic files and databases",
       "parentId": "group-source",
       "layer": "foreground",
-      "x": 24,
-      "y": 87,
-      "width": 264,
+      "x": 22,
+      "y": 160,
+      "width": 220,
       "height": 103,
       "color": "azure",
       "icon": "database",
@@ -96,10 +96,10 @@
       "subtitle": "Generic user",
       "parentId": "group-source",
       "layer": "foreground",
-      "x": 24,
-      "y": 210,
-      "width": 264,
-      "height": 96,
+      "x": 22,
+      "y": 328,
+      "width": 220,
+      "height": 88,
       "color": "azure",
       "icon": "user",
       "status": "synthetic"
@@ -111,10 +111,10 @@
       "subtitle": "Azure Event Grid",
       "parentId": "group-ingest",
       "layer": "foreground",
-      "x": 24,
-      "y": 91.5,
-      "width": 264,
-      "height": 96,
+      "x": 22,
+      "y": 160,
+      "width": 220,
+      "height": 88,
       "color": "teal",
       "icon": "queue",
       "status": "synthetic"
@@ -126,9 +126,9 @@
       "subtitle": "Azure Functions",
       "parentId": "group-ingest",
       "layer": "foreground",
-      "x": 446,
-      "y": 87,
-      "width": 264,
+      "x": 282,
+      "y": 160,
+      "width": 220,
       "height": 105,
       "color": "teal",
       "icon": "function",
@@ -141,10 +141,10 @@
       "subtitle": "Azure AI model endpoint",
       "parentId": "group-ingest",
       "layer": "foreground",
-      "x": 874,
-      "y": 91.5,
-      "width": 264,
-      "height": 96,
+      "x": 542,
+      "y": 160,
+      "width": 220,
+      "height": 103,
       "color": "teal",
       "icon": "model",
       "status": "synthetic"
@@ -156,10 +156,10 @@
       "subtitle": "Azure AI Search",
       "parentId": "group-ingest",
       "layer": "foreground",
-      "x": 1295,
-      "y": 107.5,
-      "width": 264,
-      "height": 96,
+      "x": 802,
+      "y": 160,
+      "width": 220,
+      "height": 105,
       "color": "teal",
       "icon": "service",
       "status": "synthetic"
@@ -171,10 +171,10 @@
       "subtitle": "Azure App Service",
       "parentId": "group-serve",
       "layer": "foreground",
-      "x": 477,
-      "y": 102.8,
-      "width": 264,
-      "height": 96,
+      "x": 802,
+      "y": 160,
+      "width": 220,
+      "height": 105,
       "color": "amber",
       "icon": "server",
       "status": "synthetic"
@@ -186,10 +186,10 @@
       "subtitle": "Azure AI model endpoint",
       "parentId": "group-serve",
       "layer": "foreground",
-      "x": 24,
-      "y": 87,
-      "width": 264,
-      "height": 105,
+      "x": 802,
+      "y": 328,
+      "width": 220,
+      "height": 120,
       "color": "amber",
       "icon": "model",
       "status": "synthetic"
@@ -201,10 +201,10 @@
       "subtitle": "Evaluation pipeline and analytics store",
       "parentId": "group-eval",
       "layer": "foreground",
-      "x": 24,
-      "y": 87,
-      "width": 264,
-      "height": 103,
+      "x": 22,
+      "y": 160,
+      "width": 220,
+      "height": 120,
       "color": "rose",
       "icon": "function",
       "status": "synthetic"
@@ -222,25 +222,25 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 312,
-          "y": 297.2
+          "x": 242,
+          "y": 196
         },
         {
-          "x": 612,
-          "y": 297.2
+          "x": 1092,
+          "y": 196
         },
         {
-          "x": 612,
-          "y": 199.5
+          "x": 1092,
+          "y": 260
         },
         {
-          "x": 1809,
-          "y": 199.5
+          "x": 1108,
+          "y": 260
         }
       ],
       "labelPosition": {
-        "x": 1210.5,
-        "y": 199.5
+        "x": 667,
+        "y": 196
       },
       "routeRevision": 1
     },
@@ -255,17 +255,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 2073,
-          "y": 163.5
+          "x": 1328,
+          "y": 260
         },
         {
-          "x": 2231,
-          "y": 163.5
+          "x": 1344,
+          "y": 260
+        },
+        {
+          "x": 1344,
+          "y": 180
+        },
+        {
+          "x": 1352,
+          "y": 180
+        },
+        {
+          "x": 1352,
+          "y": 196
+        },
+        {
+          "x": 1368,
+          "y": 196
         }
       ],
       "labelPosition": {
-        "x": 2152,
-        "y": 163.5
+        "x": 1348,
+        "y": 164
       },
       "routeRevision": 1
     },
@@ -280,17 +296,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 2495,
-          "y": 163.5
+          "x": 1588,
+          "y": 196
         },
         {
-          "x": 2659,
-          "y": 163.5
+          "x": 1604,
+          "y": 196
+        },
+        {
+          "x": 1604,
+          "y": 180
+        },
+        {
+          "x": 1612,
+          "y": 180
+        },
+        {
+          "x": 1612,
+          "y": 275
+        },
+        {
+          "x": 1628,
+          "y": 275
         }
       ],
       "labelPosition": {
-        "x": 2577,
-        "y": 163.5
+        "x": 1608,
+        "y": 164
       },
       "routeRevision": 1
     },
@@ -305,25 +337,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 2923,
-          "y": 199.5
+          "x": 1848,
+          "y": 275
         },
         {
-          "x": 3064,
-          "y": 199.5
+          "x": 1864,
+          "y": 275
         },
         {
-          "x": 3064,
-          "y": 143.5
+          "x": 1864,
+          "y": 180
         },
         {
-          "x": 3080,
-          "y": 143.5
+          "x": 1872,
+          "y": 180
+        },
+        {
+          "x": 1872,
+          "y": 196
+        },
+        {
+          "x": 1888,
+          "y": 196
         }
       ],
       "labelPosition": {
-        "x": 2993.5,
-        "y": 199.5
+        "x": 1868,
+        "y": 164
       },
       "routeRevision": 1
     },
@@ -338,33 +378,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 312,
-          "y": 420.2
+          "x": 242,
+          "y": 428
         },
         {
-          "x": 636,
-          "y": 420.2
+          "x": 1044,
+          "y": 428
         },
         {
-          "x": 636,
-          "y": 443.2
+          "x": 1044,
+          "y": 858
         },
         {
-          "x": 1081,
-          "y": 443.2
+          "x": 786,
+          "y": 858
         },
         {
-          "x": 1081,
-          "y": 390
+          "x": 786,
+          "y": 878
         },
         {
-          "x": 1097,
-          "y": 390
+          "x": 802,
+          "y": 878
         }
       ],
       "labelPosition": {
-        "x": 858.5,
-        "y": 459.2
+        "x": 643,
+        "y": 428
       },
       "routeRevision": 1
     },
@@ -379,33 +419,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 1361,
-          "y": 358
+          "x": 1022,
+          "y": 878
         },
         {
-          "x": 1777,
-          "y": 358
+          "x": 1078,
+          "y": 878
         },
         {
-          "x": 1777,
-          "y": 224
+          "x": 1078,
+          "y": 297
         },
         {
-          "x": 3056,
-          "y": 224
+          "x": 1872,
+          "y": 297
         },
         {
-          "x": 3056,
-          "y": 195.5
+          "x": 1872,
+          "y": 257
         },
         {
-          "x": 3080,
-          "y": 195.5
+          "x": 1888,
+          "y": 257
         }
       ],
       "labelPosition": {
-        "x": 2416.5,
-        "y": 240
+        "x": 1475,
+        "y": 313
       },
       "routeRevision": 1
     },
@@ -420,33 +460,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 3080,
-          "y": 215.5
+          "x": 1888,
+          "y": 277
         },
         {
-          "x": 2931,
-          "y": 215.5
+          "x": 1856,
+          "y": 277
         },
         {
-          "x": 2931,
-          "y": 263.5
+          "x": 1856,
+          "y": 698
         },
         {
-          "x": 1385,
-          "y": 263.5
+          "x": 1046,
+          "y": 698
         },
         {
-          "x": 1385,
-          "y": 378
+          "x": 1046,
+          "y": 898
         },
         {
-          "x": 1361,
-          "y": 378
+          "x": 1022,
+          "y": 898
         }
       ],
       "labelPosition": {
-        "x": 2158,
-        "y": 247.5
+        "x": 1451,
+        "y": 698
       },
       "routeRevision": 1
     },
@@ -461,25 +501,17 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 1097,
-          "y": 378
+          "x": 902,
+          "y": 971
         },
         {
-          "x": 924,
-          "y": 378
-        },
-        {
-          "x": 924,
-          "y": 403.2
-        },
-        {
-          "x": 908,
-          "y": 403.2
+          "x": 902,
+          "y": 1034
         }
       ],
       "labelPosition": {
-        "x": 1010.5,
-        "y": 362
+        "x": 828.5,
+        "y": 1002.5
       },
       "routeRevision": 1
     },
@@ -494,25 +526,17 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 908,
-          "y": 423.2
+          "x": 922,
+          "y": 1034
         },
         {
-          "x": 1077,
-          "y": 423.2
-        },
-        {
-          "x": 1077,
-          "y": 398
-        },
-        {
-          "x": 1097,
-          "y": 398
+          "x": 922,
+          "y": 971
         }
       ],
       "labelPosition": {
-        "x": 992.5,
-        "y": 423.2
+        "x": 965,
+        "y": 1002.5
       },
       "routeRevision": 1
     },
@@ -527,25 +551,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 1361,
-          "y": 430
+          "x": 1022,
+          "y": 959
         },
         {
-          "x": 1793,
-          "y": 430
+          "x": 1086,
+          "y": 959
         },
         {
-          "x": 1793,
-          "y": 370.5
+          "x": 1086,
+          "y": 1018.5
         },
         {
-          "x": 1809,
-          "y": 370.5
+          "x": 1092,
+          "y": 1018.5
+        },
+        {
+          "x": 1092,
+          "y": 878
+        },
+        {
+          "x": 1108,
+          "y": 878
         }
       ],
       "labelPosition": {
-        "x": 1577,
-        "y": 430
+        "x": 1191,
+        "y": 1004.45
       },
       "routeRevision": 1
     }

@@ -29,10 +29,10 @@
       "subtitle": "Producer-owned systems",
       "parentId": null,
       "layer": "foreground",
-      "x": 24,
-      "y": 157,
-      "width": 312,
-      "height": 231,
+      "x": 0,
+      "y": 24,
+      "width": 264,
+      "height": 640,
       "color": "azure"
     },
     {
@@ -42,10 +42,10 @@
       "subtitle": "Governed data plane",
       "parentId": null,
       "layer": "foreground",
-      "x": 689,
+      "x": 306,
       "y": 24,
-      "width": 1718,
-      "height": 390,
+      "width": 1044,
+      "height": 644,
       "color": "teal"
     },
     {
@@ -55,10 +55,10 @@
       "subtitle": "Access-controlled use",
       "parentId": null,
       "layer": "foreground",
-      "x": 2734,
-      "y": 50,
-      "width": 312,
-      "height": 231,
+      "x": 0,
+      "y": 710,
+      "width": 264,
+      "height": 640,
       "color": "amber"
     },
     {
@@ -68,10 +68,10 @@
       "subtitle": "Generic applications, databases, files",
       "parentId": "group-sources",
       "layer": "foreground",
-      "x": 24,
-      "y": 87,
-      "width": 264,
-      "height": 120,
+      "x": 22,
+      "y": 160,
+      "width": 220,
+      "height": 152,
       "color": "azure",
       "icon": "database",
       "status": "synthetic"
@@ -83,10 +83,10 @@
       "subtitle": "Azure Data Factory",
       "parentId": "group-platform",
       "layer": "foreground",
-      "x": 24,
-      "y": 212,
-      "width": 264,
-      "height": 96,
+      "x": 22,
+      "y": 160,
+      "width": 220,
+      "height": 88,
       "color": "teal",
       "icon": "service",
       "status": "synthetic"
@@ -98,10 +98,10 @@
       "subtitle": "Azure Event Hubs",
       "parentId": "group-platform",
       "layer": "foreground",
-      "x": 548,
-      "y": 270,
-      "width": 264,
-      "height": 96,
+      "x": 22,
+      "y": 328,
+      "width": 220,
+      "height": 105,
       "color": "teal",
       "icon": "queue",
       "status": "synthetic"
@@ -113,10 +113,10 @@
       "subtitle": "Azure Data Lake Storage",
       "parentId": "group-platform",
       "layer": "foreground",
-      "x": 548,
-      "y": 104.5,
-      "width": 264,
-      "height": 105,
+      "x": 282,
+      "y": 160,
+      "width": 220,
+      "height": 120,
       "color": "teal",
       "icon": "storage",
       "status": "synthetic"
@@ -128,9 +128,9 @@
       "subtitle": "Microsoft Purview",
       "parentId": "group-platform",
       "layer": "foreground",
-      "x": 24,
-      "y": 87,
-      "width": 264,
+      "x": 22,
+      "y": 496,
+      "width": 220,
       "height": 105,
       "color": "teal",
       "icon": "shield",
@@ -143,10 +143,10 @@
       "subtitle": "Fabric, Azure Databricks,",
       "parentId": "group-platform",
       "layer": "foreground",
-      "x": 1009,
-      "y": 125,
-      "width": 264,
-      "height": 96,
+      "x": 542,
+      "y": 160,
+      "width": 220,
+      "height": 120,
       "color": "teal",
       "icon": "queue",
       "status": "synthetic"
@@ -158,9 +158,9 @@
       "subtitle": "Fabric Warehouse, Azure Data Explorer, Azure AI Search",
       "parentId": "group-platform",
       "layer": "foreground",
-      "x": 1430,
-      "y": 105.5,
-      "width": 264,
+      "x": 802,
+      "y": 160,
+      "width": 220,
       "height": 135,
       "color": "teal",
       "icon": "database",
@@ -173,10 +173,10 @@
       "subtitle": "Power BI and approved applications",
       "parentId": "group-consumer",
       "layer": "foreground",
-      "x": 24,
-      "y": 87,
-      "width": 264,
-      "height": 120,
+      "x": 22,
+      "y": 160,
+      "width": 220,
+      "height": 135,
       "color": "amber",
       "icon": "user",
       "status": "synthetic"
@@ -194,25 +194,33 @@
       "targetSide": "auto",
       "points": [
         {
+          "x": 242,
+          "y": 196
+        },
+        {
+          "x": 306,
+          "y": 196
+        },
+        {
+          "x": 306,
+          "y": 176
+        },
+        {
           "x": 312,
-          "y": 256
+          "y": 176
         },
         {
-          "x": 697,
-          "y": 256
+          "x": 312,
+          "y": 260
         },
         {
-          "x": 697,
-          "y": 320
-        },
-        {
-          "x": 713,
-          "y": 320
+          "x": 328,
+          "y": 260
         }
       ],
       "labelPosition": {
-        "x": 504.5,
-        "y": 256
+        "x": 309,
+        "y": 160
       },
       "routeRevision": 1
     },
@@ -227,25 +235,25 @@
       "targetSide": "auto",
       "points": [
         {
+          "x": 242,
+          "y": 324
+        },
+        {
           "x": 312,
-          "y": 352
+          "y": 324
         },
         {
-          "x": 1221,
-          "y": 352
+          "x": 312,
+          "y": 364
         },
         {
-          "x": 1221,
-          "y": 306
-        },
-        {
-          "x": 1237,
-          "y": 306
+          "x": 328,
+          "y": 364
         }
       ],
       "labelPosition": {
-        "x": 766.5,
-        "y": 352
+        "x": 373,
+        "y": 334
       },
       "routeRevision": 1
     },
@@ -260,25 +268,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 977,
-          "y": 248
+          "x": 548,
+          "y": 260
         },
         {
-          "x": 1221,
-          "y": 248
+          "x": 564,
+          "y": 260
         },
         {
-          "x": 1221,
-          "y": 201.5
+          "x": 564,
+          "y": 176
         },
         {
-          "x": 1237,
-          "y": 201.5
+          "x": 572,
+          "y": 176
+        },
+        {
+          "x": 572,
+          "y": 196
+        },
+        {
+          "x": 588,
+          "y": 196
         }
       ],
       "labelPosition": {
-        "x": 1099,
-        "y": 248
+        "x": 568,
+        "y": 160
       },
       "routeRevision": 1
     },
@@ -293,25 +309,25 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 1501,
-          "y": 306
+          "x": 548,
+          "y": 364
         },
         {
-          "x": 1682,
-          "y": 306
+          "x": 832,
+          "y": 364
         },
         {
-          "x": 1682,
-          "y": 213
+          "x": 832,
+          "y": 272
         },
         {
-          "x": 1698,
-          "y": 213
+          "x": 848,
+          "y": 272
         }
       ],
       "labelPosition": {
-        "x": 1591.5,
-        "y": 306
+        "x": 690,
+        "y": 364
       },
       "routeRevision": 1
     },
@@ -326,25 +342,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 1501,
-          "y": 221.5
+          "x": 808,
+          "y": 244
         },
         {
-          "x": 1682,
-          "y": 221.5
+          "x": 824,
+          "y": 244
         },
         {
-          "x": 1682,
-          "y": 181
+          "x": 824,
+          "y": 176
         },
         {
-          "x": 1698,
-          "y": 181
+          "x": 832,
+          "y": 176
+        },
+        {
+          "x": 832,
+          "y": 254
+        },
+        {
+          "x": 848,
+          "y": 254
         }
       ],
       "labelPosition": {
-        "x": 1591.5,
-        "y": 221.5
+        "x": 828,
+        "y": 160
       },
       "routeRevision": 1
     },
@@ -359,25 +383,25 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 977,
-          "y": 204
+          "x": 536,
+          "y": 520
         },
         {
-          "x": 1221,
-          "y": 204
+          "x": 536,
+          "y": 465
         },
         {
-          "x": 1221,
-          "y": 160.5
+          "x": 600,
+          "y": 465
         },
         {
-          "x": 1237,
-          "y": 160.5
+          "x": 600,
+          "y": 304
         }
       ],
       "labelPosition": {
-        "x": 1099,
-        "y": 204
+        "x": 714,
+        "y": 424.75
       },
       "routeRevision": 1
     },
@@ -392,17 +416,33 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 1962,
-          "y": 197
+          "x": 1068,
+          "y": 292
         },
         {
-          "x": 2119,
-          "y": 197
+          "x": 1084,
+          "y": 292
+        },
+        {
+          "x": 1084,
+          "y": 176
+        },
+        {
+          "x": 1092,
+          "y": 176
+        },
+        {
+          "x": 1092,
+          "y": 196
+        },
+        {
+          "x": 1108,
+          "y": 196
         }
       ],
       "labelPosition": {
-        "x": 2040.5,
-        "y": 197
+        "x": 1088,
+        "y": 160
       },
       "routeRevision": 1
     },
@@ -417,17 +457,25 @@
       "targetSide": "auto",
       "points": [
         {
-          "x": 2383,
-          "y": 197
+          "x": 1108,
+          "y": 307
         },
         {
-          "x": 2758,
-          "y": 197
+          "x": 1076,
+          "y": 307
+        },
+        {
+          "x": 1076,
+          "y": 882
+        },
+        {
+          "x": 242,
+          "y": 882
         }
       ],
       "labelPosition": {
-        "x": 2570.5,
-        "y": 197
+        "x": 659,
+        "y": 882
       },
       "routeRevision": 1
     }

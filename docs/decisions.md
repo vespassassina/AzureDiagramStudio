@@ -821,3 +821,25 @@ downloads must match the qualified byte counts and hashes before closeout.
 
 Who: PO via the explicit release request; scope
 [DGM-165](specs/DGM-165.md), evidence [DGM-165](verification/DGM-165.md).
+
+## 2026-11-07: Compact Catalog Inspection And Safe Page Navigation
+
+Context: the PO rejected long architecture chains and requested fitted,
+centered, draggable previews, a movable picker, category icons, a flat primary
+action, the Microsoft library label and removal of the gesture navigation block.
+
+Decision: use compact layered single-page architectures, as explicitly chosen
+by the PO. Preserve every flow, boundary membership and provenance field.
+Use incumbent measured component geometry and canonical obstacle-aware routing.
+Fit is the default inspection state; manual zoom/pan remains available.
+Page navigation cancels gesture-owned previews and stale pointer callbacks,
+but finishes valid source-page text drafts and leaves autosave enabled.
+
+Consequences: no workbook schema, public tool, dependency or security change.
+Global component-sizing changes and icon/text overlaps found during review
+were repaired before delivery. The qualified local 0.5.4 ARM64 portable
+replaces only the prior known Desktop copy. Public 0.5.3, running applications
+and user profiles remain unchanged.
+
+Who: PO via the refinement request and single-page choice.
+Evidence: [DGM-166](verification/DGM-166.md).
