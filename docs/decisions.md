@@ -862,3 +862,22 @@ asset matches the approved Desktop executable byte for byte.
 
 Who: PO via the explicit publication request.
 Evidence: [DGM-167](verification/DGM-167.md).
+
+## 2026-11-19: Discoverable Legend Control And Fabric Component Search
+
+Context: the PO requested legend hiding, Fabric apps and fuzzy/partial search,
+then confirmed expanding the Fabric component library rather than templates.
+
+Decision: use View > Show legend as the canonical control for the existing
+per-page field, retaining persistence, Undo and output semantics. Expose 31
+existing Fabric components including Apps, without new assets/dependencies.
+Use bounded shared partial/one-edit matching for component discovery, with
+exact names/aliases first and lifecycle exclusions preserved.
+
+Consequences: generic navigation-group words remain searchable as phrases,
+but do not supply standalone tokens that create unrelated multiword product
+matches. No schema, icon identity, security, version or release change.
+This is source-only until a separately requested binary delivery.
+
+Who: PO via the feature request and Fabric-library clarification.
+Evidence: [DGM-168](verification/DGM-168.md).

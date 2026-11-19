@@ -52,7 +52,7 @@ function preferredFabric(family: string, candidates: CatalogItem[]): CatalogItem
     .map(suffix => candidates.find(item => item.source.entry.endsWith(`/${family}_${suffix}.svg`))).find(Boolean)
     ?? candidates.slice().sort((left, right) => left.icon.localeCompare(right.icon, 'en'))[0]
   const aliases = Object.entries(fabricStateAliases).filter(([, canonical]) => canonical === family).map(([state]) => fabricDefinitions[state].label)
-  return freezeItem({ ...preferred, label: definition.label, subtitle: definition.category, category: definition.category, aliases: [...(definition.aliases ?? []), ...aliases], keywords: [definition.category, 'Microsoft Fabric'] })
+  return freezeItem({ ...preferred, label: definition.label, subtitle: definition.category, category: definition.category, aliases: [...(definition.aliases ?? []), ...aliases, ...(family === 'apps' ? ['Fabric Apps', 'Microsoft Fabric Apps', 'FabricApps'] : [])], keywords: [definition.category, 'Microsoft Fabric'] })
 }
 
 const currentAzure = azureLibrary.filter(item => !lifecycleDecision(item).excluded).map(item => {
@@ -87,7 +87,13 @@ const azureMenus = [
   group('azure-ai-analytics', 'AI & Analytics', 'brain', 'azure', ['Azure OpenAI', 'Azure Machine Learning', 'Azure AI Search', 'Azure Databricks', 'Foundry Tools', 'Microsoft Foundry', 'Azure Synapse Analytics', 'Stream Analytics Jobs']),
   group('azure-integration', 'Integration', 'workflow', 'azure', ['azure-api', 'azure-service-bus', 'azure-event-hubs', 'azure-logic-apps', 'azure-event-grid', 'SignalR', 'Event Grid Domains', 'Integration Accounts']),
   group('azure-security-management', 'Security & Management', 'shield', 'azure', ['azure-entra', 'azure-key-vault', 'azure-monitor', 'Defender for Cloud', 'azure-managed-identities', 'Policy', 'Automation Accounts', 'Log Analytics Workspaces', 'Azure Backup Center', 'Microsoft Defender for IoT']),
-  group('azure-fabric', 'Microsoft Fabric', 'layers', 'azure', ['OneLake', 'Lakehouse', 'Warehouse', 'Data pipeline', 'Dataflow Gen2', 'Eventhouse', 'Eventstream', 'KQL database', 'Notebook', 'Power BI', 'Report', 'Semantic model']),
+  group('azure-fabric', 'Microsoft Fabric', 'layers', 'azure', [
+    'OneLake', 'Lakehouse', 'Warehouse', 'Data pipeline',
+    'Microsoft Fabric', 'Data Engineering', 'Notebook', 'Environment', 'Spark job definition',
+    'SQL database', 'Mirrored database', 'Data Factory', 'Dataflow Gen2', 'Copy job', 'Variable library',
+    'Eventhouse', 'Eventstream', 'KQL database', 'KQL queryset', 'Real-Time Intelligence', 'Real-Time Dashboard',
+    'Data Science', 'ML model', 'Experiment', 'Power BI', 'Report', 'Semantic model', 'Paginated report', 'Dashboard', 'Scorecard', 'Apps',
+  ]),
   group('azure-microsoft-apps', 'Microsoft Apps', 'app-window', 'azure', ['microsoft-sharepoint', 'microsoft-teams', 'microsoft-m365', 'microsoft-copilot', 'microsoft-business-central', 'microsoft-dynamics365', 'microsoft-copilot-studio', 'microsoft-excel', 'microsoft-word', 'microsoft-powerpoint', 'microsoft-power-apps', 'microsoft-power-automate']),
 ]
 const softwareMenus = [
@@ -116,36 +122,78 @@ function owningGroup(item: CatalogItem): ServiceGroup {
   return azureMenus[categoryGroup[category] ?? 5]
 }
 
+const normalizeSearch = (value: string) => value.toLocaleLowerCase('en').replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
 const searchIndex = searchableLibrary.map(item => {
   const owner = owningGroup(item)
-  const text = [item.label, item.subtitle, item.category, owner.label, ...item.source.categories, ...(item.aliases ?? []), ...(item.keywords ?? [])].join('\n').toLocaleLowerCase('en')
-  return { item, owner, text, label: item.label.toLocaleLowerCase('en'), aliases: (item.aliases ?? []).map(alias => alias.toLocaleLowerCase('en')) }
+  const identityFields = [item.label, item.subtitle, ...(item.aliases ?? []), ...(item.keywords ?? [])].map(normalizeSearch)
+  const fields = [...identityFields, item.category, owner.label, ...item.source.categories].map(normalizeSearch)
+  const text = fields.join('\n')
+  // Navigation and archive categories remain phrase-searchable, but cannot
+  // supply missing identity tokens (for example Apps for every Compute item).
+  const tokens = [...new Set(identityFields.flatMap(field => field.split(' ')).filter(Boolean))]
+  return { item, owner, text, tokens, label: normalizeSearch(item.label), aliases: (item.aliases ?? []).map(normalizeSearch) }
 })
+const indexedTokens = [...new Set(searchIndex.flatMap(entry => entry.tokens))]
+const exactSearchTerms = new Set(searchIndex.flatMap(entry => [entry.label, ...entry.aliases]))
+// App Center has no bundled glyph; retain its existing no-results lifecycle guard.
+const excludedSearchTerms = new Set(['app center', ...azureLibrary.flatMap(item => {
+  const decision = lifecycleDecision(item)
+  return decision.excluded ? [normalizeSearch(item.label), normalizeSearch(decision.rule!.id)] : []
+})])
 const allSearchGroups = [...azureMenus, ...softwareMenus].map(menu => {
   const items = searchIndex.filter(entry => entry.owner.id === menu.id).map(entry => entry.item)
   Object.freeze(items)
   return Object.freeze({ ...menu, items })
 })
 Object.freeze(allSearchGroups)
-let lastQuery = ''
+let lastQuery: string | null = null
 let lastResults = allSearchGroups
 let lastRankedItems = searchableLibrary
 
 /*
- * Prefer an exact label, then an exact alias.
- * Find a substring beginning at a token boundary; otherwise retain substring matching.
- * Return an excluded rank only when the existing searchable fields do not match.
+ * Skip the common prefix, then allow one substitution, insertion, deletion or
+ * adjacent transposition. Whole words only; short tokens never receive fuzziness.
+ * The fixed length limit bounds work even for pasted, pathological queries.
  */
-function matchRank(entry: (typeof searchIndex)[number], query: string): number {
+function oneTypo(left: string, right: string): boolean {
+  if (left.length < 5 || right.length < 4 || left.length > 64 || right.length > 64 || Math.abs(left.length - right.length) > 1) return false
+  let index = 0
+  while (index < Math.min(left.length, right.length) && left[index] === right[index]) index++
+  if (index === Math.min(left.length, right.length)) return true
+  if (left.length > right.length) return left.slice(index + 1) === right.slice(index)
+  if (right.length > left.length) return left.slice(index) === right.slice(index + 1)
+  return left.slice(index + 1) === right.slice(index + 1)
+    || left[index] === right[index + 1] && left[index + 1] === right[index] && left.slice(index + 2) === right.slice(index + 2)
+}
+
+/*
+ * Precompute each query token's partial and typo word sets once, not per item.
+ * Prefer literal phrases (retaining existing boundary/substring tiers), then
+ * require every token in any order across component metadata. Only fall back to whole
+ * word typos for unmatched tokens, never fuzzy arbitrary substring positions.
+ */
+function queryTokens(query: string) {
+  return [...new Set(query.split(' ').filter(Boolean))].map(token => ({
+    partial: new Set(indexedTokens.filter(word => token.length <= 3 ? word.startsWith(token) : word.includes(token))),
+    fuzzy: new Set(query.length <= 256 ? indexedTokens.filter(word => oneTypo(token, word)) : []),
+  }))
+}
+
+function matchRank(entry: (typeof searchIndex)[number], query: string, tokens: ReturnType<typeof queryTokens>, allowFallback: boolean): number {
+  if (!query) return 6
   if (entry.label === query) return 0
   if (entry.aliases.includes(query)) return 1
   let position = entry.text.indexOf(query)
-  if (position < 0) return 4
+  const substring = position >= 0
   while (position >= 0) {
     if (position === 0 || !/[\p{L}\p{N}]/u.test(entry.text[position - 1])) return 2
     position = entry.text.indexOf(query, position + 1)
   }
-  return 3
+  if (substring) return 3
+  if (!allowFallback) return 6
+  if (tokens.every(token => entry.tokens.some(word => token.partial.has(word)))) return 4
+  if (tokens.length <= 16 && tokens.every(token => entry.tokens.some(word => token.partial.has(word) || token.fuzzy.has(word)))) return 5
+  return 6
 }
 
 export function menuGroups(catalog: 'azure' | 'software'): ServiceGroup[] {
@@ -158,11 +206,15 @@ export function menuGroups(catalog: 'azure' | 'software'): ServiceGroup[] {
  * Group that ordered stream by first appearance so each group's best item determines its order.
  */
 export function rankedSearch(query: string): CatalogItem[] {
-  const normalized = query.trim().toLocaleLowerCase('en')
-  if (!normalized) return searchableLibrary
+  if (!query.trim()) return searchableLibrary
+  const normalized = normalizeSearch(query)
   if (normalized === lastQuery) return lastRankedItems
-  const matches = searchIndex.map(entry => ({ entry, rank: matchRank(entry, normalized) }))
-    .filter(match => match.rank < 4)
+  const tokens = queryTokens(normalized)
+  // Known labels/abbreviations keep their precise incumbent results. Retired
+  // names must not become typo suggestions for unrelated current services.
+  const allowFallback = !exactSearchTerms.has(normalized) && !excludedSearchTerms.has(normalized)
+  const matches = searchIndex.map(entry => ({ entry, rank: matchRank(entry, normalized, tokens, allowFallback) }))
+    .filter(match => match.rank < 6)
     .sort((left, right) => left.rank - right.rank || compareItems(left.entry.item, right.entry.item))
   const groups = new Map<string, { owner: ServiceGroup; items: CatalogItem[] }>()
   for (const { entry } of matches) {

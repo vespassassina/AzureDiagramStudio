@@ -464,3 +464,17 @@ Evidence: [DGM-166](verification/DGM-166.md).
 - Keep independent summary aggregation faithful to raw measurements. Preserve
   harness failures, distinguish them from product defects, and recheck only
   repaired behavior against the new exact package.
+
+## 2026-11-19: DGM-168 Search Relevance
+
+Evidence: [DGM-168](verification/DGM-168.md).
+
+- Do not let navigation taxonomy manufacture component identity matches.
+  `fab app` initially combined Service Fabric's name with Compute & Apps,
+  returning unrelated infrastructure. Keep full category-phrase discovery,
+  but constrain partial/fuzzy token fallback to component metadata.
+- Reuse already bundled canonical items before adding assets. Fabric Apps
+  and the expanded workloads existed in the searchable inventory but were
+  absent from the short visible menu.
+- After a search-only repair, retain the passing legend/insertion/persistence
+  interaction evidence and recheck affected search behavior only.

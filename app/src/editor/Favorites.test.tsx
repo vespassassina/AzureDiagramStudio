@@ -3,10 +3,29 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { afterEach, expect, it, vi } from 'vitest'
 import { CatalogAccordion } from './CatalogAccordion.tsx'
 import { FAVORITES_KEY, readFavorites, saveFavorites } from './favorites.ts'
+import { menuGroups } from '../catalog/presentation.ts'
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); localStorage.clear() })
 const mount = () => render(<CatalogAccordion writable selectedIcon={null} onChoose={vi.fn()} />)
 const favorites = () => fireEvent.click(screen.getByRole('tab', { name: /^Favorites/ }))
+it('should_filter_saved_Fabric_choices_with_partial_and_fuzzy_search_and_insert_by_Enter', () => {
+  const fabric = menuGroups('azure').find(group => group.id === 'azure-fabric')!
+  const apps = fabric.items.find(item => item.label === 'Apps')!
+  const lakehouse = fabric.items.find(item => item.label === 'Lakehouse')!
+  saveFavorites(localStorage, [apps.icon, lakehouse.icon])
+  const onChoose = vi.fn()
+  render(<CatalogAccordion writable selectedIcon={null} onChoose={onChoose} />)
+  favorites()
+  const input = screen.getByLabelText('Search components')
+  for (const [query, item] of [['fab app', apps], ['lakehosue', lakehouse]] as const) {
+    fireEvent.change(input, { target: { value: query } })
+    expect(screen.getAllByRole('button', { name: /^Insert / })).toHaveLength(1)
+    expect(screen.getByRole('button', { name: `Insert ${item.label}` })).toBeTruthy()
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(onChoose).toHaveBeenLastCalledWith(item)
+  }
+  expect(readFavorites(localStorage)).toEqual([apps.icon, lakehouse.icon])
+})
 it('should_expose_persistent_favorites_as_a_peer_category_with_search_and_actionable_empty_states', () => {
   const first = mount()
   expect(screen.getAllByRole('tab')).toHaveLength(3)

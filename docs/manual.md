@@ -1,5 +1,11 @@
 ﻿# Azure Diagram Studio: Short Manual
 
+**Current source additions:** View > Show legend is the canonical legend
+toggle; the Fabric component list includes Apps and more workload items, and
+component search supports partial words and limited typos. These
+[DGM-168 changes](verification/DGM-168.md) are not in the unchanged published
+or Desktop 0.5.4 executables.
+
 **[Published Windows 0.5.4](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.5.4):**
 the stable/latest ARM64 and x64 portables include the catalog preview,
 compact-layout and page-navigation refinements described below. ARM64 is the
@@ -627,9 +633,24 @@ Open the component library and use **Search components**. **Microsoft** has eigh
 
 Microsoft Apps includes five official architecture glyphs, seven bundled Microsoft product PNGs and two original named badges. Vendors contains 17 bundled vendor PNG icons. Their presence is not evidence of a working integration; consult the included notices for trademark limitations.
 
+**Current source:** Microsoft Fabric exposes 31 browsable components, including
+Apps, Data Engineering, Notebook, Spark job definition, SQL database, Mirrored
+database, Data Factory, Copy job, Real-Time Dashboard, Data Science and ML
+model. Search includes 46 canonical Fabric entries. These use existing bundled
+assets and stable component identities, not newly downloaded icons.
+
 Choose a service, then click the canvas to place it; alternatively drag it from the library. Select the placed component to edit **Label**, **Subtitle**, **Type**, **Status**, **Color** or **Hex color** in Properties. A familiar menu name and a raw icon-archive filename are not necessarily the same thing.
 
 Search also recognizes familiar aliases such as `APIM`, `AAD`, `Entra ID`, `ACA` and `AKS`. Use arrow keys and Enter to choose a result, or Escape to cancel. Recent successful insertions (up to 8) last only for the current editor session; clearing them does not change the diagram.
+
+**Current source search:** use partial words in any order, such as `fab app`
+or `app fab`, and common single-edit typos such as `lakehosue`, `notebok` and
+`pipline`. Exact names and aliases rank before partial/fuzzy matches. Case,
+punctuation and extra whitespace are normalized. Short search tokens are
+not typo-expanded. Category phrases such as `Compute & Apps` remain
+searchable, but navigation-group words alone cannot manufacture an unrelated
+multiword component match. The library, connected-component picker and
+filtered Favorites share these rules.
 
 **Newer source only:** Favorites (up to 12) is a peer category alongside
 Microsoft and Software. Use a component's existing star to add/remove
@@ -845,7 +866,11 @@ qualification.
 
 Use **Add text** for notes and **Add rectangle** for framing. Selected objects expose **Bring forward**, **Send backward**, **Bring to top** and **Send to bottom** in Properties. These reorder applicable siblings while retaining parent/child visibility and semantic render bands: default foreground tiles stay above connection lines, and lines stay above containers. Ordering alone does not change geometry or routes; an already-extreme action is a no-op. Text/rectangles can also be resized.
 
-Component **Status** can be **Unset**, **Live**, **Planned**, **Not connected** or **Synthetic**. Unset is not evidence of live deployment. Use Live only for a state you have verified; leave illustrative content Synthetic. In **Document properties**, **Synthetic** labels the whole diagram, and **Show legend** controls the legend. The legend reflects colors and explicit statuses, plus any entries already stored in the document.
+Component **Status** can be **Unset**, **Live**, **Planned**, **Not connected** or **Synthetic**. Unset is not evidence of live deployment. Use Live only for a state you have verified; leave illustrative content Synthetic. In **Document properties**, **Synthetic** labels the whole diagram. In current source, **View > Show legend** hides or restores the legend; published 0.5.4 retains its Show legend control in Document properties. The legend reflects colors and explicit statuses, plus any entries already stored in the document.
+
+Legend visibility is saved per page, supports Undo/Redo, and applies to
+Present and exported artwork. Hiding it does not delete legend entries or
+component states. Read-only and pending/invalid edit safeguards still apply.
 
 ## Save, Open and Import
 

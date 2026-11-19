@@ -1,6 +1,6 @@
 # Diagrammer Roadmap and Delegation Plan
 
-Updated: 2026-11-07. Status: DGM-167 ARM64/X64 0.5.4 STABLE/LATEST PUBLISHED / SOURCE PUSHED AND TAGGED / FRESH PUBLIC DOWNLOADS VERIFIED. OLDER RELEASES, INSTALLATIONS, PREVIEWS AND DRAFTS REMAIN PRESERVED.
+Updated: 2026-11-19. Status: DGM-168 SOURCE LEGEND/FABRIC/SEARCH COMPLETE. PUBLIC AND DESKTOP 0.5.4 UNCHANGED. OLDER RELEASES, INSTALLATIONS, PREVIEWS AND DRAFTS REMAIN PRESERVED.
 
 ## Current Execution Policy
 
@@ -88,6 +88,31 @@ evidence. This scoped [decision](decisions.md#2026-10-19-replace-formal-particip
 supersedes earlier participant-trial stops, not technical safety requirements.
 
 ## Execution Queue
+
+**Latest source delivery, 2026-11-19: DGM-168 complete.** The PO requested
+legend hiding, Fabric apps and partial/fuzzy search, and clarified that
+Fabric means the component library, not architecture templates.
+
+View > Show legend is the canonical persistent, undoable page toggle.
+The visible Fabric list expands from 12 to 31 existing components, including
+Apps; 46 canonical Fabric entries remain searchable. Shared component search
+now supports any-order partial tokens and bounded single-edit typo matching,
+prioritizing exact names/aliases and preserving lifecycle filters.
+
+The completed implementation passed consolidated targeted tests/build.
+One independent verifier passed 33 interaction checks plus the Present JSON
+comparison. A navigation-group-induced false positive for `fab app` was
+repaired by the original owner; 20 focused search tests and the build passed,
+then the same verifier passed 10 search-only browser checks. Unchanged passing
+evidence was reused rather than rerunning the whole matrix.
+See [DGM-168 evidence](verification/DGM-168.md).
+
+Source and related documentation remain local on the current feature branch.
+No version bump, packaging, Desktop replacement, commit/push/tag/publication,
+dependency or public-contract change was performed. Owned verification
+previews were stopped; existing user applications/profiles remain untouched.
+**Exact next action:** this source batch is complete; await the PO's next
+scope or explicit binary-delivery request.
 
 **Latest publication authorization, 2026-11-07: DGM-167 complete.** The PO
 accepted the Desktop refinements and requested "love it, publish the compiled

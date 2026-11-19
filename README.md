@@ -4,6 +4,20 @@
 
 A local architecture editor for Azure, Microsoft Fabric, Microsoft applications and software systems. Draw with architecture glyphs, clearly identified named badges or your own authorized images; describe ownership boundaries, connect components and export without a cloud account. The public source repository is [vespassassina/AzureDiagramStudio](https://github.com/vespassassina/AzureDiagramStudio).
 
+## Current Source: Legend And Component Discovery
+
+Use **View > Show legend** to hide or restore the page legend. The choice is
+saved with the page, supports Undo, and applies to Present and exports.
+Microsoft Fabric now has **31 browsable components**, including Apps, with
+46 canonical Fabric entries available through search.
+
+Component search accepts partial words in any order and limited typos:
+try `fab app`, `lakehosue` or `notebok`. Exact names and aliases remain
+prioritized. Sidebar, connected-component picker and Favorites use the same
+matching behavior. [Verification](docs/verification/DGM-168.md).
+These changes are source-only; the published/Desktop 0.5.4 binaries below
+have not been rebuilt or replaced.
+
 ## Published 0.5.4
 
 [Download the latest Windows ARM64/x64 portable release](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.5.4)

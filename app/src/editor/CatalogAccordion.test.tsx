@@ -31,7 +31,7 @@ const policy = vi.hoisted(() => {
   const longtail = [item('azure-test', 'Azure Test Control plane'), item('fabric-kql', 'KQL Database', 'fabric')]
   const selectionLibrary = [...groups.flatMap(group => group.items), ...longtail]
   const archived = [item('retired-bonsai', 'Bonsai'), item('fabric-onelake-old', 'OneLake variant', 'fabric')]
-  const searchGroups = vi.fn((query: string) => query === 'ranked' ? [{ ...groups[0], items: [compute[0], longtail[0]] }, groups[5]] : groups.map(group => ({ ...group, items: [...group.items, ...(group.id === 'compute' ? [longtail[0]] : group.id === 'fabric' ? [longtail[1]] : [])].filter(entry => `${entry.label} ${group.label}`.toLowerCase().includes(query.trim().toLowerCase())).sort((before, after) => before.label.localeCompare(after.label)) })).filter(group => group.items.length))
+  const searchGroups = vi.fn<(query: string) => typeof groups | ReturnType<typeof import('../catalog/presentation.ts').searchGroups>>((query: string) => query === 'ranked' ? [{ ...groups[0], items: [compute[0], longtail[0]] }, groups[5]] : groups.map(group => ({ ...group, items: [...group.items, ...(group.id === 'compute' ? [longtail[0]] : group.id === 'fabric' ? [longtail[1]] : [])].filter(entry => `${entry.label} ${group.label}`.toLowerCase().includes(query.trim().toLowerCase())).sort((before, after) => before.label.localeCompare(after.label)) })).filter(group => group.items.length))
   const rankedSearch = vi.fn<(query: string) => typeof selectionLibrary | ReturnType<typeof import('../catalog/presentation.ts').rankedSearch>>((query: string) => query === 'ranked' ? [compute[0], groups[5].items[0], longtail[0]] : selectionLibrary.filter(entry => entry.label.toLowerCase().includes(query.trim().toLowerCase())).sort((before, after) => before.label.localeCompare(after.label)))
   return { groups, selectionLibrary, archived, searchGroups, rankedSearch, menuGroups: vi.fn((catalog: string) => groups.filter(group => group.catalog === catalog)), searchableLibrary: selectionLibrary, isSelectableIcon: (key: string) => selectionLibrary.some(entry => entry.icon === key), legacyItem: (key: string) => archived.find(entry => entry.icon === key) }
 })
@@ -47,6 +47,33 @@ function setup(writable = true) {
   return { ...view, onChoose }
 }
 function search(query: string) { fireEvent.change(screen.getByLabelText('Search components'), { target: { value: query } }) }
+
+it('should_use_shared_partial_and_fuzzy_results_for_sidebar_and_picker_keyboard_insertion', async () => {
+  const actual = await vi.importActual<typeof import('../catalog/presentation.ts')>('../catalog/presentation.ts')
+  await policy.searchGroups.withImplementation(actual.searchGroups, async () => {
+    await policy.rankedSearch.withImplementation(actual.rankedSearch, () => {
+      for (const query of ['fab app', 'lakehosue', 'notebok', 'pipline', 'time real']) {
+        const sidebarChoose = vi.fn()
+        const sidebar = render(<CatalogAccordion writable selectedIcon={null} onChoose={sidebarChoose} />)
+        search(query)
+        const groupedFirst = actual.searchGroups(query)[0].items[0]
+        expect(screen.getAllByRole('button', { name: /^Insert / })[0].dataset.icon).toBe(groupedFirst.icon)
+        fireEvent.keyDown(screen.getByLabelText('Search components'), { key: 'Enter', isComposing: true })
+        expect(sidebarChoose).not.toHaveBeenCalled()
+        fireEvent.keyDown(screen.getByLabelText('Search components'), { key: 'Enter' })
+        expect(sidebarChoose).toHaveBeenCalledExactlyOnceWith(groupedFirst)
+        sidebar.unmount()
+        const pickerChoose = vi.fn()
+        const picker = render(<ComponentPicker onChoose={pickerChoose} onCancel={vi.fn()} />)
+        const input = screen.getByLabelText('Search components')
+        fireEvent.change(input, { target: { value: query } })
+        fireEvent.keyDown(input, { key: 'Enter' })
+        expect(pickerChoose).toHaveBeenCalledExactlyOnceWith(actual.rankedSearch(query)[0])
+        picker.unmount()
+      }
+    })
+  })
+})
 
 it('should_choose_the_keyboard_search_result_when_arrow_and_enter_are_pressed', () => {
   const { onChoose } = setup()
@@ -398,7 +425,7 @@ it.each(['OneLake', 'Lakehouse', 'KQL', 'pipeline', 'Control plane'])('should_au
   setup()
   fireEvent.click(screen.getByRole('tab', { name: /^Software/ }))
   search(query)
-  const expected = searchGroups(query).flatMap(group => group.items)
+  const expected = searchGroups(query).flatMap<{ label: string }>(group => group.items)
   expect(screen.getAllByRole('button', { name: /^Insert / }).map(button => button.getAttribute('aria-label'))).toEqual(expected.map(item => `Insert ${item.label}`))
   for (const header of document.querySelectorAll('.catalog-group-toggle')) expect(header.getAttribute('aria-expanded')).toBe('true')
   expect(new Set(screen.getAllByRole('button', { name: /^Insert / }).map(button => button.getAttribute('data-icon'))).size).toBe(expected.length)

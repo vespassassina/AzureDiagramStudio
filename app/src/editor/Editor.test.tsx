@@ -11,7 +11,7 @@ import { iconFixture } from '../custom-icons/test-fixtures.ts'
 import { importCustomIcon } from '../custom-icons/import.ts'
 import { applyCommand } from '../document/index.ts'
 import { starterDocument } from '../app/session.ts'
-import { createWorkbook } from '../workbook.ts'
+import { createWorkbook, isWorkbook, parseWorkspace, updateWorkbookPage } from '../workbook.ts'
 
 vi.mock('../custom-icons/import.ts', () => ({ importCustomIcon: vi.fn() }))
 const engine = vi.hoisted(() => ({ cancelConnection: vi.fn() }))
@@ -39,7 +39,7 @@ vi.mock('@xyflow/react', async importOriginal => ({
   useStoreApi: () => ({ getState: () => engine }),
 }))
 import Editor from './Editor.tsx'
-import { buildScene, connectionMarkup, entityMarkup } from '../scene.ts'
+import { buildExportScene, buildScene, connectionMarkup, entityMarkup, renderSvg } from '../scene.ts'
 import { painterOrder } from '../order.ts'
 
 function setup(overrides: Partial<EditorProps> = {}) {
@@ -61,6 +61,11 @@ function menuItemDGM140(label: string) {
 }
 function menuOriginDGM140(label: string) {
   return screen.getByRole('menuitem', { name: `${['Add diagram', 'Save', 'Save As', 'Load', 'Recent diagrams', 'Import skill JSON'].includes(label) ? 'File' : 'Settings'} menu` })
+}
+function legendMenuDGM168() {
+  const trigger = screen.getByRole('menuitem', { name: 'View menu' })
+  if (trigger.getAttribute('aria-expanded') !== 'true') fireEvent.keyDown(trigger, { key: 'Enter' })
+  return screen.getByRole('menuitemcheckbox', { name: 'Show legend' })
 }
 function showSidebarDGM137(view: 'properties' | 'markdown' = 'properties') {
   const trigger = screen.getByRole('button', { name: 'Sidebar' })
@@ -99,6 +104,119 @@ function contextMenuDGM119(kind: 'pane' | 'node' | 'edge', id?: string, point = 
 afterEach(() => { cleanup(); vi.clearAllMocks(); localStorage.removeItem('azure-diagram-studio:favorites:v1'); window.innerWidth = 1024 })
 
 describe('controlled editor', () => {
+  it('should_toggle_the_canonical_View_legend_with_history_and_preserve_hidden_Present_and_export_DGM168', () => {
+    let history: History = { past: [], present: sampleDiagram(), future: [] }
+    const { props, rerender } = setup({
+      document: history.present,
+      onCommand: vi.fn(command => { history = historyCommit(history, applyCommand(history.present, command)) }),
+      onUndo: vi.fn(() => { history = historyUndo(history) }),
+      onRedo: vi.fn(() => { history = historyRedo(history) }),
+    })
+    expect(screen.getByLabelText('Diagram legend')).toBeTruthy()
+    expect(screen.queryByRole('checkbox', { name: 'Show legend' })).toBeNull()
+    expect(props.onCommand).not.toHaveBeenCalled()
+    const toggle = legendMenuDGM168()
+    expect(toggle.getAttribute('aria-checked')).toBe('true')
+    fireEvent.keyDown(toggle, { key: 'Home' })
+    for (let index = 0; index < 4; index++) fireEvent.keyDown(document.activeElement!, { key: 'ArrowDown' })
+    expect(document.activeElement).toBe(toggle)
+    fireEvent.click(toggle)
+    expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'View menu' }))
+    rerender(<Editor {...props} document={history.present} />)
+    expect(history.present.legendVisible).toBe(false)
+    expect(screen.queryByLabelText('Diagram legend')).toBeNull()
+    expect(legendMenuDGM168().getAttribute('aria-checked')).toBe('false')
+    fireEvent.keyDown(document.activeElement!, { key: 'Escape' })
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
+    rerender(<Editor {...props} document={history.present} />)
+    expect(screen.getByLabelText('Diagram legend')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Redo' }))
+    rerender(<Editor {...props} document={history.present} />)
+    expect(renderSvg(buildExportScene(history.present))).not.toContain('>Planned</text>')
+    fireEvent.click(screen.getByRole('button', { name: 'Present' }))
+    expect(screen.getByRole('button', { name: 'Exit presentation' })).toBeTruthy()
+    expect(screen.queryByLabelText('Diagram legend')).toBeNull()
+    expect(screen.queryByRole('menuitemcheckbox', { name: 'Show legend' })).toBeNull()
+    expect(props.onCommand).toHaveBeenCalledTimes(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Exit presentation' }))
+    fireEvent.click(legendMenuDGM168())
+    rerender(<Editor {...props} document={history.present} />)
+    expect(screen.getByLabelText('Diagram legend')).toBeTruthy()
+    expect(renderSvg(buildExportScene(history.present))).toContain('>Planned</text>')
+  })
+  it('should_persist_legend_visibility_only_on_the_edited_page_through_workbook_JSON_DGM168', () => {
+    const first = { ...sampleDiagram(), id: 'page-one', title: 'Page one' }
+    const second = { ...sampleDiagram(), id: 'page-two', title: 'Page two' }
+    let root = { ...createWorkbook('workbook', first.id), pages: [first, second] }
+    const { props, rerender } = setup({
+      document: first, root, onSelectPage: vi.fn(),
+      onCommand: vi.fn(command => { root = updateWorkbookPage(root, first.id, applyCommand(root.pages[0], command)) }),
+    })
+    fireEvent.click(legendMenuDGM168())
+    expect(root.pages[1]).toBe(second)
+    const loaded = parseWorkspace(JSON.stringify(root))
+    expect(loaded.ok).toBe(true)
+    if (!loaded.ok || !isWorkbook(loaded.value)) throw new Error('Expected valid saved workbook')
+    expect(loaded.value.pages.map(page => page.legendVisible)).toEqual([false, true])
+    rerender(<Editor {...props} root={loaded.value} document={loaded.value.pages[1]} />)
+    expect(screen.getByLabelText('Diagram legend')).toBeTruthy()
+    expect(legendMenuDGM168().getAttribute('aria-checked')).toBe('true')
+    fireEvent.keyDown(document.activeElement!, { key: 'Escape' })
+    rerender(<Editor {...props} root={loaded.value} document={loaded.value.pages[0]} />)
+    expect(screen.queryByLabelText('Diagram legend')).toBeNull()
+    expect(legendMenuDGM168().getAttribute('aria-checked')).toBe('false')
+  })
+  it.each(['metadata', 'inline'])('should_finish_a_valid_%s_draft_before_toggling_legend_without_losing_text_DGM168', kind => {
+    const { props } = setup({ document: sampleDiagram() })
+    let input: HTMLElement
+    if (kind === 'inline') {
+      beginInlineDGM154(screen.getByText('app'))
+      input = screen.getByRole('textbox', { name: 'Inline component label' })
+    } else input = screen.getByRole('textbox', { name: 'Document title' })
+    fireEvent.change(input, { target: { value: 'Preserved draft' } })
+    fireEvent.click(legendMenuDGM168())
+    expect(vi.mocked(props.onCommand).mock.calls.map(call => call[0])).toEqual([
+      kind === 'inline' ? { type: 'updateEntity', id: 'app', patch: { label: 'Preserved draft' } } : { type: 'metadata', patch: { title: 'Preserved draft' } },
+      { type: 'metadata', patch: { legendVisible: false } },
+    ])
+  })
+  it('should_refuse_legend_action_during_IME_and_preserve_invalid_inline_drafts_DGM168', () => {
+    const { props } = setup({ document: sampleDiagram() })
+    beginInlineDGM154(screen.getByText('app'))
+    const input = screen.getByRole('textbox', { name: 'Inline component label' })
+    fireEvent.compositionStart(input)
+    fireEvent.keyDown(screen.getByRole('menuitem', { name: 'View menu' }), { key: 'Enter' })
+    expect(screen.queryByRole('menuitemcheckbox', { name: 'Show legend' })).toBeNull()
+    expect(props.onCommand).not.toHaveBeenCalled()
+    fireEvent.compositionEnd(input)
+    fireEvent.change(input, { target: { value: 'x'.repeat(121) } })
+    fireEvent.click(legendMenuDGM168())
+    expect(props.onCommand).not.toHaveBeenCalled()
+    expect(screen.getByRole('textbox', { name: 'Inline component label' })).toHaveProperty('value', 'x'.repeat(121))
+    expect(screen.getByLabelText('Diagram legend')).toBeTruthy()
+  })
+  it.each(['Apps', 'Environment', 'Copy job', 'Real-Time Dashboard', 'ML model', 'Paginated report'])('should_browse_and_insert_canonical_Fabric_%s_without_search_DGM168', label => {
+    const item = menuGroups('azure')[6].items.find(item => item.label === label)!
+    const { props } = setup()
+    fireEvent.click(screen.getByRole('button', { name: /^Microsoft: Microsoft Fabric/ }))
+    const row = screen.getByRole('button', { name: `Insert ${label}` })
+    expect(row.dataset.icon).toBe(item.icon)
+    fireEvent.click(row)
+    fireEvent.click(screen.getByText('Canvas point'))
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith({ type: 'addEntity', entity: expect.objectContaining({ icon: item.icon, label }) })
+    expect((screen.getByLabelText('Search components') as HTMLInputElement).value).toBe('')
+  })
+  it.each(['fab app', 'lakehosue', 'notebok', 'pipline'])('should_insert_a_connected_component_from_shared_%s_search_with_Enter_DGM168', query => {
+    const expected = searchGroups(query).flatMap(group => group.items)[0]
+    const { props } = setup({ document: sampleDiagram() })
+    fireEvent.click(screen.getByText('app'))
+    fireEvent.click(screen.getByRole('button', { name: 'Add connected component right' }))
+    const input = within(screen.getByRole('dialog')).getByLabelText('Search components')
+    fireEvent.change(input, { target: { value: query } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(props.onCommand).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ type: 'addConnected', entity: expect.objectContaining({ icon: expected.icon }) }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
   it('should_select_a_painted_title_first_then_edit_only_on_a_later_unmodified_title_click_DGM154', () => {
     const { props } = setup({ document: sampleDiagram() })
     const node = screen.getByTestId('tile-app').querySelector('button')!
@@ -4359,7 +4477,7 @@ describe('controlled editor', () => {
     const { props } = setup({ document: sampleDiagram() })
     fireEvent.click(screen.getByLabelText('Synthetic diagram'))
     expect(props.onCommand).toHaveBeenLastCalledWith({ type: 'metadata', patch: { synthetic: false } })
-    fireEvent.click(screen.getByLabelText('Show legend'))
+    fireEvent.click(legendMenuDGM168())
     expect(props.onCommand).toHaveBeenLastCalledWith({ type: 'metadata', patch: { legendVisible: false } })
     fireEvent.click(screen.getByLabelText('Auto-arrange'))
     expect(props.onArrange).not.toHaveBeenCalled()
@@ -4388,7 +4506,10 @@ describe('controlled editor', () => {
     for (const label of ['Connection label', 'Connection source', 'Connection target', 'Source side', 'Target side', 'Connection line', 'Connection direction', 'Insertion component']) expect((screen.getByLabelText(label) as HTMLInputElement).disabled).toBe(true)
     documentPropertiesDGM137()
     expect((screen.getByLabelText('Synthetic diagram') as HTMLInputElement).disabled).toBe(true)
-    expect((screen.getByLabelText('Show legend') as HTMLInputElement).disabled).toBe(true)
+    const legend = legendMenuDGM168()
+    expect(legend.getAttribute('aria-disabled')).toBe('true')
+    expect(legend.getAttribute('aria-checked')).toBe('true')
+    fireEvent.click(legend)
     expect(props.onCommand).not.toHaveBeenCalled()
   })
   it('should_retain_selection_when_caller_rejects_a_new_group', () => {

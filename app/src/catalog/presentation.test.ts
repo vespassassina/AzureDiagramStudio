@@ -19,6 +19,62 @@ const pins = [
   ['SharePoint', 'Microsoft Teams', 'Microsoft 365', 'Microsoft 365 Copilot'],
 ]
 const alphabetical = (labels: string[]) => labels.slice().sort((left, right) => left.localeCompare(right, 'en', { sensitivity: 'base', numeric: true }))
+const originalFabricLabels = ['OneLake', 'Lakehouse', 'Warehouse', 'Data pipeline', 'Dataflow Gen2', 'Eventhouse', 'Eventstream', 'KQL database', 'Notebook', 'Power BI', 'Report', 'Semantic model']
+
+test('should_match_partial_tokens_in_any_order_across_component_fields_and_normalize_punctuation', () => {
+  for (const [query, label] of [['fab app', 'Apps'], ['app fab', 'Apps'], ['time real', 'Real-Time Intelligence'], ['real time', 'Real-Time Dashboard'], ['eng lake', 'Lakehouse'], ['gen flow', 'Dataflow Gen2']]) {
+    assert.ok(presentation.rankedSearch(query).some(item => item.label === label), `${query}: ${label}`)
+  }
+  const found = presentation.rankedSearch('  REAL---time  ')
+  assert.ok(found.length)
+  assert.equal(presentation.rankedSearch('real time'), found)
+  assert.equal(presentation.rankedSearch('REAL   TIME'), found)
+  assert.deepEqual(presentation.rankedSearch('!!!'), [])
+})
+
+test('should_require_component_identity_not_navigation_words_for_partial_and_fuzzy_token_fallback', () => {
+  const serviceFabric = searchableLibrary.filter(item => ['Managed Service Fabric', 'Service Fabric Clusters'].includes(item.label))
+  assert.equal(serviceFabric.length, 2)
+  for (const query of ['fab app', 'app fab', 'fabrci app']) {
+    const matches = presentation.rankedSearch(query)
+    assert.ok(matches.some(item => item.label === 'Apps'), query)
+    for (const item of serviceFabric) assert.equal(matches.includes(item), false, `${query}: ${item.label}`)
+    assert.deepEqual(searchGroups(query).flatMap(group => group.items), matches)
+  }
+  for (const query of ['Compute & Apps', 'compute']) {
+    const matches = presentation.rankedSearch(query)
+    for (const item of serviceFabric) assert.ok(matches.includes(item), `${query}: ${item.label}`)
+  }
+  assert.equal(presentation.rankedSearch('Fabric Apps')[0]?.label, 'Apps')
+  assert.equal(presentation.rankedSearch('APIM')[0]?.icon, 'azure-api')
+})
+
+test('should_find_conservative_whole_word_typos_after_literal_matches_without_fuzzing_short_tokens', () => {
+  for (const [query, label] of [['lakehosue', 'Lakehouse'], ['notebok', 'Notebook'], ['pipline', 'Data pipeline'], ['warehous', 'Warehouse'], ['fabrci apps', 'Apps']]) {
+    assert.ok(presentation.rankedSearch(query).some(item => item.label === label), `${query}: ${label}`)
+  }
+  for (const query of ['qzx', 'qz', 'zzzzzzzz', 'lakezzuse', 'notbxxk', 'z'.repeat(5000)]) assert.deepEqual(presentation.rankedSearch(query), [], query.slice(0, 40))
+  assert.equal(presentation.rankedSearch('API')[0]?.icon, 'api')
+  assert.equal(presentation.rankedSearch('APIM')[0]?.icon, 'azure-api')
+  assert.equal(presentation.rankedSearch('Fabric Apps')[0]?.label, 'Apps')
+  assert.equal(presentation.rankedSearch('fabricapps')[0]?.label, 'Apps')
+  const exact = presentation.rankedSearch('Notebook')
+  assert.equal(exact[0]?.label, 'Notebook')
+  assert.equal(Object.isFrozen(exact), true)
+  assert.equal(presentation.rankedSearch('notebook'), exact)
+})
+
+test('should_keep_stable_collator_ties_and_first_owner_order_for_multi_token_and_fuzzy_results', () => {
+  const collator = new Intl.Collator('en', { sensitivity: 'base', numeric: true })
+  for (const query of ['time real', 'fab app', 'lakehosue']) {
+    const ranked = presentation.rankedSearch(query)
+    const groups = searchGroups(query)
+    const owners = new Map(groups.flatMap(group => group.items.map(item => [item.icon, group.id] as const)))
+    assert.deepEqual(groups.map(group => group.id), [...new Set(ranked.map(item => owners.get(item.icon)))])
+    assert.deepEqual([...ranked].sort((a, b) => collator.compare(a.label, b.label) || collator.compare(a.icon, b.icon)), ranked)
+    for (const group of groups) assert.deepEqual(group.items, ranked.filter(item => owners.get(item.icon) === group.id))
+  }
+})
 
 test('should_rank_API_Management_first_when_searching_APIM', () => {
   const groups = searchGroups('APIM')
@@ -104,7 +160,10 @@ test('should_preserve_all_inventory_ids_raw_metadata_and_default_menus_when_rank
   assert.equal(allLibraryItems.length, 2266)
   assert.equal(fingerprint(selectionLibrary.map(item => item.icon).sort()), '08a681c123944a31891ffc77f6da2f7763896fa08a76c8425e97c84b946f114a')
   assert.equal(fingerprint(allLibraryItems), '33dc7dded3b3466747950f5cbcd4352deb1a8ec470c852da6ba194a7137e7ebf')
-  const menus = [...menuGroups('azure'), ...menuGroups('software')].map(group => ({ ...group, items: group.items.map(item => item.icon) }))
+  const menus = [...menuGroups('azure'), ...menuGroups('software')].map(group => ({
+    ...group,
+    items: (group.id === 'azure-fabric' ? originalFabricLabels.map(label => group.items.find(item => item.label === label)!) : group.items).map(item => item.icon),
+  }))
   assert.equal(fingerprint(menus), '6dd6e41c0431d47b14bedf2db94e1af325eb93b86cd98553765de9040f2810ca')
 })
 
@@ -123,13 +182,13 @@ test('should_keep_excluded_icons_out_of_ranked_search_when_legacy_documents_can_
   }
 })
 
-test('should_expose_eight_compact_azure_microsoft_groups_with_icons_and_editorial_pins', () => {
+test('should_expose_eight_azure_microsoft_groups_with_icons_editorial_pins_and_expanded_Fabric', () => {
   const groups = menuGroups('azure')
   assert.deepEqual(groups.map(group => group.label), ['Compute & Apps', 'Networking', 'Storage & Databases', 'AI & Analytics', 'Integration', 'Security & Management', 'Microsoft Fabric', 'Microsoft Apps'])
   assert.deepEqual(groups.map(group => group.icon), ['server', 'network', 'database', 'brain', 'workflow', 'shield', 'layers', 'app-window'])
   groups.forEach((group, index) => {
     assert.equal(group.catalog, 'azure')
-    assert.ok(group.items.length >= 8 && group.items.length <= 12, group.label)
+    assert.ok(group.items.length >= 8 && group.items.length <= (group.id === 'azure-fabric' ? 31 : 12), group.label)
     assert.deepEqual(group.items.slice(0, 4).map(item => item.label), pins[index])
     const tail = group.items.slice(4).map(item => item.label)
     assert.deepEqual(tail, alphabetical(tail), group.label)
@@ -150,10 +209,10 @@ test('should_keep_twelve_software_entries_separate_from_azure', () => {
 
 test('should_reveal_current_long_tail_only_through_global_search', () => {
   const menuKeys = new Set(menuGroups('azure').flatMap(group => group.items.map(item => item.icon)))
-  for (const query of ['ExpressRoute', 'ML experiment', 'IoT Central', 'Azure Spring']) {
+  for (const query of ['ExpressRoute', 'Graph model instance', 'IoT Central', 'Azure Spring']) {
     const found = searchGroups(query).flatMap(group => group.items)
     assert.ok(found.length, query)
-    if (query === 'ML experiment') assert.ok(found.every(item => !menuKeys.has(item.icon)))
+    if (query === 'Graph model instance') assert.ok(found.every(item => !menuKeys.has(item.icon)))
   }
   assert.deepEqual(searchGroups('no-such-component-12345'), [])
 })
@@ -188,8 +247,14 @@ test('should_select_one_preferred_official_glyph_per_semantic_fabric_family', ()
   assert.ok(components.length < fabricLibrary.length)
   assert.equal(components.some(item => /globe|chevron|button/i.test(item.label)), false)
   assert.equal(components.some(item => /No-access|Restricted|Shared semantic|External semantic|Mobile report|RDL report/i.test(item.label)), false)
-  assert.equal(menuGroups('azure')[6].items.length, 12)
-  assert.deepEqual(menuGroups('azure')[6].items.slice(4).map(item => item.label), ['Dataflow Gen2', 'Eventhouse', 'Eventstream', 'KQL database', 'Notebook', 'Power BI', 'Report', 'Semantic model'])
+  const visible = menuGroups('azure')[6].items
+  assert.equal(visible.length, 31)
+  for (const label of [...originalFabricLabels, 'Microsoft Fabric', 'Data Engineering', 'Environment', 'Spark job definition', 'SQL database', 'Mirrored database', 'Data Factory', 'Copy job', 'Variable library', 'KQL queryset', 'Real-Time Intelligence', 'Real-Time Dashboard', 'Data Science', 'ML model', 'Experiment', 'Paginated report', 'Dashboard', 'Scorecard', 'Apps']) {
+    const item = visible.find(item => item.label === label)
+    assert.ok(item, label)
+    assert.equal(item, components.find(candidate => candidate.icon === item.icon))
+  }
+  assert.equal(visible.some(item => /Datamart|Restricted|Mobile report|No-access|glyph/i.test(item.label)), false)
 })
 
 test('should_exclude_retired_families_and_bonsai_from_search_and_new_selection_only', () => {

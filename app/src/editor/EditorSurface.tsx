@@ -2208,6 +2208,10 @@ export default function EditorSurface(props: EditorProps) {
       { label: 'Sidebar', checked: inspectorOpen, run: viewAction(() => { setInspectorRequested(!inspectorRequested); inspectorIntent.current = !inspectorRequested }) },
       { label: 'Show properties', checked: inspectorOpen && sidebarView === 'properties', run: viewAction(() => showSidebar('properties')) },
       { label: 'Show Markdown', checked: inspectorOpen && sidebarView === 'markdown', run: viewAction(() => showSidebar('markdown')) },
+      { label: 'Show legend', checked: diagram.legendVisible, disabled: !writable, run: viewAction(() => {
+        if (!writable || !finishInline()) return
+        editMetadata({ legendVisible: !diagram.legendVisible })
+      }) },
       { label: `Switch to ${theme === 'light' ? 'dark' : 'light'} theme`, checked: theme === 'dark', description: preferenceError ?? undefined, run: viewAction(toggleTheme) },
       { label: 'Fit diagram', disabled: !scene.entities.length, run: viewAction(() => fitCanvas()) },
       { label: 'Fit selection', disabled: !selectedIds.length, run: viewAction(() => fitCanvas(true)) },
@@ -2341,7 +2345,7 @@ export default function EditorSurface(props: EditorProps) {
               <label className="property-toggle"><input aria-label="Show grid in Present" type="checkbox" checked={grid.present} disabled={!writable} onChange={event => editGrid({ present: event.target.checked })} />Show grid in Present</label>
               <label className="property-toggle"><input aria-label="Include grid in exports" type="checkbox" checked={grid.export} disabled={!writable} onChange={event => editGrid({ export: event.target.checked })} />Include grid in exports</label>
             </div>
-            <label className="property-toggle"><input aria-label="Synthetic diagram" type="checkbox" checked={diagram.synthetic} disabled={!writable} onChange={event => editMetadata({ synthetic: event.target.checked })} />Synthetic</label><label className="property-toggle"><input aria-label="Show legend" type="checkbox" checked={diagram.legendVisible} disabled={!writable} onChange={event => editMetadata({ legendVisible: event.target.checked })} />Show legend</label>
+            <label className="property-toggle"><input aria-label="Synthetic diagram" type="checkbox" checked={diagram.synthetic} disabled={!writable} onChange={event => editMetadata({ synthetic: event.target.checked })} />Synthetic</label>
             <button type="button" className="inspector-command" aria-label="Page styles" disabled={!writable || presenting} onClick={event => { pageStylesReturn.current = event.currentTarget; setPageStylesOpen(true) }}>Page styles</button>
             <div className="readout"><span>Objects</span><strong>{diagram.entities.length}</strong></div><div className="readout"><span>Connections</span><strong>{diagram.connections.length}</strong></div>
           </>}

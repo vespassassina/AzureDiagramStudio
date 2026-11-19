@@ -49,7 +49,7 @@ Use explicit, predictable state and persist meaningful preferences.
 | --- | --- |
 | Workbook creation/Load/Save, Add New Page, Add Diagram | Top File menu in workbook/page groups; page-strip + creates a blank page directly |
 | Architecture selection and preview zoom | Add Diagram catalog; icon-labelled workload hierarchy left, selected diagram/Markdown right; automatic fit/center, zoom and drag-to-pan beside preview; dialog moves by its title bar |
-| Panel visibility, Properties/Markdown, theme, existing fit commands | Top View menu |
+| Panel visibility, Properties/Markdown, page legend visibility, theme, existing fit commands | Top View menu |
 | Settings, Help, About | Top Settings menu |
 | Undo, Redo, Export, Present | Only top action buttons |
 | Local save, error and ownership status | Bottom status bar (no top duplicate) |
