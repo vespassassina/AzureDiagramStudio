@@ -1,6 +1,6 @@
 # Diagrammer Roadmap and Delegation Plan
 
-Updated: 2026-11-19. Status: DGM-168 SOURCE LEGEND/FABRIC/SEARCH COMPLETE. PUBLIC AND DESKTOP 0.5.4 UNCHANGED. OLDER RELEASES, INSTALLATIONS, PREVIEWS AND DRAFTS REMAIN PRESERVED.
+Updated: 2026-11-19. Status: DGM-168 SOURCE COMMITTED FOR FAST-FORWARD DELIVERY AND SOURCE TAG. PUBLIC AND DESKTOP 0.5.4 BINARIES UNCHANGED. OLDER RELEASES, INSTALLATIONS, PREVIEWS AND DRAFTS REMAIN PRESERVED.
 
 ## Current Execution Policy
 
@@ -107,12 +107,17 @@ then the same verifier passed 10 search-only browser checks. Unchanged passing
 evidence was reused rather than rerunning the whole matrix.
 See [DGM-168 evidence](verification/DGM-168.md).
 
-Source and related documentation remain local on the current feature branch.
-No version bump, packaging, Desktop replacement, commit/push/tag/publication,
-dependency or public-contract change was performed. Owned verification
-previews were stopped; existing user applications/profiles remain untouched.
-**Exact next action:** this source batch is complete; await the PO's next
-scope or explicit binary-delivery request.
+The PO subsequently requested "commit, merge, push and tag". Accepted source
+and documentation are committed as
+`e4bdf36cf4c0b3ccf2e7889f12d1b8ddbcfd1281`. Delivery uses the existing
+no-PR policy: fast-forward the current branch and established default
+`feat/DGM-070-desktop-release`, with annotated source-only tag
+`source-v0.5.4-dgm168` on this closeout. No version bump, packaging, Desktop
+replacement, binary publication, dependency or public-contract change is
+authorized. Owned verification previews were stopped; existing user
+applications/profiles remain untouched.
+**Exact next action:** push this closeout and the new source tag atomically,
+then verify the remote refs. No further feature work remains.
 
 **Latest publication authorization, 2026-11-07: DGM-167 complete.** The PO
 accepted the Desktop refinements and requested "love it, publish the compiled
