@@ -4,7 +4,11 @@
 
 A local architecture editor for Azure, Microsoft Fabric, Microsoft applications and software systems. Draw with architecture glyphs, clearly identified named badges or your own authorized images; describe ownership boundaries, connect components and export without a cloud account. The public source repository is [vespassassina/AzureDiagramStudio](https://github.com/vespassassina/AzureDiagramStudio).
 
-## Current Source: Legend And Component Discovery
+## Published 0.5.5: Legend And Component Discovery
+
+[Download the latest Windows ARM64/x64 portable release](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.5.5)
+with SHA-256 checksums. The native ARM64 executable is also copied to the
+Desktop; older files remain unchanged.
 
 Use **View > Show legend** to hide or restore the page legend. The choice is
 saved with the page, supports Undo, and applies to Present and exports.
@@ -15,12 +19,15 @@ Component search accepts partial words in any order and limited typos:
 try `fab app`, `lakehosue` or `notebok`. Exact names and aliases remain
 prioritized. Sidebar, connected-component picker and Favorites use the same
 matching behavior. [Verification](docs/verification/DGM-168.md).
-These changes are source-only; the published/Desktop 0.5.4 binaries below
-have not been rebuilt or replaced.
+Both actual 0.5.5 executables passed independent startup, component placement,
+search, legend and persisted-state checks. Public downloads match the
+qualified hashes. x64 was checked under ARM64 emulation, not native Intel/AMD
+hardware. The executables remain unsigned.
+[Package and distribution evidence](docs/verification/DGM-169.md).
 
-## Published 0.5.4
+## Previous Release 0.5.4
 
-[Download the latest Windows ARM64/x64 portable release](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.5.4)
+[Download the previous Windows ARM64/x64 portable release](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.5.4)
 with SHA-256 checksums. The ARM64 asset is the exact approved Desktop
 executable; the matching x64 asset was qualified under ARM64 emulation.
 

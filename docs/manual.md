@@ -1,13 +1,18 @@
 ﻿# Azure Diagram Studio: Short Manual
 
-**Current source additions:** View > Show legend is the canonical legend
+**[Published Windows 0.5.5](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.5.5):**
+View > Show legend is the canonical legend
 toggle; the Fabric component list includes Apps and more workload items, and
 component search supports partial words and limited typos. These
-[DGM-168 changes](verification/DGM-168.md) are not in the unchanged published
-or Desktop 0.5.4 executables.
+[DGM-168 changes](verification/DGM-168.md) are included in both new portable
+executables. The ARM64 build has also been copied to the Desktop, preserving
+older executables. Both public downloads match their qualified hashes.
+[DGM-169](verification/DGM-169.md) records package/runtime and distribution
+evidence. The executables are unsigned; x64 was checked under ARM64 emulation,
+not native Intel/AMD hardware.
 
 **[Published Windows 0.5.4](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.5.4):**
-the stable/latest ARM64 and x64 portables include the catalog preview,
+the previous ARM64 and x64 portables include the catalog preview,
 compact-layout and page-navigation refinements described below. ARM64 is the
 exact approved Desktop executable; x64 was qualified under ARM64 emulation,
 not native Intel/AMD hardware. [DGM-166](verification/DGM-166.md) records the
@@ -866,7 +871,7 @@ qualification.
 
 Use **Add text** for notes and **Add rectangle** for framing. Selected objects expose **Bring forward**, **Send backward**, **Bring to top** and **Send to bottom** in Properties. These reorder applicable siblings while retaining parent/child visibility and semantic render bands: default foreground tiles stay above connection lines, and lines stay above containers. Ordering alone does not change geometry or routes; an already-extreme action is a no-op. Text/rectangles can also be resized.
 
-Component **Status** can be **Unset**, **Live**, **Planned**, **Not connected** or **Synthetic**. Unset is not evidence of live deployment. Use Live only for a state you have verified; leave illustrative content Synthetic. In **Document properties**, **Synthetic** labels the whole diagram. In current source, **View > Show legend** hides or restores the legend; published 0.5.4 retains its Show legend control in Document properties. The legend reflects colors and explicit statuses, plus any entries already stored in the document.
+Component **Status** can be **Unset**, **Live**, **Planned**, **Not connected** or **Synthetic**. Unset is not evidence of live deployment. Use Live only for a state you have verified; leave illustrative content Synthetic. In **Document properties**, **Synthetic** labels the whole diagram. In 0.5.5, **View > Show legend** hides or restores the legend; older 0.5.4 retains its Show legend control in Document properties. The legend reflects colors and explicit statuses, plus any entries already stored in the document.
 
 Legend visibility is saved per page, supports Undo/Redo, and applies to
 Present and exported artwork. Hiding it does not delete legend entries or

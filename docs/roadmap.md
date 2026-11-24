@@ -1,6 +1,6 @@
 # Diagrammer Roadmap and Delegation Plan
 
-Updated: 2026-11-19. Status: DGM-168 SOURCE COMMITTED FOR FAST-FORWARD DELIVERY AND SOURCE TAG. PUBLIC AND DESKTOP 0.5.4 BINARIES UNCHANGED. OLDER RELEASES, INSTALLATIONS, PREVIEWS AND DRAFTS REMAIN PRESERVED.
+Updated: 2026-11-24. Status: DGM-169 WINDOWS 0.5.5 PUBLISHED AND COPIED TO DESKTOP. OLDER RELEASES, INSTALLATIONS, PREVIEWS AND DRAFTS REMAIN PRESERVED.
 
 ## Current Execution Policy
 
@@ -89,6 +89,25 @@ supersedes earlier participant-trial stops, not technical safety requirements.
 
 ## Execution Queue
 
+**Latest publication, 2026-11-24: DGM-169 complete.** The PO requested the
+latest build, publication without relying on the initially unavailable `gh`,
+and a Desktop copy. Only version fields changed from accepted DGM-168 source.
+Both packages passed independent identity, startup, actual Apps placement,
+search, legend and persisted-state checks. Native ARM64 and x64-under-ARM64
+emulation are qualified; native Intel/AMD, Visio and native chooser acceptance
+remain unverified. PNG/PDF were not repeated in this version-only smoke.
+See [DGM-169](verification/DGM-169.md).
+
+The `gh` retry succeeded as the repository owner, and the PO explicitly
+approved latest/stable publication. Both branches and annotated tag `0.5.5`
+were pushed at `c412ec73db683ac99e72afe6191a152997ed2020`. The
+[stable/latest release](https://github.com/vespassassina/AzureDiagramStudio/releases/tag/0.5.5)
+was published at 2026-11-24T08:46:56+01:00. Fresh anonymous downloads of
+both executables and checksums returned HTTP 200 and matched every qualified
+size/hash; the public latest endpoint reports 0.5.5. The Desktop ARM64 copy
+matches the same hash. Older executables and profiles are preserved.
+**Exact next action:** delivery is complete; await the PO's next scope.
+
 **Latest source delivery, 2026-11-19: DGM-168 complete.** The PO requested
 legend hiding, Fabric apps and partial/fuzzy search, and clarified that
 Fabric means the component library, not architecture templates.
@@ -116,10 +135,10 @@ no-PR policy: fast-forward the current branch and established default
 replacement, binary publication, dependency or public-contract change is
 authorized. Owned verification previews were stopped; existing user
 applications/profiles remain untouched.
-**Exact next action:** push this closeout and the new source tag atomically,
-then verify the remote refs. No further feature work remains.
+Both branches and the source tag were confirmed remotely at `a5073ec`.
+This source delivery is complete; its binaries are now delivered by DGM-169.
 
-**Latest publication authorization, 2026-11-07: DGM-167 complete.** The PO
+**Previous publication authorization, 2026-11-07: DGM-167 complete.** The PO
 accepted the Desktop refinements and requested "love it, publish the compiled
 binaries". Accepted source is committed as `f50ab67`. The exact Desktop ARM64
 asset is preserved unchanged; matching x64 packaging reused its accepted
